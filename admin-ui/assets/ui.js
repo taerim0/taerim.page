@@ -72,3 +72,30 @@ export function setQuery(params) {
   const search = params.toString();
   history.pushState(null, "", search ? `?${search}` : location.pathname);
 }
+
+const FLASH_KEY = "admin-flash";
+
+/**
+ * 다음 화면에서 한 번 보여줄 알림을 남긴다 (예: 휴지통으로 보낸 뒤 목록에서 "휴지통으로 옮겼어요")
+ * 저장이 막힌 브라우저(사생활 보호 모드 등)에서는 조용히 넘어간다.
+ * @param {string} message
+ */
+export function flash(message) {
+  try {
+    sessionStorage.setItem(FLASH_KEY, message);
+  } catch {
+    // 알림 하나 못 보여주는 것뿐이라 무시
+  }
+}
+
+/** 남겨 둔 알림이 있으면 보여주고 지운다 */
+export function showFlash() {
+  try {
+    const message = sessionStorage.getItem(FLASH_KEY);
+    if (message === null) return;
+    sessionStorage.removeItem(FLASH_KEY);
+    notify(message, "info");
+  } catch {
+    // 무시
+  }
+}

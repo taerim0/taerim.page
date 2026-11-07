@@ -3,12 +3,117 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>글 쓰기·편집 · taerim.page 관리자</title>
+  <title>글 편집 · taerim.page 관리자</title>
   <link rel="stylesheet" href="/assets/admin.css">
+  <script type="module" src="/assets/post.js"></script>
 </head>
-<body>
-  <nav><a href="/">글 목록</a> · <a href="/posts/new">새 글</a> · <a href="/tags">태그</a> · <a href="/trash">휴지통</a></nav>
-  <h1>글 쓰기·편집</h1>
-  <p>준비 중인 화면이에요. (자리만 잡아 둔 파일)</p>
+<body class="editor-body">
+  <!--
+    새 글(/posts/new)과 편집(/posts/edit/:id)이 같이 쓰는 화면.
+    칸 아래의 [data-count-for]·[data-error-for]는 post.js가 칸 이름으로 찾아서 글자 수·오류를 채운다.
+  -->
+  <header class="topbar">
+    <a class="brand" href="/">taerim.page 관리자</a>
+    <nav>
+      <a class="button" href="/">글 목록</a>
+      <a class="button" href="/tags">태그</a>
+      <a class="button" href="/trash">휴지통</a>
+    </nav>
+  </header>
+
+  <main class="editor-page">
+    <p id="loading" class="muted">불러오는 중…</p>
+
+    <div id="editor" hidden>
+      <!-- 지금 상태: 초안 / 공개 / 공개 · 수정 중, 저장 안 됨 표시, 상태별 안내 -->
+      <div class="editor-status">
+        <span id="status-pill" class="pill"></span>
+        <span id="dirty-mark" class="dirty" hidden>저장 안 됨</span>
+        <span id="saved-at" class="muted"></span>
+        <button id="preview-toggle" class="button preview-toggle" type="button" aria-controls="preview-pane" aria-expanded="true">미리보기</button>
+      </div>
+      <p id="state-help" class="state-help" hidden></p>
+
+      <div class="editor-grid">
+        <!-- 왼쪽: 쓰기 -->
+        <section class="write" aria-label="쓰기">
+          <div class="field">
+            <input id="title" class="title-input" type="text" placeholder="제목을 입력하세요" aria-label="제목" autocomplete="off">
+            <div class="field-foot">
+              <p class="field-error" data-error-for="title"></p>
+              <span class="count" data-count-for="title"></span>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="tag-editor">
+              <span id="tag-chips"></span>
+              <input id="tag-input" type="text" placeholder="태그 입력 후 띄어쓰기·엔터" aria-label="태그 추가" autocomplete="off">
+            </div>
+            <div class="field-foot">
+              <p class="field-error" data-error-for="tags"></p>
+              <span class="count" data-count-for="tags"></span>
+            </div>
+          </div>
+
+          <div class="field field-body">
+            <textarea id="body" class="body-input" placeholder="본문 (Markdown)" aria-label="본문 (Markdown)" spellcheck="false"></textarea>
+            <div class="field-foot">
+              <p class="field-error" data-error-for="body"></p>
+              <span class="count" data-count-for="body"></span>
+            </div>
+          </div>
+        </section>
+
+        <!--
+          오른쪽: 미리보기 사이드바 (렌더러가 안전하게 만든 HTML만 들어감)
+          넓은 화면은 나란히, 좁은 화면은 쓰기 칸 위를 덮는다. 열고 닫기는 #editor의 data-preview 값
+        -->
+        <section id="preview-pane" class="preview-pane" aria-label="미리보기">
+          <div class="preview-head">
+            <span class="muted">미리보기</span>
+            <button id="preview-close" class="button" type="button" aria-label="미리보기 닫기">×</button>
+          </div>
+          <h1 id="preview-title" class="preview-title"></h1>
+          <article id="preview" class="preview"></article>
+        </section>
+      </div>
+
+      <!-- 아래: 소개글·대표 이미지 -->
+      <div class="meta-fields">
+        <div class="field">
+          <label for="summary">소개글</label>
+          <input id="summary" type="text" placeholder="목록에 보일 짧은 소개 (선택)" autocomplete="off">
+          <div class="field-foot">
+            <p class="field-error" data-error-for="summary"></p>
+            <span class="count" data-count-for="summary"></span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="thumbnail">대표 이미지 주소</label>
+          <input id="thumbnail" type="url" placeholder="https://… (비우면 기본 이미지)" autocomplete="off">
+          <div class="field-foot">
+            <p class="field-error" data-error-for="thumbnail"></p>
+            <span class="count" data-count-for="thumbnail"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 버튼 줄: 상태에 따라 post.js가 보이거나 숨긴다 -->
+      <div class="actions">
+        <div class="actions-left">
+          <a class="button" href="/">← 목록</a>
+          <button id="trash" class="button danger" type="button" hidden>휴지통</button>
+        </div>
+        <div class="actions-right">
+          <button id="discard" class="button danger" type="button" hidden>수정본 버리기</button>
+          <button id="unpublish" class="button" type="button" hidden>비공개로</button>
+          <button id="save" class="button" type="button" title="Ctrl+S">저장</button>
+          <button id="publish" class="button primary" type="button" hidden>공개하기</button>
+          <button id="apply" class="button primary" type="button" hidden>수정본 반영</button>
+        </div>
+      </div>
+    </div>
+  </main>
 </body>
 </html>

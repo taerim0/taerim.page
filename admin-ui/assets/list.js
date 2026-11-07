@@ -6,7 +6,7 @@
  */
 import { ApiError, postsApi } from "./api.js";
 import { normalizeTag } from "./lib.js";
-import { clearNotice, el, formatDateTime, notify, setQuery } from "./ui.js";
+import { clearNotice, el, formatDateTime, notify, setQuery, showFlash } from "./ui.js";
 
 /** @typedef {import("./api.js").PostSummary} PostSummary */
 /** @typedef {import("./api.js").PostStatus} PostStatus */
@@ -183,4 +183,5 @@ tagInput.addEventListener("keydown", (event) => {
 // 뒤로·앞으로 가기로 주소가 바뀌면 다시 그림
 window.addEventListener("popstate", () => void render());
 
-void render();
+// 첫 목록을 그린 뒤에 남겨 둔 알림을 보여준다 (render가 성공하면 알림 줄을 지우므로 그 다음에)
+void render().then(showFlash);

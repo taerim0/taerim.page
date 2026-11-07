@@ -27,6 +27,7 @@ interface PostRow {
   published_at: string | null;
   deleted_at: string | null;
   tags: string; // '["개발","블로그"]'
+  has_draft?: number; // 목록에서만: 작업본이 있으면 1
 }
 
 interface DraftRow {
@@ -47,9 +48,13 @@ const TAGS_JSON = `(
   )
 ) AS tags`;
 
-const SUMMARY_COLUMNS = `p.id, p.title, p.summary, p.thumbnail, p.status,
+const BASE_COLUMNS = `p.id, p.title, p.summary, p.thumbnail, p.status,
   p.created_at, p.updated_at, p.published_at, p.deleted_at, ${TAGS_JSON}`;
-const POST_COLUMNS = `${SUMMARY_COLUMNS}, p.body`;
+/** 목록: 본문 대신 "작업본 있음" */
+const SUMMARY_COLUMNS = `${BASE_COLUMNS},
+  EXISTS (SELECT 1 FROM post_drafts d WHERE d.post_id = p.id) AS has_draft`;
+/** 글 하나: 본문 포함 */
+const POST_COLUMNS = `${BASE_COLUMNS}, p.body`;
 
 /** 고칠 수 있는 항목 → 칸 이름. 여기 있는 이름만 SQL에 들어간다 (밖에서 온 이름을 SQL에 넣지 않음) */
 const COLUMN_BY_FIELD = {
@@ -296,7 +301,8 @@ function parseTags(json: string | null | undefined): string[] {
   return Array.isArray(parsed) ? sortTagNames(parsed.filter((tag): tag is string => typeof tag === "string")) : [];
 }
 
-function toSummary(row: PostRow): PostSummary {
+/** 글·요약에 공통으로 들어가는 칸 */
+function baseFields(row: PostRow): Omit<Post, "body"> {
   return {
     id: row.id,
     title: row.title,
@@ -311,8 +317,12 @@ function toSummary(row: PostRow): PostSummary {
   };
 }
 
+function toSummary(row: PostRow): PostSummary {
+  return { ...baseFields(row), hasDraft: row.has_draft === 1 };
+}
+
 function toPost(row: PostRow): Post {
-  return { ...toSummary(row), body: row.body ?? "" };
+  return { ...baseFields(row), body: row.body ?? "" };
 }
 
 function toDraft(row: DraftRow): PostDraft {

@@ -60,7 +60,9 @@ export class MemoryPostRepository implements PostRepository {
     matched.sort((a, b) => compareDesc(sortKey(a), sortKey(b)) || b.id - a.id);
 
     const start = (page - 1) * pageSize;
-    const items = matched.slice(start, start + pageSize).map(toSummary);
+    const items = matched
+      .slice(start, start + pageSize)
+      .map((post) => toSummary(post, this.#drafts.has(post.id)));
 
     return {
       items,
@@ -170,7 +172,7 @@ function compareDesc(a: string, b: string): number {
   return a < b ? 1 : a > b ? -1 : 0;
 }
 
-function toSummary(post: Post): PostSummary {
+function toSummary(post: Post, hasDraft: boolean): PostSummary {
   const { body: _body, ...summary } = structuredClone(post);
-  return summary;
+  return { ...summary, hasDraft };
 }

@@ -26,8 +26,11 @@ export interface Post {
   deletedAt: string | null;
 }
 
-/** 목록용 요약. 목록에서는 본문이 필요 없어서 뺀다. */
-export type PostSummary = Omit<Post, "body">;
+/**
+ * 목록용 요약. 목록에서는 본문이 필요 없어서 빼고,
+ * 공개 글에 수정 중인 작업본이 있는지(hasDraft)를 더한다. ("수정 중" 표시용)
+ */
+export type PostSummary = Omit<Post, "body"> & { hasDraft: boolean };
 
 /** 공개된 글의 작업본(수정 중인 버전). 글 하나당 최대 1개. */
 export interface PostDraft {

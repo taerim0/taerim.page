@@ -1,0 +1,14 @@
+# 줄 끝 문자를 OS와 상관없이 LF로 고정 (Windows 개발 + Linux 빌드 환경)
+* text=auto eol=lf
+
+# 바이너리 파일은 변환하지 않음
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary

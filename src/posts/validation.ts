@@ -189,8 +189,11 @@ function isAllowedImageUrl(value: string): boolean {
   }
 }
 
-/** 글자 수. 이모지처럼 두 칸을 차지하는 글자도 한 글자로 센다. */
-function charCount(text: string): number {
+/**
+ * 글자 수. 이모지처럼 두 칸을 차지하는 글자도 한 글자로 센다.
+ * 관리자 화면의 "남은 글자 수"도 이 함수로 세서 서버 검사와 같게 맞춘다.
+ */
+export function charCount(text: string): number {
   let count = 0;
   for (const _char of text) count++;
   return count;

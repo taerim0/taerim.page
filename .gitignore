@@ -7,5 +7,5 @@ test/
 .wrangler/
 .dev.vars
 
-# 브라우저용 렌더러 번들 (npm run build:admin 으로 만듦)
-admin-ui/assets/markdown.js
+# 관리자 화면용 번들 (npm run build:admin 으로 만듦)
+admin-ui/assets/lib.js

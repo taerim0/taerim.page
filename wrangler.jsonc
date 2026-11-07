@@ -3,7 +3,18 @@
   // 관리자 Worker (admin.taerim.page). 공개 사이트와는 별도
   "name": "taerim-page-admin",
   "main": "src/worker/admin.ts",
-  "compatibility_date": "2026-11-01"
+  "compatibility_date": "2026-11-01",
   // 주의: ENVIRONMENT 같은 개발용 값은 여기 넣지 않는다 (배포에도 적용되므로).
   // 로컬 개발용 값은 .dev.vars 에만 둔다.
+
+  "d1_databases": [
+    {
+      // 코드에서 env.DB 로 쓴다
+      "binding": "DB",
+      "database_name": "taerim-page-db",
+      // 2026-11-07 생성 (위치: APAC). 비밀값이 아니라 커밋해도 됨
+      "database_id": "790dc115-59f4-4a28-a219-55138e4d816e",
+      "migrations_dir": "migrations"
+    }
+  ]
 }

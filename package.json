@@ -1,0 +1,30 @@
+{
+  "name": "taerim.page",
+  "version": "0.1.0",
+  "private": true,
+  "description": "taerim.page 개인 블로그",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/taerim0/taerim.page.git"
+  },
+  "author": "taerim0",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/taerim0/taerim.page/issues"
+  },
+  "homepage": "https://taerim.page",
+  "dependencies": {
+    "markdown-it": "^15.0.3"
+  },
+  "devDependencies": {
+    "@types/markdown-it": "^14.2.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}

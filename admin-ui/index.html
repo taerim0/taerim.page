@@ -5,10 +5,37 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>글 목록 · taerim.page 관리자</title>
   <link rel="stylesheet" href="/assets/admin.css">
+  <script type="module" src="/assets/list.js"></script>
 </head>
 <body>
-  <nav><a href="/">글 목록</a> · <a href="/posts/new">새 글</a> · <a href="/tags">태그</a> · <a href="/trash">휴지통</a></nav>
-  <h1>글 목록</h1>
-  <p>준비 중인 화면이에요. (자리만 잡아 둔 파일)</p>
+  <header class="topbar">
+    <a class="brand" href="/">taerim.page 관리자</a>
+    <nav>
+      <a class="button primary" href="/posts/new">+ 새 글</a>
+      <a class="button" href="/tags">태그</a>
+      <a class="button" href="/trash">휴지통</a>
+      <button class="button" type="button" disabled title="배포 단계에서 연결해요">배포 (준비 중)</button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="filters">
+      <div class="tabs" role="tablist" aria-label="상태">
+        <button type="button" role="tab" data-status="">전체</button>
+        <button type="button" role="tab" data-status="draft">초안</button>
+        <button type="button" role="tab" data-status="published">공개</button>
+      </div>
+      <div class="tag-filter">
+        <span class="label">태그</span>
+        <span id="tag-chips"></span>
+        <input id="tag-input" type="text" placeholder="태그 입력 후 띄어쓰기·엔터" aria-label="태그로 거르기 (여러 개면 모두 가진 글)">
+      </div>
+    </section>
+
+    <p id="summary" class="muted"></p>
+    <ul id="post-list" class="post-list" aria-live="polite"></ul>
+
+    <nav id="pager" class="pager" aria-label="페이지"></nav>
+  </main>
 </body>
 </html>

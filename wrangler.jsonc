@@ -7,6 +7,13 @@
   // 주의: ENVIRONMENT 같은 개발용 값은 여기 넣지 않는다 (배포에도 적용되므로).
   // 로컬 개발용 값은 .dev.vars 에만 둔다.
 
+  // wrangler dev·deploy 전에 브라우저용 렌더러를 묶는다 (admin-ui/assets/markdown.js)
+  // src/markdown 을 고치면 wrangler dev 가 다시 묶는다
+  "build": {
+    // wrangler는 레포 폴더(repository/taerim.page)에서 실행한다 (npx wrangler dev)
+    "command": "npm run build:admin",
+    "watch_dir": "src/markdown"
+  },
 
   "d1_databases": [
     {

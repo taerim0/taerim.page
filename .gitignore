@@ -6,3 +6,6 @@ test/
 # wrangler 로컬 실행 파일과 비밀값
 .wrangler/
 .dev.vars
+
+# 브라우저용 렌더러 번들 (npm run build:admin 으로 만듦)
+admin-ui/assets/markdown.js

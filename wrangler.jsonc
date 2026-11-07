@@ -1,0 +1,9 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // 관리자 Worker (admin.taerim.page). 공개 사이트와는 별도
+  "name": "taerim-page-admin",
+  "main": "src/worker/admin.ts",
+  "compatibility_date": "2026-11-01"
+  // 주의: ENVIRONMENT 같은 개발용 값은 여기 넣지 않는다 (배포에도 적용되므로).
+  // 로컬 개발용 값은 .dev.vars 에만 둔다.
+}

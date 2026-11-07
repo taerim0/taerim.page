@@ -2,3 +2,7 @@ node_modules/
 
 # 테스트는 로컬에만 둔다 (git에 올리지 않음)
 test/
+
+# wrangler 로컬 실행 파일과 비밀값
+.wrangler/
+.dev.vars

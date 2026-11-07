@@ -23,66 +23,117 @@ export interface PostInput {
   tags: string[];
 }
 
+/** 고칠 때 넣는 값: 보낸 칸만 들어 있다. */
+export type PostPatch = Partial<PostInput>;
+
+/** 고칠 수 있는 칸 */
+const PATCH_FIELDS = ["title", "body", "summary", "thumbnail", "tags"] as const satisfies readonly (keyof PostInput)[];
+
 /**
- * 외부에서 들어온 값(API 요청 본문 등)을 정리하고 검사한다.
- * 문제가 있으면 칸별 문제를 모두 모아 ValidationError 하나로 던진다.
- * 모르는 항목은 무시한다.
+ * 새 글 입력을 정리하고 검사한다. (빠진 칸은 기본값: 본문 "", 소개·대표 이미지 null, 태그 [])
+ * 문제가 있으면 칸별 문제를 모두 모아 ValidationError 하나로 던진다. 모르는 항목은 무시한다.
  */
 export function validatePostInput(raw: unknown): PostInput {
   const data = isRecord(raw) ? raw : {};
   const issues: FieldIssue[] = [];
+  const input: PostInput = {
+    title: readTitle(data.title, "제목을 입력하세요", issues),
+    body: readBody(data.body, issues),
+    summary: readSummary(data.summary, issues),
+    thumbnail: readThumbnail(data.thumbnail, issues),
+    tags: readTags(data.tags, issues),
+  };
+  if (issues.length > 0) throw new ValidationError(issues);
+  return input;
+}
 
-  // 제목: 필수
-  let title = "";
-  if (typeof data.title !== "string") {
-    issues.push({ field: "title", message: "제목을 입력하세요" });
-  } else {
-    title = data.title.trim();
-    if (title === "") issues.push({ field: "title", message: "제목을 입력하세요" });
-    else if (charCount(title) > LIMITS.title) {
-      issues.push({ field: "title", message: `제목은 ${LIMITS.title}자까지예요` });
-    }
+/**
+ * 고칠 내용을 정리하고 검사한다. **보낸 칸만** 결과에 들어간다.
+ * - 칸을 안 보내면: 그대로 둠
+ * - 빈 값("", null, [])을 보내면: 그 칸을 비움 (본문 "", 소개·대표 이미지 null, 태그 [])
+ * - 비울 수 없는 칸(제목)에 빈 값을 보내면: 오류
+ * - 고칠 수 있는 칸을 하나도 안 보내면: 오류 (모르는 항목만 있어도 마찬가지)
+ */
+export function validatePostPatch(raw: unknown): PostPatch {
+  const data = isRecord(raw) ? raw : {};
+  if (!PATCH_FIELDS.some((field) => sent(data, field))) {
+    throw new ValidationError([], "바꿀 내용이 없어요");
   }
+  const issues: FieldIssue[] = [];
+  const patch: PostPatch = {};
+  if (sent(data, "title")) patch.title = readTitle(data.title, "제목은 비울 수 없어요", issues);
+  if (sent(data, "body")) patch.body = readBody(data.body, issues);
+  if (sent(data, "summary")) patch.summary = readSummary(data.summary, issues);
+  if (sent(data, "thumbnail")) patch.thumbnail = readThumbnail(data.thumbnail, issues);
+  if (sent(data, "tags")) patch.tags = readTags(data.tags, issues);
+  if (issues.length > 0) throw new ValidationError(issues);
+  return patch;
+}
 
-  // 본문: 없으면 빈 본문
-  let body = "";
-  if (data.body !== undefined && typeof data.body !== "string") {
+// ── 칸별 읽기 (새 글·고치기 공통 규칙) ─────────────────
+
+/** 제목: 비울 수 없음, 100자까지 */
+function readTitle(value: unknown, emptyMessage: string, issues: FieldIssue[]): string {
+  if (value !== undefined && value !== null && typeof value !== "string") {
+    issues.push({ field: "title", message: "제목은 글자여야 해요" });
+    return "";
+  }
+  const title = (value ?? "").trim();
+  if (title === "") issues.push({ field: "title", message: emptyMessage });
+  else if (charCount(title) > LIMITS.title) {
+    issues.push({ field: "title", message: `제목은 ${LIMITS.title}자까지예요` });
+  }
+  return title;
+}
+
+/** 본문: 빈 값이면 "" (공백·들여쓰기는 그대로 둔다) */
+function readBody(value: unknown, issues: FieldIssue[]): string {
+  if (value === undefined || value === null) return "";
+  if (typeof value !== "string") {
     issues.push({ field: "body", message: "본문은 글자여야 해요" });
-  } else {
-    body = (data.body as string | undefined) ?? "";
-    if (charCount(body) > LIMITS.body) {
-      issues.push({ field: "body", message: `본문은 ${LIMITS.body.toLocaleString("ko-KR")}자까지예요` });
-    }
+    return "";
   }
+  if (charCount(value) > LIMITS.body) {
+    issues.push({ field: "body", message: `본문은 ${LIMITS.body.toLocaleString("ko-KR")}자까지예요` });
+  }
+  return value;
+}
 
-  // 소개글: 선택
-  const summary = optionalText(data.summary, "summary", "소개글", LIMITS.summary, issues);
+/** 소개글: 빈 값이면 null */
+function readSummary(value: unknown, issues: FieldIssue[]): string | null {
+  return optionalText(value, "summary", "소개글", LIMITS.summary, issues);
+}
 
-  // 대표 이미지: 선택, /images/… 또는 https://… 만
-  const thumbnail = optionalText(data.thumbnail, "thumbnail", "대표 이미지 주소", LIMITS.thumbnail, issues);
+/** 대표 이미지: 빈 값이면 null, /images/… 또는 https://… 만 */
+function readThumbnail(value: unknown, issues: FieldIssue[]): string | null {
+  const thumbnail = optionalText(value, "thumbnail", "대표 이미지 주소", LIMITS.thumbnail, issues);
   if (thumbnail !== null && !isAllowedImageUrl(thumbnail)) {
     issues.push({ field: "thumbnail", message: "대표 이미지는 /images/… 또는 https://… 주소만 쓸 수 있어요" });
   }
+  return thumbnail;
+}
 
-  // 태그: 선택
-  let tags: string[] = [];
-  if (data.tags !== undefined) {
-    if (!Array.isArray(data.tags) || !data.tags.every((tag) => typeof tag === "string")) {
-      issues.push({ field: "tags", message: "태그는 글자 목록이어야 해요" });
-    } else {
-      tags = normalizeTags(data.tags);
-      if (tags.length > LIMITS.tagCount) {
-        issues.push({ field: "tags", message: `태그는 ${LIMITS.tagCount}개까지예요` });
-      }
-      const tooLong = tags.find((tag) => charCount(tag) > LIMITS.tagLength);
-      if (tooLong !== undefined) {
-        issues.push({ field: "tags", message: `태그는 ${LIMITS.tagLength}자까지예요: ${tooLong}` });
-      }
-    }
+/** 태그: 빈 값이면 [], 정리 후 10개·50자까지 */
+function readTags(value: unknown, issues: FieldIssue[]): string[] {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value) || !value.every((tag) => typeof tag === "string")) {
+    issues.push({ field: "tags", message: "태그는 글자 목록이어야 해요" });
+    return [];
   }
+  const tags = normalizeTags(value);
+  if (tags.length > LIMITS.tagCount) {
+    issues.push({ field: "tags", message: `태그는 ${LIMITS.tagCount}개까지예요` });
+  }
+  const tooLong = tags.find((tag) => charCount(tag) > LIMITS.tagLength);
+  if (tooLong !== undefined) {
+    issues.push({ field: "tags", message: `태그는 ${LIMITS.tagLength}자까지예요: ${tooLong}` });
+  }
+  return tags;
+}
 
-  if (issues.length > 0) throw new ValidationError(issues);
-  return { title, body, summary, thumbnail, tags };
+/** 이 칸을 보냈는지 (JSON에 이름이 있으면 보낸 것. 값이 null이어도 "비우기"로 보낸 것) */
+function sent(data: Record<string, unknown>, field: string): boolean {
+  return Object.hasOwn(data, field) && data[field] !== undefined;
 }
 
 /**

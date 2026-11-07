@@ -23,12 +23,15 @@ export interface FieldIssue {
   message: string;
 }
 
-/** 입력이 규칙에 맞지 않음 (400). 칸별 문제를 모두 모아서 담는다. */
+/**
+ * 입력이 규칙에 맞지 않음 (400). 칸별 문제를 모두 모아서 담는다.
+ * 특정 칸의 문제가 아닐 때(예: 바꿀 내용이 없음)는 issues를 비우고 message만 넣는다.
+ */
 export class ValidationError extends PostError {
   readonly issues: readonly FieldIssue[];
 
-  constructor(issues: readonly FieldIssue[]) {
-    super(issues.map((issue) => issue.message).join(" / "));
+  constructor(issues: readonly FieldIssue[], message?: string) {
+    super(message ?? issues.map((issue) => issue.message).join(" / "));
     this.issues = issues;
   }
 }

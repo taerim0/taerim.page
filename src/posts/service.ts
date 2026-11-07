@@ -2,7 +2,7 @@ import { ConflictError, NotFoundError } from "./errors.ts";
 import { MAX_PAGE_SIZE } from "./repository.ts";
 import type { PostRepository } from "./repository.ts";
 import type { Page, Post, PostDraft, PostListFilter, PostSummary, TagCount } from "./types.ts";
-import { validatePostInput } from "./validation.ts";
+import { validatePostInput, validatePostPatch } from "./validation.ts";
 
 /** 서비스 설정 */
 export interface PostServiceOptions {
@@ -77,21 +77,33 @@ export class PostService {
   }
 
   /**
-   * 저장. 초안이면 글을 바로 고치고, 공개 글이면 작업본에 임시저장한다.
-   * (공개 글의 공개본은 수정본 반영 전까지 그대로)
+   * 저장. **보낸 칸만** 바뀐다. (안 보낸 칸은 그대로, 빈 값을 보내면 비움)
+   * 초안이면 글을 바로 고치고, 공개 글이면 작업본에 임시저장한다.
+   * 공개 글은 작업본이 있으면 작업본 위에, 없으면 공개본 내용 위에 고친 칸을 덮는다.
+   * (공개본은 수정본 반영 전까지 그대로)
    */
   async save(id: number, raw: unknown): Promise<SaveResult> {
-    const input = validatePostInput(raw);
+    const patch = validatePostPatch(raw);
     const post = await this.#requirePost(id);
     const at = this.#timestamp();
 
     if (post.status === "draft") {
-      const updated = await this.#repo.update(id, { ...input, updatedAt: at });
+      const updated = await this.#repo.update(id, { ...patch, updatedAt: at });
       if (!updated) throw notFound();
       return { savedTo: "post", post: updated };
     }
 
-    const draft: PostDraft = { postId: id, ...input, updatedAt: at };
+    const base = (await this.#repo.getDraft(id)) ?? post;
+    const draft: PostDraft = {
+      postId: id,
+      title: base.title,
+      body: base.body,
+      summary: base.summary,
+      thumbnail: base.thumbnail,
+      tags: base.tags,
+      ...patch,
+      updatedAt: at,
+    };
     if (!(await this.#repo.saveDraft(draft))) throw notFound();
     return { savedTo: "draft", draft };
   }

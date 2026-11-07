@@ -1,6 +1,6 @@
-import { MAX_PAGE_SIZE } from "./repository.ts";
+import { normalizePage, normalizePageSize } from "./repository.ts";
+import { compareTagNames, sortTagNames } from "./tag-order.ts";
 import type { GetOptions, PostRepository } from "./repository.ts";
-import { DEFAULT_PAGE_SIZE } from "./types.ts";
 import type {
   NewPostData,
   Page,
@@ -26,7 +26,12 @@ export class MemoryPostRepository implements PostRepository {
   #nextId = 1;
 
   async create(data: NewPostData): Promise<Post> {
-    const post: Post = { ...structuredClone(data), id: this.#nextId++, deletedAt: null };
+    const post: Post = {
+      ...structuredClone(data),
+      tags: sortTagNames(data.tags), // 태그는 항상 이름순 (D1과 같게)
+      id: this.#nextId++,
+      deletedAt: null,
+    };
     this.#posts.set(post.id, post);
     return structuredClone(post);
   }
@@ -71,7 +76,8 @@ export class MemoryPostRepository implements PostRepository {
     // 값이 undefined인 항목은 "안 바꿈"으로 본다
     for (const [key, value] of Object.entries(changes)) {
       if (value !== undefined) {
-        (post as unknown as Record<string, unknown>)[key] = structuredClone(value);
+        const stored = key === "tags" ? sortTagNames(value as string[]) : structuredClone(value);
+        (post as unknown as Record<string, unknown>)[key] = stored;
       }
     }
     return structuredClone(post);
@@ -106,7 +112,7 @@ export class MemoryPostRepository implements PostRepository {
 
   async saveDraft(draft: PostDraft): Promise<boolean> {
     if (!this.#activePost(draft.postId)) return false;
-    this.#drafts.set(draft.postId, structuredClone(draft));
+    this.#drafts.set(draft.postId, { ...structuredClone(draft), tags: sortTagNames(draft.tags) });
     return true;
   }
 
@@ -141,7 +147,7 @@ export class MemoryPostRepository implements PostRepository {
     }
     return [...counts]
       .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+      .sort((a, b) => compareTagNames(a.name, b.name));
   }
 
   /** 휴지통에 없는 글(저장된 원본). 밖으로 내보낼 때는 반드시 복사한다. */
@@ -149,17 +155,6 @@ export class MemoryPostRepository implements PostRepository {
     const post = this.#posts.get(id);
     return post && post.deletedAt === null ? post : undefined;
   }
-}
-
-/** 1보다 작거나 정수가 아니면 1 */
-function normalizePage(page: number | undefined): number {
-  return page !== undefined && Number.isInteger(page) && page >= 1 ? page : 1;
-}
-
-/** 생략·숫자가 아니면 기본값, 그 밖에는 1 ~ MAX_PAGE_SIZE 범위로 맞춘다 */
-function normalizePageSize(pageSize: number | undefined): number {
-  if (pageSize === undefined || !Number.isFinite(pageSize)) return DEFAULT_PAGE_SIZE;
-  return Math.min(MAX_PAGE_SIZE, Math.max(1, Math.floor(pageSize)));
 }
 
 /** 목록 종류에 따라 어떤 시각으로 정렬할지 정한다 */

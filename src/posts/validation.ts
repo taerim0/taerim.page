@@ -1,5 +1,6 @@
 import { ValidationError } from "./errors.ts";
 import type { FieldIssue } from "./errors.ts";
+import { sortTagNames } from "./tag-order.ts";
 
 /** 입력 제한값 (글자 수는 이모지도 한 글자로 센다) */
 export const LIMITS = {
@@ -149,14 +150,14 @@ export function normalizeTag(tag: string): string {
     .replace(/^-|-$/g, "");
 }
 
-/** 태그 목록 정리: 하나씩 정리한 뒤 빈 값과 중복을 뺀다 (처음 나온 순서 유지) */
+/** 태그 목록 정리: 하나씩 정리한 뒤 빈 값과 중복을 빼고 이름순으로 정렬한다 */
 export function normalizeTags(tags: readonly string[]): string[] {
-  const result: string[] = [];
+  const unique = new Set<string>();
   for (const tag of tags) {
     const normalized = normalizeTag(tag);
-    if (normalized !== "" && !result.includes(normalized)) result.push(normalized);
+    if (normalized !== "") unique.add(normalized);
   }
-  return result;
+  return sortTagNames([...unique]);
 }
 
 /** 선택 글자 칸: 없거나 null이거나 공백뿐이면 null, 글자가 아니면 문제, 길면 문제 */

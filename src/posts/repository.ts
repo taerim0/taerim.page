@@ -1,3 +1,4 @@
+import { DEFAULT_PAGE_SIZE } from "./types.ts";
 import type {
   NewPostData,
   Page,
@@ -18,12 +19,24 @@ export interface GetOptions {
 /** 한 페이지에 꺼낼 수 있는 최대 글 수. 너무 큰 값을 막는다. */
 export const MAX_PAGE_SIZE = 100;
 
+/** 페이지 번호 보정: 1보다 작거나 정수가 아니면 1 (모든 저장소 구현이 같은 규칙을 쓴다) */
+export function normalizePage(page: number | undefined): number {
+  return page !== undefined && Number.isInteger(page) && page >= 1 ? page : 1;
+}
+
+/** 페이지 크기 보정: 생략·숫자가 아니면 기본값(10), 그 밖에는 1 ~ MAX_PAGE_SIZE 범위로 */
+export function normalizePageSize(pageSize: number | undefined): number {
+  if (pageSize === undefined || !Number.isFinite(pageSize)) return DEFAULT_PAGE_SIZE;
+  return Math.min(MAX_PAGE_SIZE, Math.max(1, Math.floor(pageSize)));
+}
+
 /**
  * 글 저장소. 저장하고 꺼내는 것만 한다.
  *
  * - 규칙 판단(검증, 상태 전환, 공개 글이면 작업본에 저장 등)은 서비스가 한다.
  * - 시각은 호출하는 쪽이 넣어 준다. 저장소는 시계를 갖지 않는다.
  * - 태그는 이미 정리된(앞뒤 공백 없음, 중복 없음) 이름 목록이라고 가정한다.
+ * - 태그는 넣은 순서와 상관없이 **항상 이름순**으로 돌려준다 (compareTagNames 순서 = D1 기본 정렬).
  * - 휴지통에 있는 글은 고칠 수 없다. 먼저 restore() 해야 한다.
  *
  * 목록 정렬 (최신이 앞, 시각이 같으면 id가 큰 글이 앞):

@@ -7,6 +7,7 @@
   // 주의: ENVIRONMENT 같은 개발용 값은 여기 넣지 않는다 (배포에도 적용되므로).
   // 로컬 개발용 값은 .dev.vars 에만 둔다.
 
+
   "d1_databases": [
     {
       // 코드에서 env.DB 로 쓴다
@@ -16,5 +17,16 @@
       "database_id": "790dc115-59f4-4a28-a219-55138e4d816e",
       "migrations_dir": "migrations"
     }
-  ]
+  ],
+
+  // 관리자 화면 파일 (admin-ui 폴더). 코드에서 env.ASSETS 로 꺼낸다
+  "assets": {
+    "directory": "admin-ui",
+    "binding": "ASSETS",
+    // 모든 요청이 먼저 Worker를 거치게 한다 → 화면 파일도 관리자 확인 뒤에만 나감
+    "run_worker_first": true,
+    // 주소를 자동으로 바꾸지 않는다 (/post.html → /post 같은 자동 이동 없이 파일 이름 그대로)
+    "html_handling": "none",
+    "not_found_handling": "none"
+  }
 }

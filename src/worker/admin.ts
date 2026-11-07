@@ -8,6 +8,7 @@ import type { Hono } from "hono";
 import { createAdminApp } from "../admin/app.ts";
 import { denyAllAuthenticator, localDevAuthenticator } from "../admin/auth.ts";
 import type { AdminAuthenticator, AdminEnv } from "../admin/auth.ts";
+import type { AssetFetcher } from "../admin/pages.ts";
 import { renderMarkdown } from "../markdown/index.ts";
 import type { D1Database } from "../posts/d1.ts";
 import { D1PostRepository } from "../posts/d1-repository.ts";
@@ -17,6 +18,8 @@ import { PostService } from "../posts/service.ts";
 interface AdminWorkerEnv {
   /** D1 연결 (wrangler.jsonc의 binding "DB") */
   DB: D1Database;
+  /** 관리자 화면 파일 (wrangler.jsonc의 assets, binding "ASSETS") */
+  ASSETS: AssetFetcher;
   /** 로컬 개발이면 "development" (.dev.vars에만 넣는다. 배포 설정에는 넣지 않는다) */
   ENVIRONMENT?: string;
 }
@@ -35,7 +38,12 @@ function chooseAuthenticator(env: AdminWorkerEnv): AdminAuthenticator {
 
 function buildApp(env: AdminWorkerEnv): Hono<AdminEnv> {
   const service = new PostService(new D1PostRepository(env.DB));
-  return createAdminApp({ service, render: renderMarkdown, authenticator: chooseAuthenticator(env) });
+  return createAdminApp({
+    service,
+    render: renderMarkdown,
+    authenticator: chooseAuthenticator(env),
+    assets: env.ASSETS,
+  });
 }
 
 export default {

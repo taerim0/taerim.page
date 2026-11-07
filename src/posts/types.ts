@@ -57,8 +57,8 @@ export interface PostListFilter {
   status?: PostStatus;
   /** true면 휴지통 글만, false·생략이면 정상 글만 */
   trash?: boolean;
-  /** 이 태그가 붙은 글만 */
-  tag?: string;
+  /** 이 태그들이 **모두** 붙은 글만 (AND). 비어 있거나 생략하면 거르지 않음 */
+  tags?: string[];
   /** 몇 번째 페이지인지. 1부터 시작. 생략하면 1 */
   page?: number;
   /** 한 페이지 글 개수. 생략하면 DEFAULT_PAGE_SIZE(10) */

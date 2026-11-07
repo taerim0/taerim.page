@@ -1,17 +1,19 @@
 import { MAX_PAGE_SIZE } from "../posts/repository.ts";
 import type { PostListFilter, PostStatus } from "../posts/types.ts";
-import { normalizeTag } from "../posts/validation.ts";
+import { LIMITS, normalizeTag, normalizeTags } from "../posts/validation.ts";
 import { HttpError } from "./http-errors.ts";
 
 const STATUSES: readonly PostStatus[] = ["draft", "published"];
 
 /**
  * 글 목록 주소의 조건 값을 읽는다.
- * 예) /api/posts?status=published&tag=React&page=2 → { status: "published", tag: "react", page: 2 }
+ * 예) /api/posts?status=published&tag=React&tag=블로그&page=2
+ *     → { status: "published", tags: ["react", "블로그"], page: 2 }
  *
  * - 잘못된 값은 조용히 고치지 않고 400(bad_request)으로 알려 준다. (저장소의 보정은 마지막 안전장치)
  * - 값이 비어 있으면(?tag=) 안 넣은 것으로 본다.
- * - 모르는 이름은 무시한다. 같은 이름이 여러 번 오면 첫 번째 값을 쓴다.
+ * - 모르는 이름은 무시한다. tag 말고는 같은 이름이 여러 번 오면 첫 번째 값을 쓴다.
+ * - tag는 여러 번 쓸 수 있고, 모두 가진 글만 찾는다 (AND, 최대 10개).
  */
 export function parseListQuery(params: URLSearchParams): PostListFilter {
   const filter: PostListFilter = {};
@@ -30,12 +32,14 @@ export function parseListQuery(params: URLSearchParams): PostListFilter {
     filter.trash = trash === "true";
   }
 
-  const tag = value(params, "tag");
-  if (tag !== undefined) {
+  // 태그는 여러 개 가능: ?tag=a&tag=b → a와 b를 모두 가진 글 (AND)
+  const rawTags = params.getAll("tag").filter((tag) => tag !== "");
+  if (rawTags.length > 0) {
     // 저장된 태그와 같은 규칙으로 정리해서 찾는다 (?tag=React → react)
-    const normalized = normalizeTag(tag);
-    if (normalized === "") throw badRequest("tag가 비어 있어요");
-    filter.tag = normalized;
+    if (rawTags.some((tag) => normalizeTag(tag) === "")) throw badRequest("tag가 비어 있어요");
+    const tags = normalizeTags(rawTags);
+    if (tags.length > LIMITS.tagCount) throw badRequest(`tag는 한 번에 ${LIMITS.tagCount}개까지 쓸 수 있어요`);
+    filter.tags = tags;
   }
 
   const page = value(params, "page");

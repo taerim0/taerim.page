@@ -122,12 +122,15 @@ export class D1PostRepository implements PostRepository {
       conditions.push("p.status = ?");
       values.push(filter.status);
     }
-    if (filter.tag !== undefined) {
-      conditions.push(`EXISTS (
-        SELECT 1 FROM post_tags pt JOIN tags t ON t.id = pt.tag_id
-        WHERE pt.post_id = p.id AND t.name = ?
-      )`);
-      values.push(filter.tag);
+    const tags = [...new Set(filter.tags ?? [])];
+    if (tags.length > 0) {
+      // 넣은 태그를 모두 가진 글만 (AND): 이 글에 붙은 태그 중 찾는 태그의 개수 = 찾는 태그 수
+      // 태그 목록은 JSON 하나로 넘겨서(json_each) 개수와 상관없이 ? 자리가 늘지 않게 한다
+      conditions.push(`(
+        SELECT COUNT(*) FROM post_tags pt JOIN tags t ON t.id = pt.tag_id
+        WHERE pt.post_id = p.id AND t.name IN (SELECT value FROM json_each(?))
+      ) = ?`);
+      values.push(JSON.stringify(tags), tags.length);
     }
     const where = conditions.join(" AND ");
     const sortColumn = filter.trash ? "p.deleted_at" : filter.status === "published" ? "p.published_at" : "p.updated_at";

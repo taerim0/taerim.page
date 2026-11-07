@@ -51,7 +51,8 @@ export class MemoryPostRepository implements PostRepository {
       const inTrash = post.deletedAt !== null;
       if (inTrash !== (filter.trash === true)) return false;
       if (filter.status !== undefined && post.status !== filter.status) return false;
-      if (filter.tag !== undefined && !post.tags.includes(filter.tag)) return false;
+      // 넣은 태그를 모두 가진 글만 (AND)
+      if (filter.tags !== undefined && !filter.tags.every((tag) => post.tags.includes(tag))) return false;
       return true;
     });
 

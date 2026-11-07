@@ -11,7 +11,12 @@
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    // 관리자 화면(admin-ui)은 빌드 없이 쓰는 JavaScript지만, JSDoc 주석으로 타입을 적어 검사한다
+    "allowJs": true,
+    "checkJs": true
   },
-  "include": ["src", "test"]
+  "include": ["src", "test", "admin-ui/assets"],
+  // 번들 결과물(자동 생성, 압축됨)은 검사하지 않는다
+  "exclude": ["admin-ui/assets/lib.js"]
 }

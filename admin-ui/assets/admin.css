@@ -133,3 +133,13 @@ a { color: inherit; }
 .tag-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px 4px 10px; border: 1px solid var(--accent); border-radius: 999px; color: var(--accent); text-decoration: none; }
 .tag-chip:hover { background: #eef3fd; }
 .tag-count { min-width: 1.6em; padding: 0 6px; border-radius: 999px; background: #eef3fd; font-size: .85em; text-align: center; font-variant-numeric: tabular-nums; }
+
+/* ── 확인 팝업 (ui.js confirmDialog) ─────────────────── */
+.button.danger-fill { background: var(--danger); border-color: var(--danger); color: #fff; }
+.confirm-dialog { padding: 0; border: 0; border-radius: 8px; width: min(420px, calc(100% - 32px)); box-shadow: 0 8px 32px rgba(0, 0, 0, .25); }
+.confirm-dialog::backdrop { background: rgba(0, 0, 0, .4); }
+.dialog-body { padding: 20px; }
+.dialog-body h2 { margin: 0 0 8px; font-size: 1.1em; }
+.dialog-body p { margin: 0; line-height: 1.6; overflow-wrap: anywhere; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+

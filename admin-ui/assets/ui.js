@@ -143,3 +143,57 @@ export function bindTagInput(input, { onAdd, onRemoveLast }) {
     commit();
   });
 }
+
+/** 팝업이 열린 직후 이 시간(ms) 안에 바깥을 누른 것은 무시 (버튼을 두 번 누른 두 번째 클릭이 팝업을 바로 닫지 않게) */
+const DIALOG_CLICK_GUARD = 400;
+
+/**
+ * 되돌릴 수 없는 동작을 확인하는 팝업 (화면 가운데). 확인하면 true, 취소·Esc·바깥 누르기는 false
+ * - 처음 커서는 '취소'에 둔다 → 실수로 버튼을 연달아 누르거나 엔터를 쳐도 실행되지 않음
+ * - 브라우저의 <dialog>(showModal)를 써서 뒤 화면은 눌리지 않는다
+ * @param {{ title: string, message: string, confirmLabel: string }} options
+ * @returns {Promise<boolean>}
+ */
+export function confirmDialog({ title, message, confirmLabel }) {
+  const cancel = el("button", { type: "button", class: "button" }, "취소");
+  const confirm = el("button", { type: "button", class: "button danger-fill" }, confirmLabel);
+  // 바깥(어두운 배경)을 누른 것과 안쪽을 누른 것을 구분하려고, 내용은 안쪽 상자에 담고 dialog 자체에는 여백을 두지 않는다
+  const dialog = el(
+    "dialog",
+    { class: "confirm-dialog", "aria-labelledby": "confirm-dialog-title" },
+    el(
+      "div",
+      { class: "dialog-body" },
+      el("h2", { id: "confirm-dialog-title" }, title),
+      el("p", {}, message),
+      el("div", { class: "dialog-actions" }, cancel, confirm),
+    ),
+  );
+  document.body.append(dialog);
+
+  return new Promise((resolve) => {
+    let done = false;
+    const openedAt = performance.now();
+    /** @param {boolean} result */
+    const close = (result) => {
+      if (done) return;
+      done = true;
+      dialog.close();
+      dialog.remove();
+      resolve(result);
+    };
+
+    cancel.addEventListener("click", () => close(false));
+    confirm.addEventListener("click", () => close(true));
+    dialog.addEventListener("cancel", (event) => {
+      event.preventDefault(); // Esc: 브라우저가 닫기 전에 우리가 정리
+      close(false);
+    });
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog && performance.now() - openedAt > DIALOG_CLICK_GUARD) close(false);
+    });
+
+    dialog.showModal();
+    cancel.focus();
+  });
+}

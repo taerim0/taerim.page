@@ -10,7 +10,7 @@
  */
 import { ApiError, getLimits, postsApi } from "./api.js";
 import { blockIndexAt, charCount, createBlockPreview, normalizeTag, normalizeTags, renderMarkdown } from "./lib.js";
-import { bindTagInput, clearNotice, el, flash, formatDateTime, notify } from "./ui.js";
+import { bindTagInput, clearNotice, confirmDialog, el, flash, formatDateTime, notify } from "./ui.js";
 
 /** @typedef {import("./api.js").Post} Post */
 /** @typedef {import("./api.js").PostDraft} PostDraft */
@@ -496,7 +496,7 @@ async function unpublish() {
   });
 }
 
-/** 수정본 버리기: 작업본을 지우고 편집기를 공개본 내용으로 되돌린다 (저장 안 한 변경도 버려짐) */
+/** 수정본 버리기: 작업본을 지우고 편집기를 공개본 내용으로 되돌린다 (저장 안 한 변경도 버려짐). 확인은 부르는 쪽(팝업)에서 */
 async function discardEdits() {
   if (postId === null || !publishedPost) return;
   const id = postId;
@@ -594,7 +594,15 @@ buttons.save.addEventListener("click", () => void save());
 buttons.publish.addEventListener("click", () => void publish());
 buttons.apply.addEventListener("click", () => void applyEdits());
 buttons.unpublish.addEventListener("click", () => void unpublish());
-confirmTwice(buttons.discard, "정말 버릴까요? (한 번 더)", discardEdits);
+// 수정본 버리기는 되돌릴 수 없어서 가운데 팝업으로 확인 (휴지통은 되살릴 수 있어서 두 번 누르기)
+buttons.discard.addEventListener("click", async () => {
+  const ok = await confirmDialog({
+    title: "수정본을 버릴까요?",
+    message: "반영하지 않은 수정본이 지워지고, 편집기가 공개된 내용으로 돌아가요. 되돌릴 수 없어요.",
+    confirmLabel: "버리기",
+  });
+  if (ok) await discardEdits();
+});
 confirmTwice(buttons.trash, "휴지통으로? (한 번 더)", moveToTrash);
 
 // Ctrl+S (맥은 Cmd+S) = 저장. 브라우저의 "페이지 저장"은 막는다

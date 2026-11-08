@@ -126,3 +126,10 @@ a { color: inherit; }
 .preview pre { padding: 12px 14px; border-radius: 6px; background: #f6f8fa; overflow-x: auto; line-height: 1.5; }
 .preview pre code { padding: 0; background: none; font-size: .9em; }
 .preview img { max-width: 100%; }
+
+/* ── 태그 화면 (tags.html) ─────────────────────────── */
+.search-input { padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; font: inherit; min-width: 12em; }
+.tag-cloud { display: flex; flex-wrap: wrap; gap: 8px; }
+.tag-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px 4px 10px; border: 1px solid var(--accent); border-radius: 999px; color: var(--accent); text-decoration: none; }
+.tag-chip:hover { background: #eef3fd; }
+.tag-count { min-width: 1.6em; padding: 0 6px; border-radius: 999px; background: #eef3fd; font-size: .85em; text-align: center; font-variant-numeric: tabular-nums; }

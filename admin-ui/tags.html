@@ -5,10 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>태그 · taerim.page 관리자</title>
   <link rel="stylesheet" href="/assets/admin.css">
+  <script type="module" src="/assets/tags.js"></script>
 </head>
 <body>
-  <nav><a href="/">글 목록</a> · <a href="/posts/new">새 글</a> · <a href="/tags">태그</a> · <a href="/trash">휴지통</a></nav>
-  <h1>태그</h1>
-  <p>준비 중인 화면이에요. (자리만 잡아 둔 파일)</p>
+  <header class="topbar">
+    <a class="brand" href="/">taerim.page 관리자</a>
+    <nav>
+      <a class="button primary" href="/posts/new">+ 새 글</a>
+      <a class="button" href="/">글 목록</a>
+      <a class="button" href="/trash">휴지통</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="filters">
+      <!-- 정렬: 화면에서만 바꾼다 (서버는 항상 이름순으로 준다) -->
+      <div class="tabs" role="tablist" aria-label="정렬">
+        <button type="button" role="tab" data-sort="name">이름순</button>
+        <button type="button" role="tab" data-sort="count">글 많은 순</button>
+      </div>
+      <input id="tag-search" class="search-input" type="search" placeholder="태그 찾기" aria-label="태그 찾기" autocomplete="off">
+    </section>
+
+    <p id="summary" class="muted">불러오는 중…</p>
+    <!-- 태그 칩: 누르면 그 태그로 거른 글 목록으로 -->
+    <div id="tag-cloud" class="tag-cloud" aria-live="polite"></div>
+  </main>
 </body>
 </html>

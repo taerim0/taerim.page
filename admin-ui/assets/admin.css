@@ -143,3 +143,7 @@ a { color: inherit; }
 .dialog-body p { margin: 0; line-height: 1.6; overflow-wrap: anywhere; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 
+/* ── 휴지통 화면 (trash.html) ─────────────────────── */
+.filters #summary { margin: 0; }
+.tag-plain { color: var(--muted); font-size: .9em; }
+.row-actions { display: flex; gap: 6px; margin-left: auto; }

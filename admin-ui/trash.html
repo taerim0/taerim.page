@@ -5,10 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>휴지통 · taerim.page 관리자</title>
   <link rel="stylesheet" href="/assets/admin.css">
+  <script type="module" src="/assets/trash.js"></script>
 </head>
 <body>
-  <nav><a href="/">글 목록</a> · <a href="/posts/new">새 글</a> · <a href="/tags">태그</a> · <a href="/trash">휴지통</a></nav>
-  <h1>휴지통</h1>
-  <p>준비 중인 화면이에요. (자리만 잡아 둔 파일)</p>
+  <header class="topbar">
+    <a class="brand" href="/">taerim.page 관리자</a>
+    <nav>
+      <a class="button primary" href="/posts/new">+ 새 글</a>
+      <a class="button" href="/">글 목록</a>
+      <a class="button" href="/tags">태그</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="filters">
+      <p id="summary" class="muted">불러오는 중…</p>
+      <!-- 되돌릴 수 없어서 누르면 가운데 팝업으로 한 번 더 확인 -->
+      <button id="empty-trash" class="button danger" type="button" disabled>휴지통 비우기</button>
+    </section>
+
+    <!-- 휴지통 글은 편집 화면이 열리지 않아서 제목은 링크가 아님. 되살리면 항상 초안으로 돌아감 -->
+    <ul id="trash-list" class="post-list" aria-live="polite"></ul>
+
+    <nav id="pager" class="pager" aria-label="페이지"></nav>
+  </main>
 </body>
 </html>

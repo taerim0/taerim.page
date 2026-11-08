@@ -1,6 +1,8 @@
 import MarkdownItFactory from "markdown-it";
 import type { MarkdownIt } from "markdown-it";
-import type { MarkdownModule, RenderFn } from "./types.ts";
+import { addHeadingIds } from "./headings.ts";
+import type { HeadingEnv } from "./headings.ts";
+import type { MarkdownModule, RenderedDocument, RenderFn } from "./types.ts";
 
 /** 렌더러 설정 */
 export interface RendererOptions {
@@ -33,6 +35,28 @@ const CORE_INLINE_RULES = ["emphasis", "link", "backticks", "newline", "escape"]
  * @returns Markdown → HTML 함수
  */
 export function createRenderer(modules: MarkdownModule[] = [], options: RendererOptions = {}): RenderFn {
+  const md = createMarkdownIt(modules, options);
+  return (markdown) => md.render(markdown);
+}
+
+/**
+ * 글 페이지용 렌더러: HTML과 함께 목차(제목 목록)도 돌려준다. (빌드에서 사용)
+ * HTML은 createRenderer와 똑같다 (같은 설정·같은 제목 id).
+ */
+export function createDocumentRenderer(
+  modules: MarkdownModule[] = [],
+  options: RendererOptions = {},
+): (markdown: string) => RenderedDocument {
+  const md = createMarkdownIt(modules, options);
+  return (markdown) => {
+    const env: HeadingEnv = { toc: [] };
+    const html = md.render(markdown, env);
+    return { html, toc: env.toc ?? [] };
+  };
+}
+
+/** 두 렌더러가 같이 쓰는 markdown-it 설정 */
+function createMarkdownIt(modules: MarkdownModule[], options: RendererOptions): MarkdownIt {
   const md = new MarkdownItFactory("zero", {
     html: false, // 글 안에 쓴 HTML은 실행하지 않고 글자 그대로 표시
     breaks: true, // 엔터 한 번 = 줄바꿈(<br>)
@@ -44,12 +68,12 @@ export function createRenderer(modules: MarkdownModule[] = [], options: Renderer
   md.enable(CORE_INLINE_RULES);
 
   openExternalLinksInNewTab(md, options.siteHost ?? DEFAULT_SITE_HOST);
+  addHeadingIds(md); // 제목에 id → 목차·#주소로 바로 이동
 
   for (const mod of modules) {
     mod.setup(md);
   }
-
-  return (markdown) => md.render(markdown);
+  return md;
 }
 
 /**

@@ -1,4 +1,5 @@
 import type { MarkdownIt } from "markdown-it";
+import type { TocItem } from "./headings.ts";
 
 /**
  * Markdown 기능 모듈.
@@ -17,3 +18,10 @@ export interface MarkdownModule {
 
 /** Markdown 문자열을 받아 HTML 문자열을 돌려주는 함수. */
 export type RenderFn = (markdown: string) => string;
+
+/** 글 페이지용 렌더링 결과: HTML + 목차 */
+export interface RenderedDocument {
+  html: string;
+  /** 본문 제목들 (나온 순서대로). 목차를 몇 단계까지 보여줄지는 화면(템플릿)이 정한다 */
+  toc: TocItem[];
+}

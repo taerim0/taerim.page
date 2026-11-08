@@ -275,6 +275,17 @@ export class D1PostRepository implements PostRepository {
     return this.get(postId);
   }
 
+  async listPublished(): Promise<Post[]> {
+    const { results } = await this.#db
+      .prepare(
+        `SELECT ${POST_COLUMNS} FROM posts p
+         WHERE p.status = 'published' AND p.deleted_at IS NULL
+         ORDER BY p.published_at DESC, p.id DESC`,
+      )
+      .all<PostRow>();
+    return results.map(toPost);
+  }
+
   async listTags(): Promise<TagCount[]> {
     const { results } = await this.#db
       .prepare(

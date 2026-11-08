@@ -153,6 +153,13 @@ export class MemoryPostRepository implements PostRepository {
     return structuredClone(post);
   }
 
+  async listPublished(): Promise<Post[]> {
+    return [...this.#posts.values()]
+      .filter((post) => post.deletedAt === null && post.status === "published")
+      .sort((a, b) => compareDesc(a.publishedAt ?? "", b.publishedAt ?? "") || b.id - a.id)
+      .map((post) => structuredClone(post));
+  }
+
   async listTags(): Promise<TagCount[]> {
     const counts = new Map<string, number>();
     for (const post of this.#posts.values()) {

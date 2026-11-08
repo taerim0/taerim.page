@@ -97,6 +97,12 @@ export interface PostRepository {
    */
   applyDraft(postId: number, at: string): Promise<Post | null>;
 
+  /**
+   * 공개 사이트 빌드용: 공개 글 **전부를 본문까지** 한 번에. 휴지통 글은 빼고, 작업본이 아닌 공개본 내용.
+   * 순서는 공개 목록과 같다 (공개한 시각 최신 순, 같으면 id가 큰 글이 앞)
+   */
+  listPublished(): Promise<Post[]>;
+
   /** 태그별 글 개수. 휴지통 글은 세지 않고, 개수가 0인 태그는 빼고, 이름순 */
   listTags(): Promise<TagCount[]>;
 }

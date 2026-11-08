@@ -12,13 +12,13 @@
   "preview_urls": false,
 
   // 배포용 설정값 (비밀 아님). 비어 있으면 관리자 확인이 "모두 막음"이 된다 (설정을 잊어도 열리지 않게)
-  // - ACCESS_TEAM_DOMAIN·ACCESS_AUD: Zero Trust > Access > Applications에서 앱을 만든 뒤 채운다
+  // - ACCESS_TEAM_DOMAIN: Zero Trust > Settings > Team domain / ACCESS_AUD: Access 앱(admin.taerim.page) > Additional settings > AUD tag
   // - ADMIN_EMAILS: 들어올 수 있는 이메일 (쉼표로 여러 개)
   // 비밀값 GITHUB_DEPLOY_TOKEN은 여기 넣지 않고 `npx wrangler secret put GITHUB_DEPLOY_TOKEN`으로
   "vars": {
-    "ACCESS_TEAM_DOMAIN": "",
-    "ACCESS_AUD": "",
-    "ADMIN_EMAILS": "",
+    "ACCESS_TEAM_DOMAIN": "taerim0.cloudflareaccess.com",
+    "ACCESS_AUD": "b157487e544c9860603839ed8ce37cf0d6f3bb9056a05ed367da28fc9a23bde8",
+    "ADMIN_EMAILS": "taerim.be@gmail.com",
     "GITHUB_REPOSITORY": "taerim0/taerim.page"
   },
   // 주의: ENVIRONMENT 같은 개발용 값은 여기 넣지 않는다 (배포에도 적용되므로).

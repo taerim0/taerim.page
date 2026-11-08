@@ -1,3 +1,4 @@
+import { ImageError } from "../images/errors.ts";
 import { ConflictError, NotFoundError, PostError, ValidationError } from "../posts/errors.ts";
 import type { FieldIssue } from "../posts/errors.ts";
 
@@ -79,6 +80,11 @@ export function toErrorResponse(error: unknown): { status: ErrorStatus; body: Er
   }
   if (error instanceof ConflictError) {
     return { status: 409, body: errorBody("conflict", error.message), expected: true };
+  }
+  if (error instanceof ImageError) {
+    return error.kind === "too_large"
+      ? { status: 413, body: errorBody("payload_too_large", error.message), expected: true }
+      : { status: 400, body: errorBody("bad_request", error.message), expected: true };
   }
   if (error instanceof PostError) {
     // 새 종류의 글 오류가 생겼는데 여기 연결을 빠뜨린 경우: 일단 400으로, 로그는 남긴다

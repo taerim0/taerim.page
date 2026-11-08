@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { requireAdmin, requireSameOrigin } from "./auth.ts";
 import type { AdminAuthenticator, AdminEnv } from "./auth.ts";
 import { HttpError, toErrorResponse } from "./http-errors.ts";
+import { createImageRoutes, IMAGE_PATH_PREFIX } from "./images.ts";
 import { createPageRoutes } from "./pages.ts";
 import type { AssetFetcher } from "./pages.ts";
 import { createApiRoutes } from "./routes.ts";
@@ -25,7 +26,7 @@ export interface AdminAppDeps extends ApiDeps {
  *  1. 공통 응답 헤더 (캐시 금지 등)
  *  2. 관리자 확인 → 아니면 401   ※ 없는 주소도 먼저 막는다 (어떤 주소가 있는지 숨김)
  *  3. 쓰기 요청 출처 확인 → 다르면 403
- *  4. /api 주소 처리, 그 밖은 관리자 화면 파일
+ *  4. /api 주소 처리, /images/… 이미지, 그 밖은 관리자 화면 파일
  *  5. 실패하면 정해진 오류 모양으로 변환, 없는 주소는 404
  */
 export function createAdminApp(deps: AdminAppDeps): Hono<AdminEnv> {
@@ -35,7 +36,9 @@ export function createAdminApp(deps: AdminAppDeps): Hono<AdminEnv> {
   app.use("*", async (c, next) => {
     await next();
     // 관리자 데이터는 브라우저·중간 서버가 저장해 두지 않게
-    c.header("Cache-Control", "no-store");
+    // 단, 이미지는 내용이 절대 안 바뀌므로 내 브라우저에만 저장 (images.ts의 IMAGE_CACHE_CONTROL)
+    const isImage = c.req.path.startsWith(IMAGE_PATH_PREFIX) && c.res.ok;
+    if (!isImage) c.header("Cache-Control", "no-store");
     // 응답 형식을 브라우저가 멋대로 추측하지 않게 (JSON을 HTML로 해석하는 공격 방지)
     c.header("X-Content-Type-Options", "nosniff");
   });
@@ -44,6 +47,7 @@ export function createAdminApp(deps: AdminAppDeps): Hono<AdminEnv> {
   app.use("*", requireSameOrigin());
 
   app.route("/api", createApiRoutes(deps));
+  app.route("/", createImageRoutes(deps.images));
   if (deps.assets) app.route("/", createPageRoutes(deps.assets));
 
   app.notFound((c) => {

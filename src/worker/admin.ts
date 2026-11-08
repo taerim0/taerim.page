@@ -2,7 +2,8 @@
  * 관리자 Worker 시작 파일 (admin.taerim.page).
  * 실제 저장소·설정으로 관리자 앱을 조립한다.
  *
- * 저장소: D1 (env.DB). 로컬 개발(wrangler dev)에서는 내 PC의 로컬 D1(.wrangler/)을 쓴다.
+ * 저장소: D1 (env.DB), 이미지 파일은 R2 (env.IMAGES).
+ * 로컬 개발(wrangler dev)에서는 내 PC의 로컬 D1·R2(.wrangler/)를 쓴다.
  */
 import type { Hono } from "hono";
 import { createAdminApp } from "../admin/app.ts";
@@ -11,6 +12,10 @@ import { githubDeployTrigger } from "../admin/deploy.ts";
 import type { DeployTrigger } from "../admin/deploy.ts";
 import type { AdminAuthenticator, AdminEnv } from "../admin/auth.ts";
 import type { AssetFetcher } from "../admin/pages.ts";
+import { D1ImageRepository } from "../images/d1-repository.ts";
+import type { R2Bucket } from "../images/r2.ts";
+import { ImageService } from "../images/service.ts";
+import { R2ImageStore } from "../images/store.ts";
 import { renderMarkdown } from "../markdown/index.ts";
 import type { D1Database } from "../posts/d1.ts";
 import { D1PostRepository } from "../posts/d1-repository.ts";
@@ -22,6 +27,8 @@ interface AdminWorkerEnv {
   DB: D1Database;
   /** 관리자 화면 파일 (wrangler.jsonc의 assets, binding "ASSETS") */
   ASSETS: AssetFetcher;
+  /** 이미지 파일 R2 버킷 (wrangler.jsonc의 r2_buckets, binding "IMAGES"). 없으면 이미지 기능 503 */
+  IMAGES?: R2Bucket;
   /** 로컬 개발이면 "development" (.dev.vars에만 넣는다. 배포 설정에는 넣지 않는다) */
   ENVIRONMENT?: string;
   /** Cloudflare Access 팀 도메인 (예: taerim.cloudflareaccess.com). 배포 설정(vars)에 넣는다 */
@@ -70,6 +77,7 @@ function buildApp(env: AdminWorkerEnv): Hono<AdminEnv> {
     render: renderMarkdown,
     authenticator: chooseAuthenticator(env),
     deploy: chooseDeploy(env),
+    images: env.IMAGES ? new ImageService(new R2ImageStore(env.IMAGES), new D1ImageRepository(env.DB)) : undefined,
     assets: env.ASSETS,
   });
 }

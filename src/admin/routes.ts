@@ -1,5 +1,7 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
+import type { ImageService } from "../images/service.ts";
+import { MAX_IMAGE_BYTES } from "../images/service.ts";
 import type { RenderFn } from "../markdown/index.ts";
 import type { PostService } from "../posts/service.ts";
 import { LIMITS } from "../posts/validation.ts";
@@ -7,6 +9,7 @@ import type { AdminEnv } from "./auth.ts";
 import { DeployError } from "./deploy.ts";
 import type { DeployTrigger } from "./deploy.ts";
 import { HttpError } from "./http-errors.ts";
+import { requireImages } from "./images.ts";
 import { parseListQuery } from "./query.ts";
 
 /** API에 필요한 것들 */
@@ -16,6 +19,8 @@ export interface ApiDeps {
   render: RenderFn;
   /** 공개 사이트 배포 요청하는 곳. 없으면 배포 API는 503 (로컬 개발 등) */
   deploy?: DeployTrigger;
+  /** 이미지 기능. 없으면 이미지 API는 503 (R2 설정이 없을 때) */
+  images?: ImageService;
 }
 
 /** 요청 본문 최대 크기: 1MB */
@@ -26,7 +31,7 @@ export const MAX_BODY_BYTES = 1024 * 1024;
  * 여기서는 요청을 읽어 서비스에 넘기고 결과를 JSON으로 돌려주기만 한다.
  * 실패하면 오류를 던지고, 응답 변환은 app.ts의 오류 처리가 맡는다.
  */
-export function createApiRoutes({ service, render, deploy }: ApiDeps): Hono<AdminEnv> {
+export function createApiRoutes({ service, render, deploy, images }: ApiDeps): Hono<AdminEnv> {
   const api = new Hono<AdminEnv>();
 
   // ── 글 ─────────────────────────────────────────────
@@ -92,6 +97,18 @@ export function createApiRoutes({ service, render, deploy }: ApiDeps): Hono<Admi
     return c.json({ html: render(body) });
   });
 
+  // ── 이미지 ──────────────────────────────────────────
+  /**
+   * 이미지 올리기. 본문 = 파일 그대로, 원래 파일 이름은 X-File-Name 헤더(주소 인코딩).
+   * 새로 저장 201 / 같은 이미지가 이미 있음 200, 둘 다 { image }
+   */
+  api.post("/images", async (c) => {
+    const service = requireImages(images);
+    const bytes = await readBytes(c, MAX_IMAGE_BYTES);
+    const { image, created } = await service.upload(bytes, fileNameHeader(c));
+    return c.json({ image }, created ? 201 : 200);
+  });
+
   // ── 배포 ────────────────────────────────────────────
   /** 공개 사이트 배포 요청 → 202 (빌드·배포는 GitHub Actions에서 따로 진행) */
   api.post("/deploy", async (c) => {
@@ -155,4 +172,28 @@ async function readJson(c: Context<AdminEnv>): Promise<unknown> {
 
 function tooLarge(): HttpError {
   return new HttpError("payload_too_large", "요청 본문은 1MB까지예요");
+}
+
+/**
+ * 요청 본문을 바이트 그대로 읽는다. 최대 크기를 넘으면 413
+ * (Content-Length로 먼저 보고, 실제 크기로 한 번 더)
+ */
+async function readBytes(c: Context<AdminEnv>, maxBytes: number): Promise<Uint8Array> {
+  const over = () => new HttpError("payload_too_large", `파일은 ${Math.round(maxBytes / 1024 / 1024)}MB까지예요`);
+  const declared = Number(c.req.header("Content-Length"));
+  if (Number.isFinite(declared) && declared > maxBytes) throw over();
+  const bytes = new Uint8Array(await c.req.arrayBuffer());
+  if (bytes.byteLength > maxBytes) throw over();
+  return bytes;
+}
+
+/** X-File-Name 헤더 (주소 인코딩된 파일 이름). 없거나 풀 수 없으면 null */
+function fileNameHeader(c: Context<AdminEnv>): string | null {
+  const raw = c.req.header("X-File-Name");
+  if (!raw) return null;
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return null;
+  }
 }

@@ -18,6 +18,7 @@
 /** @typedef {import("../../src/admin/http-errors.ts").ErrorBody} ErrorBody */
 /** @typedef {import("../../src/posts/errors.ts").FieldIssue} FieldIssue */
 /** @typedef {import("../../src/admin/deploy.ts").DeployRun} DeployRun */
+/** @typedef {import("../../src/images/types.ts").ImageInfo} ImageInfo */
 
 /**
  * 목록 조건
@@ -55,14 +56,24 @@ export class ApiError extends Error {
  * @returns {Promise<any>}
  */
 async function request(method, path, body) {
+  return send(`/api${path}`, {
+    method,
+    headers: body === undefined ? {} : { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+}
+
+/**
+ * 요청을 보내고 응답을 읽는다 (request와 이미지 올리기가 같이 쓴다)
+ * @param {string} url
+ * @param {RequestInit} init
+ * @returns {Promise<any>}
+ */
+async function send(url, init) {
   /** @type {Response} */
   let response;
   try {
-    response = await fetch(`/api${path}`, {
-      method,
-      headers: body === undefined ? {} : { "Content-Type": "application/json" },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
+    response = await fetch(url, init);
   } catch {
     throw new ApiError(0, "network", "서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요");
   }
@@ -143,6 +154,23 @@ export const listTags = () => request("GET", "/tags");
 
 /** @returns {Promise<Limits>} */
 export const getLimits = () => request("GET", "/limits");
+
+/** 이미지 */
+export const imagesApi = {
+  /**
+   * 올리기. 본문 = 파일 그대로, 원래 파일 이름은 X-File-Name(주소 인코딩).
+   * 같은 이미지가 이미 있으면 그 정보를 돌려준다
+   * @param {Blob} file WebP(변환한 것) 또는 GIF
+   * @param {string} fileName 원래 파일 이름
+   * @returns {Promise<{ image: ImageInfo }>}
+   */
+  upload: (file, fileName) =>
+    send("/api/images", {
+      method: "POST",
+      headers: { "Content-Type": file.type || "application/octet-stream", "X-File-Name": encodeURIComponent(fileName) },
+      body: file,
+    }),
+};
 
 /** 공개 사이트 배포 (GitHub Actions) */
 export const deployApi = {

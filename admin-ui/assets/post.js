@@ -10,6 +10,7 @@
  */
 import { ApiError, getLimits, postsApi } from "./api.js";
 import { blockIndexAt, charCount, createBlockPreview, isAllowedTag, normalizeTag, normalizeTags, renderMarkdown, TAG_CHARS_MESSAGE } from "./lib.js";
+import { bindImageUpload } from "./image-upload.js";
 import { bindTagInput, clearNotice, confirmDialog, el, flash, formatDateTime, notify } from "./ui.js";
 
 /** @typedef {import("./api.js").Post} Post */
@@ -585,6 +586,13 @@ bindTagInput(tagInput, {
 });
 
 inputs.body.addEventListener("scroll", syncScroll);
+
+// 이미지 올리기: 붙여넣기·끌어놓기·[이미지] 버튼 → 본문에 ![…](/images/…) (image-upload.js)
+bindImageUpload({
+  textarea: inputs.body,
+  button: /** @type {HTMLButtonElement} */ ($("image-button")),
+  fileInput: /** @type {HTMLInputElement} */ ($("image-file")),
+});
 
 previewToggle.addEventListener("click", () => setPreviewOpen(!isPreviewOpen(), { remember: true }));
 previewClose.addEventListener("click", () => setPreviewOpen(false, { remember: true }));

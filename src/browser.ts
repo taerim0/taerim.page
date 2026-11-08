@@ -5,6 +5,16 @@
  * - 렌더러: 미리보기 = 빌드 결과 (입력 중에는 바뀐 블록만, 멈추면 전체)
  * - 태그 정리·글자 수 세기: 화면 표시 = 서버 검사
  */
+export {
+  altFromFileName,
+  fitWithin,
+  imageMarkdown,
+  MAX_IMAGE_SIDE,
+  planUpload,
+  replacePlaceholder,
+  uploadingPlaceholder,
+  WEBP_QUALITY,
+} from "./images/client.ts";
 export { blockIndexAt, createBlockPreview } from "./markdown/blocks.ts";
 export { renderMarkdown } from "./markdown/index.ts";
 export { charCount, isAllowedTag, normalizeTag, normalizeTags, TAG_CHARS_MESSAGE } from "./posts/validation.ts";

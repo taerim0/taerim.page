@@ -79,6 +79,11 @@ a { color: inherit; }
   flex: 1; min-height: 8em; resize: none; line-height: 1.6; tab-size: 4;
   font-family: ui-monospace, "D2Coding", "Cascadia Mono", Consolas, monospace; font-size: .95em;
 }
+/* 본문 위 작은 줄: [이미지] 버튼 + 안내 */
+.body-tools { display: flex; gap: 8px; align-items: center; font-size: .85em; }
+.body-tools .button { padding: 2px 8px; }
+/* 파일을 본문 칸에 끌어왔을 때 */
+.body-input.drop-target { border-color: var(--accent); outline: 2px dashed var(--accent); outline-offset: -4px; background: #f5f8ff; }
 .field-foot { display: flex; gap: 8px; align-items: baseline; justify-content: space-between; min-height: 1.2em; font-size: .85em; }
 .field-error { margin: 0; color: var(--danger); }
 .count { margin-left: auto; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }

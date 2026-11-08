@@ -17,6 +17,19 @@ export function tagPath(tag: string): string {
   return `/tags/${encodePathSegment(tag)}`;
 }
 
+/** 태그 모음 주소 */
+export const TAGS_PATH = "/tags";
+
+/**
+ * 목록의 n번째 페이지 주소. 1페이지는 목록 주소 그대로, 2페이지부터 뒤에 /page/n
+ * 예) ("/", 1) → "/", ("/", 2) → "/page/2", ("/tags/react", 3) → "/tags/react/page/3"
+ * @param listPath 목록 주소 ("/" 또는 tagPath(…))
+ */
+export function pagePath(listPath: string, page: number): string {
+  if (page <= 1) return listPath;
+  return `${listPath === "/" ? "" : listPath}/page/${page}`;
+}
+
 /**
  * 주소의 한 칸(/와 / 사이)에 넣을 값을 인코딩한다.
  * - / ? # % & + 공백 등 주소에서 의미가 있는 문자는 %XX로 바꾼다 (encodeURIComponent)

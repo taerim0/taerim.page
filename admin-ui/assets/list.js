@@ -6,7 +6,7 @@
  */
 import { ApiError, postsApi } from "./api.js";
 import { normalizeTag } from "./lib.js";
-import { clearNotice, el, formatDateTime, notify, setQuery, showFlash } from "./ui.js";
+import { bindTagInput, clearNotice, el, formatDateTime, notify, setQuery, showFlash } from "./ui.js";
 
 /** @typedef {import("./api.js").PostSummary} PostSummary */
 /** @typedef {import("./api.js").PostStatus} PostStatus */
@@ -167,17 +167,17 @@ for (const tab of document.querySelectorAll("[data-status]")) {
   });
 }
 
-/** 태그 입력: 띄어쓰기·엔터를 치면 태그 하나 완성. 빈 칸에서 백스페이스면 마지막 태그 빼기 */
-tagInput.addEventListener("keydown", (event) => {
-  const state = readState();
-  if (event.key === " " || event.key === "Enter") {
-    event.preventDefault();
-    const tag = normalizeTag(tagInput.value);
-    tagInput.value = "";
-    if (tag && !state.tags.includes(tag)) update({ tags: [...state.tags, tag] });
-  } else if (event.key === "Backspace" && tagInput.value === "" && state.tags.length > 0) {
-    update({ tags: state.tags.slice(0, -1) });
-  }
+// 태그 입력: 띄어쓰기·엔터로 거르기 태그 추가, 빈 칸 백스페이스로 마지막 태그 빼기 (한글 조합 처리는 ui.js)
+bindTagInput(tagInput, {
+  onAdd: (text) => {
+    const tags = readState().tags;
+    const tag = normalizeTag(text);
+    if (tag && !tags.includes(tag)) update({ tags: [...tags, tag] });
+  },
+  onRemoveLast: () => {
+    const tags = readState().tags;
+    if (tags.length > 0) update({ tags: tags.slice(0, -1) });
+  },
 });
 
 // 뒤로·앞으로 가기로 주소가 바뀌면 다시 그림

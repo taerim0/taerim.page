@@ -99,3 +99,47 @@ export function showFlash() {
     // 무시
   }
 }
+
+/**
+ * 태그 입력 칸 연결 (글 목록의 거르기 칸, 편집 화면의 태그 칸 공통)
+ * - 띄어쓰기·엔터를 치면 태그 하나 완성 → onAdd(친 글자). 정리(normalizeTag)·중복 확인은 부르는 쪽에서
+ * - 빈 칸에서 백스페이스 → onRemoveLast()
+ *
+ * 한글 입력 중(조합 중)에는 글자가 아직 확정되지 않아서 keydown에서 바로 읽으면 마지막 글자가 빠지거나 남는다.
+ * → 띄어쓰기는 입력된 결과(input 이벤트)에서 공백을 찾아 나누고,
+ *   조합 중에 친 엔터는 조합이 끝난 뒤(compositionend) 처리한다.
+ * @param {HTMLInputElement} input
+ * @param {{ onAdd: (text: string) => void, onRemoveLast: () => void }} handlers
+ */
+export function bindTagInput(input, { onAdd, onRemoveLast }) {
+  let enterWhileComposing = false;
+
+  const commit = () => {
+    const text = input.value;
+    input.value = "";
+    if (text.trim() !== "") onAdd(text);
+  };
+
+  input.addEventListener("input", () => {
+    const parts = input.value.split(/\s+/);
+    if (parts.length < 2) return;
+    input.value = parts.pop() ?? ""; // 마지막 공백 뒤는 아직 치는 중
+    for (const part of parts) if (part !== "") onAdd(part);
+  });
+
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      if (event.isComposing) enterWhileComposing = true;
+      else commit();
+    } else if (event.key === "Backspace" && input.value === "" && !event.isComposing) {
+      onRemoveLast();
+    }
+  });
+
+  input.addEventListener("compositionend", () => {
+    if (!enterWhileComposing) return;
+    enterWhileComposing = false;
+    commit();
+  });
+}

@@ -10,7 +10,7 @@
  */
 import { ApiError, getLimits, postsApi } from "./api.js";
 import { blockIndexAt, charCount, createBlockPreview, normalizeTag, normalizeTags, renderMarkdown } from "./lib.js";
-import { clearNotice, el, flash, formatDateTime, notify } from "./ui.js";
+import { bindTagInput, clearNotice, el, flash, formatDateTime, notify } from "./ui.js";
 
 /** @typedef {import("./api.js").Post} Post */
 /** @typedef {import("./api.js").PostDraft} PostDraft */
@@ -569,42 +569,14 @@ function addTag(text) {
   }
 }
 
-/*
- * 태그 입력: 띄어쓰기·엔터를 치면 태그 하나 완성, 빈 칸에서 백스페이스면 마지막 태그 빼기.
- * 한글 입력 중(조합 중)에는 글자가 아직 확정되지 않아서 keydown으로 바로 읽으면 마지막 글자가 빠지거나 남는다.
- * → 띄어쓰기는 입력된 결과(input 이벤트)에서 공백을 찾아 처리하고,
- *   조합 중에 친 엔터는 조합이 끝난 뒤(compositionend) 처리한다.
- */
-let enterWhileComposing = false;
-
-tagInput.addEventListener("input", () => {
-  const parts = tagInput.value.split(/\s+/);
-  if (parts.length < 2) return;
-  const rest = parts.pop() ?? ""; // 마지막 공백 뒤는 아직 치는 중
-  for (const part of parts) addTag(part);
-  tagInput.value = rest;
-});
-
-tagInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    event.preventDefault();
-    if (event.isComposing) {
-      enterWhileComposing = true;
-      return;
-    }
-    addTag(tagInput.value);
-    tagInput.value = "";
-  } else if (event.key === "Backspace" && tagInput.value === "" && tags.length > 0 && !event.isComposing) {
+// 태그 입력: 띄어쓰기·엔터로 완성, 빈 칸 백스페이스로 마지막 태그 빼기 (한글 조합 처리는 ui.js)
+bindTagInput(tagInput, {
+  onAdd: addTag,
+  onRemoveLast: () => {
+    if (tags.length === 0) return;
     tags = tags.slice(0, -1);
     onEdit("tags");
-  }
-});
-
-tagInput.addEventListener("compositionend", () => {
-  if (!enterWhileComposing) return;
-  enterWhileComposing = false;
-  addTag(tagInput.value);
-  tagInput.value = "";
+  },
 });
 
 inputs.body.addEventListener("scroll", syncScroll);

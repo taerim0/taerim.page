@@ -130,7 +130,14 @@ a { color: inherit; }
 .preview code { padding: .1em .35em; border-radius: 4px; background: #f3f4f6; font-family: ui-monospace, "D2Coding", Consolas, monospace; font-size: .9em; }
 .preview pre { padding: 12px 14px; border-radius: 6px; background: #f6f8fa; overflow-x: auto; line-height: 1.5; }
 .preview pre code { padding: 0; background: none; font-size: .9em; }
-.preview img { max-width: 100%; }
+.preview img { max-width: 100%; height: auto; } /* height:auto: 크기(|400)나 width/height 속성이 있어도 비율 유지 */
+/* 이미지만 있는 문단: 줄(.img-row)마다 가로로, 사이 간격은 고정 8px. 정렬은 문단 클래스 (기본 가운데) */
+.preview .img-row { display: flex; gap: 8px; align-items: flex-start; }
+.preview .img-row + .img-row { margin-top: 8px; }
+.preview .img-row img { min-width: 0; } /* 합이 100%가 넘으면(간격 포함) 이미지가 조금씩 줄어 한 줄에 맞음 */
+.preview .img-align-center .img-row { justify-content: center; }
+.preview .img-align-left .img-row { justify-content: flex-start; }
+.preview .img-align-right .img-row { justify-content: flex-end; }
 
 /* ── 태그 화면 (tags.html) ─────────────────────────── */
 .search-input { padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; font: inherit; min-width: 12em; }

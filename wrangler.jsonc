@@ -10,6 +10,9 @@
   "routes": [{ "pattern": "admin.taerim.page", "custom_domain": true }],
   "workers_dev": false,
   "preview_urls": false,
+  // wrangler dev는 기본으로 요청 주소를 위 route(admin.taerim.page)로 바꾼다
+  // → 로컬 로그인 확인(localhost만 허용)이 막히므로 개발 중에는 localhost 그대로 둔다 (배포에는 영향 없음)
+  "dev": { "host": "localhost" },
 
   // 배포용 설정값 (비밀 아님). 비어 있으면 관리자 확인이 "모두 막음"이 된다 (설정을 잊어도 열리지 않게)
   // - ACCESS_TEAM_DOMAIN: Zero Trust > Settings > Team domain / ACCESS_AUD: Access 앱(admin.taerim.page) > Additional settings > AUD tag

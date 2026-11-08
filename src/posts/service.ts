@@ -152,10 +152,15 @@ export class PostService {
     if (!(await this.#repo.moveToTrash(id, this.#timestamp()))) throw notFound();
   }
 
-  /** 휴지통에서 되살리기. 원래 상태(초안/공개)로 돌아간다. */
-  async restore(id: number): Promise<void> {
+  /**
+   * 휴지통에서 되살리기. 공개였던 글도 **초안으로** 돌아간다 (다음 배포에 저절로 다시 나가지 않게).
+   * 작업본이 있으면 그 내용으로 되살린다. 공개 시각은 그대로라 다시 공개하면 처음 시각을 유지한다.
+   */
+  async restore(id: number): Promise<Post> {
     await this.#requireTrashed(id);
-    if (!(await this.#repo.restore(id))) throw notFound();
+    const restored = await this.#repo.restore(id, this.#timestamp());
+    if (!restored) throw notFound();
+    return restored;
   }
 
   /** 완전 삭제. 휴지통에 있는 글만 지울 수 있다. */

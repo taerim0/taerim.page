@@ -65,8 +65,14 @@ export interface PostRepository {
   /** 휴지통에 넣는다. 옮겼으면 true, 없거나 이미 휴지통이면 false */
   moveToTrash(id: number, at: string): Promise<boolean>;
 
-  /** 휴지통에서 되살린다. 되살렸으면 true, 휴지통에 없으면 false */
-  restore(id: number): Promise<boolean>;
+  /**
+   * 휴지통에서 **초안으로** 되살린다. (공개였던 글이 다음 배포에 다시 나가지 않게)
+   * - 작업본이 있으면 그 내용(제목·본문·소개·대표 이미지·태그)을 글에 덮어쓰고 작업본을 지운다 (가장 최근 내용을 남김)
+   * - 상태는 초안, updatedAt은 at. 공개 시각(publishedAt)은 그대로 둔다 (다시 공개하면 처음 시각 유지)
+   * - 한 번에 처리한다: 중간에 실패하면 글과 작업본 모두 그대로 남는다.
+   * @returns 되살린 글. 없거나 휴지통에 없으면 null
+   */
+  restore(id: number, at: string): Promise<Post | null>;
 
   /**
    * 완전히 지운다(휴지통 비우기). 작업본과 태그 연결도 함께 지운다.

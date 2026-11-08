@@ -191,12 +191,27 @@ export class D1PostRepository implements PostRepository {
     return result.meta.changes > 0;
   }
 
-  async restore(id: number): Promise<boolean> {
-    const result = await this.#db
-      .prepare("UPDATE posts SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL")
-      .bind(id)
-      .run();
-    return result.meta.changes > 0;
+  async restore(id: number, at: string): Promise<Post | null> {
+    const [post, draft] = await Promise.all([this.get(id, { includeTrashed: true }), this.getDraft(id)]);
+    if (!post || post.deletedAt === null) return null;
+
+    // 휴지통에서 꺼내기 + 초안으로 + (작업본이 있으면) 내용 덮어쓰기·태그 바꾸기·작업본 지우기를 한 트랜잭션으로
+    const restoreAsDraft = "status = 'draft', updated_at = ?, deleted_at = NULL";
+    const whereTrashed = "WHERE id = ? AND deleted_at IS NOT NULL";
+    await this.#db.batch(
+      draft
+        ? [
+            this.#db
+              .prepare(
+                `UPDATE posts SET title = ?, body = ?, summary = ?, thumbnail = ?, ${restoreAsDraft} ${whereTrashed}`,
+              )
+              .bind(draft.title, draft.body, draft.summary, draft.thumbnail, at, id),
+            ...this.#replaceTags("?", [id], draft.tags),
+            this.#db.prepare("DELETE FROM post_drafts WHERE post_id = ?").bind(id),
+          ]
+        : [this.#db.prepare(`UPDATE posts SET ${restoreAsDraft} ${whereTrashed}`).bind(at, id)],
+    );
+    return this.get(id);
   }
 
   async purge(id: number): Promise<boolean> {

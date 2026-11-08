@@ -93,11 +93,24 @@ export class MemoryPostRepository implements PostRepository {
     return true;
   }
 
-  async restore(id: number): Promise<boolean> {
+  async restore(id: number, at: string): Promise<Post | null> {
     const post = this.#posts.get(id);
-    if (!post || post.deletedAt === null) return false;
+    if (!post || post.deletedAt === null) return null;
+
+    // 메모리에서는 중간에 실패할 일이 없어서 그대로 "한 번에" 처리된다.
+    const draft = this.#drafts.get(id);
+    if (draft) {
+      post.title = draft.title;
+      post.body = draft.body;
+      post.summary = draft.summary;
+      post.thumbnail = draft.thumbnail;
+      post.tags = structuredClone(draft.tags);
+      this.#drafts.delete(id);
+    }
+    post.status = "draft";
+    post.updatedAt = at;
     post.deletedAt = null;
-    return true;
+    return structuredClone(post);
   }
 
   async purge(id: number): Promise<boolean> {

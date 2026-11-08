@@ -10,7 +10,9 @@ export type ErrorCode =
   | "not_found"
   | "conflict"
   | "payload_too_large"
-  | "internal";
+  | "internal"
+  | "bad_gateway"
+  | "unavailable";
 
 /** 실패 응답 본문. 모든 오류가 이 모양이다. */
 export interface ErrorBody {
@@ -23,7 +25,7 @@ export interface ErrorBody {
 }
 
 /** HTTP 상태 코드 (오류용) */
-export type ErrorStatus = 400 | 401 | 403 | 404 | 409 | 413 | 500;
+export type ErrorStatus = 400 | 401 | 403 | 404 | 409 | 413 | 500 | 502 | 503;
 
 const STATUS_BY_CODE: Record<ErrorCode, ErrorStatus> = {
   bad_request: 400,
@@ -34,6 +36,10 @@ const STATUS_BY_CODE: Record<ErrorCode, ErrorStatus> = {
   conflict: 409,
   payload_too_large: 413,
   internal: 500,
+  /** 바깥 서비스(GitHub 등)가 실패함 */
+  bad_gateway: 502,
+  /** 이 기능이 설정되지 않음 (예: 배포 설정 없음) */
+  unavailable: 503,
 };
 
 /**

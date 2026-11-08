@@ -147,3 +147,6 @@ a { color: inherit; }
 .filters #summary { margin: 0; }
 .tag-plain { color: var(--muted); font-size: .9em; }
 .row-actions { display: flex; gap: 6px; margin-left: auto; }
+
+/* ── 배포 버튼 옆 상태 (글 목록 위쪽) ── */
+.deploy-status { align-self: center; font-size: .9em; }

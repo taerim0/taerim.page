@@ -4,6 +4,8 @@ import type { RenderFn } from "../markdown/index.ts";
 import type { PostService } from "../posts/service.ts";
 import { LIMITS } from "../posts/validation.ts";
 import type { AdminEnv } from "./auth.ts";
+import { DeployError } from "./deploy.ts";
+import type { DeployTrigger } from "./deploy.ts";
 import { HttpError } from "./http-errors.ts";
 import { parseListQuery } from "./query.ts";
 
@@ -12,6 +14,8 @@ export interface ApiDeps {
   service: PostService;
   /** 미리보기용 Markdown 렌더러 (빌드와 같은 것) */
   render: RenderFn;
+  /** 공개 사이트 배포 요청하는 곳. 없으면 배포 API는 503 (로컬 개발 등) */
+  deploy?: DeployTrigger;
 }
 
 /** 요청 본문 최대 크기: 1MB */
@@ -22,7 +26,7 @@ export const MAX_BODY_BYTES = 1024 * 1024;
  * 여기서는 요청을 읽어 서비스에 넘기고 결과를 JSON으로 돌려주기만 한다.
  * 실패하면 오류를 던지고, 응답 변환은 app.ts의 오류 처리가 맡는다.
  */
-export function createApiRoutes({ service, render }: ApiDeps): Hono<AdminEnv> {
+export function createApiRoutes({ service, render, deploy }: ApiDeps): Hono<AdminEnv> {
   const api = new Hono<AdminEnv>();
 
   // ── 글 ─────────────────────────────────────────────
@@ -88,7 +92,28 @@ export function createApiRoutes({ service, render }: ApiDeps): Hono<AdminEnv> {
     return c.json({ html: render(body) });
   });
 
+  // ── 배포 ────────────────────────────────────────────
+  /** 공개 사이트 배포 요청 → 202 (빌드·배포는 GitHub Actions에서 따로 진행) */
+  api.post("/deploy", async (c) => {
+    await requireDeploy(deploy).request().catch(toHttpError);
+    return c.json({ requested: true }, 202);
+  });
+
+  /** 가장 최근 배포 상태 (한 번도 없으면 { run: null }) */
+  api.get("/deploy", async (c) => c.json({ run: await requireDeploy(deploy).latest().catch(toHttpError) }));
+
   return api;
+}
+
+function requireDeploy(deploy: DeployTrigger | undefined): DeployTrigger {
+  if (!deploy) throw new HttpError("unavailable", "배포 설정이 없어요 (로컬 개발에서는 배포할 수 없어요)");
+  return deploy;
+}
+
+/** GitHub 쪽 실패는 502로. 그 밖(버그)은 그대로 던져 500 + 로그 */
+function toHttpError(error: unknown): never {
+  if (error instanceof DeployError) throw new HttpError("bad_gateway", error.message);
+  throw error;
 }
 
 /**

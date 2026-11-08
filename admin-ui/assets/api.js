@@ -17,6 +17,7 @@
 /** @typedef {import("../../src/posts/service.ts").SaveResult} SaveResult */
 /** @typedef {import("../../src/admin/http-errors.ts").ErrorBody} ErrorBody */
 /** @typedef {import("../../src/posts/errors.ts").FieldIssue} FieldIssue */
+/** @typedef {import("../../src/admin/deploy.ts").DeployRun} DeployRun */
 
 /**
  * 목록 조건
@@ -142,3 +143,11 @@ export const listTags = () => request("GET", "/tags");
 
 /** @returns {Promise<Limits>} */
 export const getLimits = () => request("GET", "/limits");
+
+/** 공개 사이트 배포 (GitHub Actions) */
+export const deployApi = {
+  /** 배포 요청. 설정이 없으면 ApiError(code "unavailable") @returns {Promise<{ requested: true }>} */
+  request: () => request("POST", "/deploy"),
+  /** 가장 최근 배포 상태 @returns {Promise<{ run: DeployRun | null }>} */
+  status: () => request("GET", "/deploy"),
+};

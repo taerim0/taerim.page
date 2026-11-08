@@ -46,6 +46,16 @@
     }
   ],
 
+  // 이미지 파일 (R2, 공개 주소 없음). 코드에서 env.IMAGES 로 쓴다
+  // 방문자는 R2에 닿지 않는다: 공개 사이트 빌드가 글에 쓰인 이미지만 정적 파일로 복사한다
+  // 주의: 배포 전에 버킷을 먼저 만들어야 한다 (npx wrangler r2 bucket create taerim-page-images)
+  "r2_buckets": [
+    {
+      "binding": "IMAGES",
+      "bucket_name": "taerim-page-images"
+    }
+  ],
+
   // 관리자 화면 파일 (admin-ui 폴더). 코드에서 env.ASSETS 로 꺼낸다
   "assets": {
     "directory": "admin-ui",

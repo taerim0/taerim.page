@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // 공개 사이트 Worker (taerim.page). 관리자 Worker(wrangler.jsonc)와는 별도
+  // 코드 없이 정적 파일만 내보낸다 → 방문자 요청은 Worker 실행·요청 한도에 잡히지 않음
+  // 파일은 npm run build:site 로 만든 dist/site
+  "name": "taerim-page-site",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "dist/site",
+    // /posts/7 → posts/7.html 을 찾는다 (주소에 .html 이 안 보임)
+    "html_handling": "auto-trailing-slash",
+    // 없는 주소는 404.html 을 404 상태로
+    "not_found_handling": "404-page"
+  }
+}

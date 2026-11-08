@@ -9,3 +9,6 @@ test/
 
 # 관리자 화면용 번들 (npm run build:admin 으로 만듦)
 admin-ui/assets/lib.js
+
+# 공개 사이트 빌드 결과 (npm run build:site 로 만듦)
+dist/

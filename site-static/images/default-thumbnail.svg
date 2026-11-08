@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <!-- 임시 기본 대표 이미지. 나중에 사용자가 준 그림으로 바꾼다 -->
+  <rect width="1200" height="630" fill="#eef1f5"/>
+  <text x="600" y="335" font-family="system-ui, sans-serif" font-size="72" font-weight="700" fill="#8a94a6" text-anchor="middle">taerim.page</text>
+</svg>

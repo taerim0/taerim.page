@@ -8,7 +8,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "build:admin": "esbuild src/browser.ts --bundle --format=esm --target=es2022 --minify --legal-comments=eof --outfile=admin-ui/assets/lib.js"
+    "build:admin": "esbuild src/browser.ts --bundle --format=esm --target=es2022 --minify --legal-comments=eof --outfile=admin-ui/assets/lib.js",
+    "build:site": "node scripts/build-site.ts",
+    "dev:site": "npm run build:site && wrangler dev -c wrangler.site.jsonc --port 8789 --ip 127.0.0.1"
   },
   "repository": {
     "type": "git",
@@ -26,6 +28,7 @@
   },
   "devDependencies": {
     "@types/markdown-it": "^14.2.0",
+    "@types/node": "^24.19.2",
     "esbuild": "^0.28.2",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0",

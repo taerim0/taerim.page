@@ -1,0 +1,49 @@
+# 공개 사이트(taerim.page) 빌드·배포
+# - 관리자 [배포] 버튼: 관리자 Worker가 GitHub API로 이 워크플로를 실행 (workflow_dispatch)
+# - main에 사이트 관련 코드가 바뀌면 자동
+# 원격 D1의 공개 글을 읽어 정적 파일을 만들고(dist/site), 코드 없는 정적 파일 Worker로 배포한다
+name: 공개 사이트 배포
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "scripts/**"
+      - "site-static/**"
+      - "wrangler.site.jsonc"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/deploy-site.yml"
+
+# 배포가 겹치지 않게 하나씩. 진행 중인 배포는 끝까지 두고, 기다리는 요청은 가장 최근 것 하나만 남는다
+concurrency:
+  group: deploy-site
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # 저장소 시크릿 (Settings > Secrets and variables > Actions)
+      # 토큰 권한: Workers 편집(Edit Cloudflare Workers 템플릿) + D1 읽기
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # 테스트 파일은 저장소에 없어서(로컬 전용) 타입 검사만
+      - run: npm run typecheck
+      - name: 빌드 (원격 D1 → dist/site)
+        run: npm run build:site -- --remote
+      - name: 배포 (taerim.page)
+        run: npx wrangler deploy -c wrangler.site.jsonc

@@ -4,6 +4,23 @@
   "name": "taerim-page-admin",
   "main": "src/worker/admin.ts",
   "compatibility_date": "2026-11-01",
+
+  // 주소: admin.taerim.page (Cloudflare가 DNS·인증서를 알아서 만든다)
+  // *.workers.dev·미리보기 주소는 끈다 → 관리자 화면은 Access가 걸린 admin.taerim.page로만
+  "routes": [{ "pattern": "admin.taerim.page", "custom_domain": true }],
+  "workers_dev": false,
+  "preview_urls": false,
+
+  // 배포용 설정값 (비밀 아님). 비어 있으면 관리자 확인이 "모두 막음"이 된다 (설정을 잊어도 열리지 않게)
+  // - ACCESS_TEAM_DOMAIN·ACCESS_AUD: Zero Trust > Access > Applications에서 앱을 만든 뒤 채운다
+  // - ADMIN_EMAILS: 들어올 수 있는 이메일 (쉼표로 여러 개)
+  // 비밀값 GITHUB_DEPLOY_TOKEN은 여기 넣지 않고 `npx wrangler secret put GITHUB_DEPLOY_TOKEN`으로
+  "vars": {
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUD": "",
+    "ADMIN_EMAILS": "",
+    "GITHUB_REPOSITORY": "taerim0/taerim.page"
+  },
   // 주의: ENVIRONMENT 같은 개발용 값은 여기 넣지 않는다 (배포에도 적용되므로).
   // 로컬 개발용 값은 .dev.vars 에만 둔다.
 

@@ -5,6 +5,10 @@
   // 파일은 npm run build:site 로 만든 dist/site
   "name": "taerim-page-site",
   "compatibility_date": "2026-11-01",
+  // 주소: taerim.page (www.taerim.page → taerim.page 이동은 Cloudflare 리다이렉트 규칙으로, 대시보드에서)
+  "routes": [{ "pattern": "taerim.page", "custom_domain": true }],
+  "workers_dev": false,
+  "preview_urls": false,
   "assets": {
     "directory": "dist/site",
     // /posts/7 → posts/7.html 을 찾는다 (주소에 .html 이 안 보임)

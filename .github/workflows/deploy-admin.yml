@@ -1,0 +1,42 @@
+# 관리자 Worker(admin.taerim.page) 배포
+# main에 관리자 관련 코드가 바뀌면 자동. 손으로 다시 배포할 때는 Actions 탭에서 실행
+# D1 마이그레이션(테이블 변경)은 자동으로 하지 않는다 → 필요할 때 직접 `npx wrangler d1 migrations apply taerim-page-db --remote`
+name: 관리자 배포
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "admin-ui/**"
+      - "wrangler.jsonc"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/deploy-admin.yml"
+
+concurrency:
+  group: deploy-admin
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      # wrangler.jsonc의 build 설정이 관리자 화면 번들(npm run build:admin)을 먼저 만든다
+      - name: 배포 (admin.taerim.page)
+        run: npx wrangler deploy

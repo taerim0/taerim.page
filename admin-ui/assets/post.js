@@ -9,7 +9,7 @@
  * - 글자 수는 서버와 같은 방식(charCount)으로 세고, 제한값은 서버(GET /api/limits)에서 받는다
  */
 import { ApiError, getLimits, postsApi } from "./api.js";
-import { blockIndexAt, charCount, createBlockPreview, normalizeTag, normalizeTags, renderMarkdown } from "./lib.js";
+import { blockIndexAt, charCount, createBlockPreview, isAllowedTag, normalizeTag, normalizeTags, renderMarkdown, TAG_CHARS_MESSAGE } from "./lib.js";
 import { bindTagInput, clearNotice, confirmDialog, el, flash, formatDateTime, notify } from "./ui.js";
 
 /** @typedef {import("./api.js").Post} Post */
@@ -257,7 +257,7 @@ function renderCounts(now) {
   show("thumbnail", charCount(now.thumbnail), limits.thumbnail, "자");
   show("tags", now.tags.length, limits.tagCount, "개");
   // 태그 하나가 너무 길면 그 태그 칩에 표시 (renderTags) + 저장 불가
-  over ||= now.tags.some((tag) => charCount(tag) > limits.tagLength);
+  over ||= now.tags.some((tag) => charCount(tag) > limits.tagLength || !isAllowedTag(tag));
   return over;
 }
 
@@ -265,12 +265,17 @@ function renderTags() {
   tagChips.replaceChildren(
     ...tags.map((tag) => {
       const tooLong = charCount(tag) > limits.tagLength;
+      const badChars = !isAllowedTag(tag);
       return el(
         "button",
         {
           type: "button",
-          class: `chip${tooLong ? " over" : ""}`,
-          title: tooLong ? `태그는 ${limits.tagLength}자까지예요 (눌러서 빼기)` : `${tag} 빼기`,
+          class: `chip${tooLong || badChars ? " over" : ""}`,
+          title: badChars
+            ? `${TAG_CHARS_MESSAGE} (눌러서 빼기)`
+            : tooLong
+              ? `태그는 ${limits.tagLength}자까지예요 (눌러서 빼기)`
+              : `${tag} 빼기`,
           onClick: () => {
             tags = tags.filter((t) => t !== tag);
             onEdit("tags");

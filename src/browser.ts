@@ -7,4 +7,4 @@
  */
 export { blockIndexAt, createBlockPreview } from "./markdown/blocks.ts";
 export { renderMarkdown } from "./markdown/index.ts";
-export { charCount, normalizeTag, normalizeTags } from "./posts/validation.ts";
+export { charCount, isAllowedTag, normalizeTag, normalizeTags, TAG_CHARS_MESSAGE } from "./posts/validation.ts";

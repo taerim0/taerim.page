@@ -129,7 +129,25 @@ function readTags(value: unknown, issues: FieldIssue[]): string[] {
   if (tooLong !== undefined) {
     issues.push({ field: "tags", message: `태그는 ${LIMITS.tagLength}자까지예요: ${tooLong}` });
   }
+  const badChars = tags.find((tag) => !isAllowedTag(tag));
+  if (badChars !== undefined) {
+    issues.push({ field: "tags", message: `${TAG_CHARS_MESSAGE}: ${badChars}` });
+  }
   return tags;
+}
+
+/** 태그에 쓸 수 있는 글자: 글자(한글 등)·숫자와 - _ . + # */
+const ALLOWED_TAG = /^[\p{L}\p{N}_.+#-]+$/u;
+export const TAG_CHARS_MESSAGE = "태그에는 글자·숫자와 - _ . + # 만 쓸 수 있어요 (점만으로는 안 돼요)";
+
+/**
+ * 정리된 태그가 쓸 수 있는 글자로만 되어 있는지.
+ * 태그 이름이 공개 사이트의 파일 이름(tags/태그.html)이 되므로, Windows에서 못 쓰는 글자(\ : * ? " < > |),
+ * 폴더를 만드는 /, 주소에서 특별한 뜻이 있는 글자(? % 등), 점만 있는 이름(. ..)은 막는다.
+ * 예) c++ · c# · node.js · v1.0 · 공백-태그 → 됨 / c/c++ · 100% · a:b · . → 안 됨
+ */
+export function isAllowedTag(tag: string): boolean {
+  return ALLOWED_TAG.test(tag) && !/^\.+$/.test(tag);
 }
 
 /** 이 칸을 보냈는지 (JSON에 이름이 있으면 보낸 것. 값이 null이어도 "비우기"로 보낸 것) */

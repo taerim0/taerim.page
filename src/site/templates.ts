@@ -11,6 +11,7 @@ import { html, raw } from "hono/html";
 import type { HtmlEscapedString } from "hono/utils/html";
 import type { TocItem } from "../markdown/index.ts";
 import type { Post, TagCount } from "../posts/types.ts";
+import type { ImageSize } from "./images.ts";
 import { pagePath, postPath, tagPath, TAGS_PATH } from "./paths.ts";
 
 /** 템플릿 결과 (값이 모두 동기라 실제로는 바로 문자열이 나오지만, 타입상 Promise일 수 있음 → 빌드에서 await) */
@@ -24,7 +25,7 @@ export interface SiteConfig {
   url: string;
   /** 짧은 소개 (홈의 description) */
   description: string;
-  /** 대표 이미지가 없는 글에 쓸 기본 이미지 주소 (예: /images/default-thumbnail.svg) */
+  /** 대표 이미지가 없는 글에 쓸 기본 이미지 주소 (예: /assets/default-thumbnail.svg) */
   defaultThumbnail: string;
 }
 
@@ -104,16 +105,18 @@ interface ListPageProps {
   pagination: Pagination;
   /** 태그별 목록이면 그 태그 */
   tag?: string;
+  /** 이미지 주소 → 원래 크기 (대표 이미지에 width·height). 없으면 크기 없이 */
+  imageSizes?: ReadonlyMap<string, ImageSize>;
 }
 
-export function listPage({ site, posts, pagination, tag }: ListPageProps): Html {
+export function listPage({ site, posts, pagination, tag, imageSizes }: ListPageProps): Html {
   const heading = tag === undefined ? null : `#${tag}`;
   const pageSuffix = pagination.page > 1 ? ` (${pagination.page}쪽)` : "";
   const body = html`
     ${heading === null ? "" : html`<h1 class="list-heading">${heading}</h1>`}
     ${posts.length === 0
       ? html`<p class="empty">아직 글이 없어요.</p>`
-      : html`<ul class="post-list">${posts.map((post) => postCard(site, post))}</ul>`}
+      : html`<ul class="post-list">${posts.map((post) => postCard(site, post, imageSizes))}</ul>`}
     ${pager(pagination)}`;
   return layout({
     site,
@@ -125,10 +128,12 @@ export function listPage({ site, posts, pagination, tag }: ListPageProps): Html 
 }
 
 /** 목록의 글 하나 */
-function postCard(site: SiteConfig, post: PostCardData): Html {
+function postCard(site: SiteConfig, post: PostCardData, imageSizes?: ReadonlyMap<string, ImageSize>): Html {
+  const src = post.thumbnail || site.defaultThumbnail;
+  const size = imageSizes?.get(src);
   return html`<li class="post-card">
       <a class="post-card-link" href="${postPath(post.id)}">
-        <img class="thumbnail" src="${post.thumbnail || site.defaultThumbnail}" alt="" loading="lazy">
+        <img class="thumbnail" src="${src}" alt=""${size ? html` width="${size.width}" height="${size.height}"` : ""} loading="lazy">
         <h2 class="post-title">${post.title}</h2>
         ${post.summary ? html`<p class="summary">${post.summary}</p>` : ""}
       </a>

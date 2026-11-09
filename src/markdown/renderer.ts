@@ -2,6 +2,7 @@ import MarkdownItFactory from "markdown-it";
 import type { MarkdownIt } from "markdown-it";
 import { addHeadingIds } from "./headings.ts";
 import type { HeadingEnv } from "./headings.ts";
+import type { ImageEnv } from "./image.ts";
 import type { MarkdownModule, RenderedDocument, RenderFn } from "./types.ts";
 
 /** 렌더러 설정 */
@@ -46,10 +47,11 @@ export function createRenderer(modules: MarkdownModule[] = [], options: Renderer
 export function createDocumentRenderer(
   modules: MarkdownModule[] = [],
   options: RendererOptions = {},
-): (markdown: string) => RenderedDocument {
+): (markdown: string, extra?: ImageEnv) => RenderedDocument {
   const md = createMarkdownIt(modules, options);
-  return (markdown) => {
-    const env: HeadingEnv = { toc: [] };
+  return (markdown, extra = {}) => {
+    // extra.imageSizes: 이미지 원래 크기 (이미지 모듈이 width·height에 씀)
+    const env: HeadingEnv & ImageEnv = { ...extra, toc: [] };
     const html = md.render(markdown, env);
     return { html, toc: env.toc ?? [] };
   };

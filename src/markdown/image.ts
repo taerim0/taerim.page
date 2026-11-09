@@ -22,7 +22,7 @@ import type { MarkdownModule } from "./types.ts";
  * CSS가 같은 간격을 자동으로 넣는다 (간격 옵션은 두지 않음. |50%+|50%도 간격만큼 줄어 한 줄에 맞음)
  * 글자 사이에 낀 이미지는 글자 흐름 그대로 둔다.
  *
- * 원래 가로·세로(width/height 속성)는 빌드에서 이미지 목록을 알게 되면 붙인다 (구현 순서 5)
+ * 원래 가로·세로: 빌드가 env.imageSizes로 넘기면 width·height 속성을 붙인다 (관리자 미리보기는 없음)
  */
 export const imageModule: MarkdownModule = {
   name: "image",
@@ -60,6 +60,12 @@ export const imageModule: MarkdownModule = {
 
     md.renderer.rules.image = (tokens, idx, opts, env, self) => {
       const token = tokens[idx]!;
+      // 원래 크기를 알면(빌드) width·height → 이미지를 받기 전에도 자리를 미리 잡는다
+      const known = (env as ImageEnv | undefined)?.imageSizes?.get(String(token.attrGet("src") ?? ""));
+      if (known) {
+        token.attrSet("width", String(known.width));
+        token.attrSet("height", String(known.height));
+      }
       const { width } = optionsOf(token);
       if (width) token.attrSet("style", `width:${width}`);
       token.attrSet("loading", "lazy");
@@ -67,6 +73,15 @@ export const imageModule: MarkdownModule = {
       return renderDefault(tokens, idx, opts, env, self);
     };
   },
+};
+
+/**
+ * 렌더링할 때 넘기는 이미지 정보 (markdown-it env). 빌드만 넘긴다.
+ * interface가 아니라 type: markdown-it의 Env(아무 칸이나 받는 모양)에 넣을 수 있게 (HeadingEnv와 같은 이유)
+ */
+export type ImageEnv = {
+  /** 이미지 주소(src) → 원래 가로·세로 */
+  imageSizes?: ReadonlyMap<string, { width: number; height: number }>;
 };
 
 export type ImageAlign = "center" | "left" | "right";

@@ -1,18 +1,27 @@
 /**
- * 공개 사이트 빌드: D1의 공개 글 → dist/site/ 정적 파일.
+ * 공개 사이트 빌드: D1의 공개 글 + R2의 이미지 → dist/site/ 정적 파일.
  *
- *   npm run build:site                로컬 D1 (wrangler dev와 같은 데이터, .wrangler/state)
- *   npm run build:site -- --remote    원격 D1 (실제 블로그 데이터, GitHub Actions에서 사용)
- *       필요한 환경 변수: CLOUDFLARE_API_TOKEN(권한: D1 읽기), CLOUDFLARE_ACCOUNT_ID
- *       DB id는 wrangler.jsonc의 database_id
+ *   npm run build:site                로컬 D1·R2 (wrangler dev와 같은 데이터, .wrangler/state)
+ *   npm run build:site -- --remote    원격 D1·R2 (실제 블로그 데이터, GitHub Actions에서 사용)
+ *       필요한 환경 변수: CLOUDFLARE_API_TOKEN(권한: D1 읽기, R2 읽기), CLOUDFLARE_ACCOUNT_ID
+ *       DB id·버킷 이름은 wrangler.jsonc의 database_id·bucket_name
  *
- *   ② 저장소에서 공개 글 읽기 (listPublished)
- *   ① buildSite → { 주소: 내용 }
- *   ③ dist/site/ 를 비우고 → site-static/(CSS·기본 이미지) 복사 → 페이지 파일 쓰기
+ *   ① 공개 글 읽기 (listPublished)
+ *   ② 글(본문·대표 이미지)이 쓰는 /images/… 이름 모으기
+ *   ③ 그 이미지들의 정보(D1 images)와 파일(R2) 읽기. 없는 이미지는 경고만 하고 계속
+ *   ④ buildSite → { 주소: 내용 } (이미지 원래 크기로 <img width height>)
+ *   ⑤ dist/site/ 를 비우고 → site-static/(CSS·기본 이미지·_headers) 복사 → 페이지·이미지 파일 쓰기
  */
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { getPlatformProxy } from "wrangler";
+import { D1ImageRepository } from "../src/images/d1-repository.ts";
+import type { R2Bucket } from "../src/images/r2.ts";
+import { createR2Http } from "../src/images/r2-http.ts";
+import type { ImageRepository } from "../src/images/repository.ts";
+import { R2ImageStore } from "../src/images/store.ts";
+import type { ImageStore } from "../src/images/store.ts";
+import type { ImageInfo } from "../src/images/types.ts";
 import type { D1Database } from "../src/posts/d1.ts";
 import { createD1Http } from "../src/posts/d1-http.ts";
 import { D1PostRepository } from "../src/posts/d1-repository.ts";
@@ -20,54 +29,122 @@ import type { Post } from "../src/posts/types.ts";
 import { buildSite } from "../src/site/build.ts";
 import { SITE_CONFIG } from "../src/site/config.ts";
 import { fileNameFor } from "../src/site/files.ts";
+import { collectImageNames } from "../src/site/images.ts";
 
 const OUT_DIR = "dist/site";
+const IMAGES_DIR = join(OUT_DIR, "images");
 const STATIC_DIR = "site-static";
 const WRANGLER_CONFIG = "wrangler.jsonc";
+/** 이미지를 동시에 몇 개씩 받을지 */
+const DOWNLOAD_CONCURRENCY = 6;
 
-/** 원격 D1: HTTP API로 읽는다 (Worker 밖이라 진짜 D1 연결이 없음) */
-async function readRemote(): Promise<Post[]> {
+/** 데이터를 읽어 오는 곳 (로컬 / 원격) */
+interface Source {
+  label: string;
+  posts: D1PostRepository;
+  images: ImageRepository;
+  files: ImageStore;
+  close(): Promise<void>;
+}
+
+/** wrangler.jsonc에서 값 하나 ("database_id", "bucket_name"). 한 곳에서만 관리한다 */
+async function configValue(key: string): Promise<string> {
+  const config = await readFile(WRANGLER_CONFIG, "utf8");
+  const value = new RegExp(`"${key}"\\s*:\\s*"([^"]+)"`).exec(config)?.[1];
+  if (!value) throw new Error(`${WRANGLER_CONFIG}에서 ${key}를 찾지 못했어요`);
+  return value;
+}
+
+/** 원격: D1·R2 모두 HTTP API로 (Worker 밖이라 진짜 연결이 없음) */
+async function openRemote(): Promise<Source> {
   const apiToken = process.env.CLOUDFLARE_API_TOKEN;
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
   if (!apiToken || !accountId) {
     throw new Error("--remote 에는 환경 변수 CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID 가 필요해요");
   }
-  // DB id는 한 곳(wrangler.jsonc)에서만 관리한다
-  const config = await readFile(WRANGLER_CONFIG, "utf8");
-  const databaseId = /"database_id"\s*:\s*"([^"]+)"/.exec(config)?.[1];
-  if (!databaseId) throw new Error(`${WRANGLER_CONFIG}에서 database_id를 찾지 못했어요`);
-  return new D1PostRepository(createD1Http({ accountId, databaseId, apiToken })).listPublished();
+  const db = createD1Http({ accountId, databaseId: await configValue("database_id"), apiToken });
+  const bucket = createR2Http({ accountId, bucketName: await configValue("bucket_name"), apiToken });
+  return {
+    label: "원격",
+    posts: new D1PostRepository(db),
+    images: new D1ImageRepository(db),
+    files: new R2ImageStore(bucket),
+    close: async () => {},
+  };
 }
 
-/** 로컬 D1: wrangler dev가 쓰는 것과 같은 데이터 */
-async function readLocal(): Promise<Post[]> {
-  const proxy = await getPlatformProxy<{ DB: D1Database }>({ configPath: WRANGLER_CONFIG, remoteBindings: false });
-  try {
-    return await new D1PostRepository(proxy.env.DB).listPublished();
-  } finally {
-    await proxy.dispose();
+/** 로컬: wrangler dev가 쓰는 것과 같은 D1·R2 */
+async function openLocal(): Promise<Source> {
+  const proxy = await getPlatformProxy<{ DB: D1Database; IMAGES: R2Bucket }>({ configPath: WRANGLER_CONFIG, remoteBindings: false });
+  return {
+    label: "로컬",
+    posts: new D1PostRepository(proxy.env.DB),
+    images: new D1ImageRepository(proxy.env.DB),
+    files: new R2ImageStore(proxy.env.IMAGES),
+    close: () => proxy.dispose(),
+  };
+}
+
+/** 내려받은 이미지 */
+interface Downloaded {
+  info: ImageInfo;
+  bytes: Uint8Array;
+}
+
+/**
+ * 글이 쓰는 이미지의 정보·파일 읽기. 없는 것은 경고하고 빼고 계속한다
+ * (이미지 하나 때문에 모든 글의 배포가 막히지 않게. 그 이미지만 깨져 보임)
+ */
+async function readImages(source: Source, posts: Post[]): Promise<Downloaded[]> {
+  const names = collectImageNames(posts);
+  const infos = new Map((await source.images.getMany(names)).map((info) => [info.name, info]));
+
+  const downloaded: Downloaded[] = [];
+  const missing = new Set(names.filter((name) => !infos.has(name)));
+  const queue = [...infos.values()];
+  const worker = async () => {
+    for (let info = queue.shift(); info; info = queue.shift()) {
+      const file = await source.files.get(info.name);
+      if (!file) missing.add(info.name);
+      else downloaded.push({ info, bytes: new Uint8Array(await new Response(file.body).arrayBuffer()) });
+    }
+  };
+  await Promise.all(Array.from({ length: DOWNLOAD_CONCURRENCY }, worker));
+
+  for (const name of [...missing].sort()) {
+    const usedBy = posts.filter((post) => collectImageNames([post]).includes(name)).map((post) => post.id);
+    console.warn(`⚠ 없는 이미지: /images/${name} (글 ${usedBy.join(", ")}) → 이 이미지는 깨져 보여요`);
   }
+  return downloaded.sort((a, b) => (a.info.name < b.info.name ? -1 : 1));
 }
 
 async function main(): Promise<void> {
   const started = performance.now();
-  const remote = process.argv.includes("--remote");
-  const posts = remote ? await readRemote() : await readLocal();
+  const source = process.argv.includes("--remote") ? await openRemote() : await openLocal();
+  try {
+    const posts = await source.posts.listPublished();
+    const images = await readImages(source, posts);
+    const files = await buildSite({ site: SITE_CONFIG, posts, images: images.map((image) => image.info) });
 
-  const files = await buildSite({ site: SITE_CONFIG, posts });
+    // 지난 빌드의 파일(지운 글 등)이 남지 않게 통째로 비우고 다시 쓴다
+    await rm(OUT_DIR, { recursive: true, force: true });
+    await cp(STATIC_DIR, OUT_DIR, { recursive: true });
+    for (const [urlPath, content] of files) {
+      const target = join(OUT_DIR, fileNameFor(urlPath));
+      await mkdir(dirname(target), { recursive: true });
+      await writeFile(target, content, "utf8");
+    }
+    await mkdir(IMAGES_DIR, { recursive: true });
+    for (const { info, bytes } of images) await writeFile(join(IMAGES_DIR, info.name), bytes);
 
-  // 지난 빌드의 파일(지운 글 등)이 남지 않게 통째로 비우고 다시 쓴다
-  await rm(OUT_DIR, { recursive: true, force: true });
-  await cp(STATIC_DIR, OUT_DIR, { recursive: true });
-  for (const [urlPath, content] of files) {
-    const target = join(OUT_DIR, fileNameFor(urlPath));
-    await mkdir(dirname(target), { recursive: true });
-    await writeFile(target, content, "utf8");
+    const seconds = ((performance.now() - started) / 1000).toFixed(1);
+    const megabytes = (images.reduce((sum, image) => sum + image.bytes.byteLength, 0) / 1024 / 1024).toFixed(1);
+    console.log(
+      `${source.label} D1·R2: 공개 글 ${posts.length}개 → 파일 ${files.size}개 + 이미지 ${images.length}개 (${megabytes}MB) (+ 정적 파일) → ${OUT_DIR}/ (${seconds}초)`,
+    );
+  } finally {
+    await source.close();
   }
-
-  const seconds = ((performance.now() - started) / 1000).toFixed(1);
-  const source = remote ? "원격 D1" : "로컬 D1";
-  console.log(`${source}: 공개 글 ${posts.length}개 → 파일 ${files.size}개 (+ 정적 파일) → ${OUT_DIR}/ (${seconds}초)`);
 }
 
 await main();

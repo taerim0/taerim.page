@@ -1,0 +1,5 @@
+# 공개 사이트 응답 헤더 (Workers 정적 파일의 _headers 규칙)
+# 블로그 이미지는 이름이 내용 해시라 같은 주소 = 영원히 같은 내용 → 1년 동안 다시 묻지 않고 캐시
+# (해시 이름이 아닌 기본 대표 이미지는 /assets/ 에 둔다)
+/images/*
+  Cache-Control: public, max-age=31536000, immutable

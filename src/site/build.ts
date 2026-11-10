@@ -1,5 +1,5 @@
 /**
- * 공개 사이트 빌드의 핵심: 공개 글 목록 → { 주소: 파일 내용 }.
+ * 공개 사이트 빌드의 핵심: 공개 글 목록(+ 번역본) → { 주소: 파일 내용 }.
  *
  * 순수 함수다. 데이터를 어디서 읽는지(D1), 파일을 어디에 어떤 이름으로 쓰는지는 모른다 (그건 빌드 스크립트 몫).
  * 그래서 테스트에서는 글 목록만 넣어 결과를 바로 확인할 수 있다.
@@ -8,10 +8,13 @@ import { renderDocument } from "../markdown/index.ts";
 import { compareTagNames } from "../posts/tag-order.ts";
 import type { Post, TagCount } from "../posts/types.ts";
 import type { ImageInfo } from "../images/types.ts";
+import type { PublishedTranslation } from "../translations/types.ts";
+import { LOCALES, localizedPath, SOURCE_LOCALE } from "./i18n.ts";
+import type { Locale } from "./i18n.ts";
 import { imageSizeMap } from "./images.ts";
 import type { ImageSize } from "./images.ts";
 import { pagePath, postPath, tagPath, TAGS_PATH } from "./paths.ts";
-import { absoluteUrl, listPage, notFoundPage, postPage, tagsPage } from "./templates.ts";
+import { absoluteUrl, listPage, notFoundPage, postPage, tagsPage, untranslatedPostPage } from "./templates.ts";
 import type { Html, PostCardData, SiteConfig } from "./templates.ts";
 
 /** 목록 한 페이지의 글 수 (관리자 목록과 같은 10개) */
@@ -25,42 +28,87 @@ export interface BuildInput {
   site: SiteConfig;
   /** 공개 글들 (본문 포함). 초안·휴지통 글이 섞여 있어도 여기서 한 번 더 걸러낸다 */
   posts: Post[];
+  /** 공개된 번역본들 (언어 섞여도 됨). 공개된 한글 글의 것만 쓴다 (설계 12-11) */
+  translations?: readonly PublishedTranslation[];
   /** 글이 쓰는 블로그 이미지 정보 → <img width height>. 없으면 크기 없이 (파일 복사는 빌드 스크립트 몫) */
   images?: readonly ImageInfo[];
 }
 
+/** 언어 하나의 글: 글 + 그 언어 번역본(없으면 undefined) */
+interface LocalizedPost {
+  post: Post;
+  translation?: PublishedTranslation;
+}
+
 /**
- * 사이트 전체를 만든다.
- * @returns 주소("/", "/posts/7", "/rss.xml" …) → 파일 내용. 주소 순서는 정해져 있지 않다
+ * 사이트 전체를 만든다. 한국어 페이지들 + 번역 언어마다 같은 구성의 /{언어}/… 페이지들 (설계 12-11)
+ * @returns 주소("/", "/posts/7", "/en/posts/7", "/rss.xml" …) → 파일 내용. 주소 순서는 정해져 있지 않다
  */
-export async function buildSite({ site, posts, images = [] }: BuildInput): Promise<Map<string, string>> {
+export async function buildSite({ site, posts, translations = [], images = [] }: BuildInput): Promise<Map<string, string>> {
   const imageSizes = imageSizeMap(images);
   const published = posts
     .filter((post) => post.status === "published" && post.deletedAt === null && post.publishedAt !== null)
     .sort(byNewest);
   const files = new Map<string, string>();
+  /** 검색 엔진에 넣지 않는 페이지 (sitemap에서 뺌) */
+  const noindex = new Set<string>([NOT_FOUND_PATH]);
+  /** sitemap의 lastmod (글 페이지만) */
+  const lastmod = new Map<string, string>();
   const add = async (path: string, page: Html) => files.set(path, String(await page));
 
-  // 홈 = 전체 글 목록 (10개씩)
-  for (const [path, page] of listPages(site, published, "/", imageSizes)) await add(path, page);
-
-  // 글
-  for (const post of published) {
-    const { html, toc } = renderDocument(post.body, { imageSizes });
-    await add(postPath(post.id), postPage({ site, post, bodyHtml: html, toc }));
+  // 언어별 번역본: 글 id → 번역본
+  const byLocale = new Map<Locale, Map<number, PublishedTranslation>>();
+  for (const translation of translations) {
+    let map = byLocale.get(translation.lang);
+    if (!map) byLocale.set(translation.lang, (map = new Map()));
+    map.set(translation.postId, translation);
   }
-
-  // 태그 모음 + 태그별 목록
+  /** 이 글이 있는 언어들 (hreflang) */
+  const localesOf = (id: number) => LOCALES.filter((l) => l === SOURCE_LOCALE || byLocale.get(l)?.has(id));
   const tags = countTags(published);
-  await add(TAGS_PATH, tagsPage({ site, tags }));
-  for (const { name } of tags) {
-    const tagged = published.filter((post) => post.tags.includes(name));
-    for (const [path, page] of listPages(site, tagged, tagPath(name), imageSizes, name)) await add(path, page);
+
+  for (const locale of LOCALES) {
+    const localized: LocalizedPost[] = published.map((post) => ({ post, translation: byLocale.get(locale)?.get(post.id) }));
+    const cards = new Map(localized.map((item) => [item.post.id, toCard(locale, item)]));
+    const cardsOf = (list: Post[]) => list.map((post) => cards.get(post.id)!);
+
+    // 홈 = 전체 글 목록 (10개씩)
+    for (const [path, page] of listPages(site, locale, cardsOf(published), "/", imageSizes)) await add(path, page);
+
+    // 글: 한국어 / 번역본 / 미번역(한글을 흐리게 + 안내)
+    for (const { post, translation } of localized) {
+      const path = localizedPath(locale, postPath(post.id));
+      if (locale === SOURCE_LOCALE) {
+        const { html, toc } = renderDocument(post.body, { imageSizes });
+        await add(path, postPage({ site, post, bodyHtml: html, toc, alternates: localesOf(post.id) }));
+        lastmod.set(path, post.updatedAt);
+      } else if (translation) {
+        const { html, toc } = renderDocument(translation.body, { imageSizes });
+        const translated = { ...post, title: translation.title, summary: translation.summary };
+        await add(path, postPage({ site, locale, post: translated, bodyHtml: html, toc, alternates: localesOf(post.id) }));
+        lastmod.set(path, translation.updatedAt);
+      } else {
+        const { html } = renderDocument(post.body, { imageSizes });
+        await add(path, untranslatedPostPage({ site, locale, post, bodyHtml: html }));
+        noindex.add(path);
+      }
+    }
+
+    // 태그 모음 + 태그별 목록 (태그 이름은 번역하지 않음)
+    await add(localizedPath(locale, TAGS_PATH), tagsPage({ site, locale, tags }));
+    for (const { name } of tags) {
+      const tagged = published.filter((post) => post.tags.includes(name));
+      for (const [path, page] of listPages(site, locale, cardsOf(tagged), tagPath(name), imageSizes, name)) await add(path, page);
+    }
+
+    // RSS: 번역 언어는 번역된 글만
+    const feed = localized.filter((item) => locale === SOURCE_LOCALE || item.translation).slice(0, RSS_ITEM_COUNT);
+    files.set(localizedPath(locale, "/rss.xml"), rss(site, locale, feed));
   }
 
+  // 404는 하나 (정적 파일 규칙상), 두 언어 문구
   await add(NOT_FOUND_PATH, notFoundPage({ site }));
-  files.set("/rss.xml", rss(site, published.slice(0, RSS_ITEM_COUNT)));
-  files.set("/sitemap.xml", sitemap(site, published, [...files.keys()]));
+  files.set("/sitemap.xml", sitemap(site, [...files.keys()], noindex, lastmod));
   return files;
 }
 
@@ -69,23 +117,30 @@ function byNewest(a: Post, b: Post): number {
   return a.publishedAt! < b.publishedAt! ? 1 : a.publishedAt! > b.publishedAt! ? -1 : b.id - a.id;
 }
 
+/** 목록 카드: 번역 언어면 번역본 제목·요약, 번역이 없으면 한글 그대로 + untranslated */
+function toCard(locale: Locale, { post, translation }: LocalizedPost): PostCardData {
+  const { body: _body, ...rest } = post;
+  if (locale === SOURCE_LOCALE) return rest;
+  return translation ? { ...rest, title: translation.title, summary: translation.summary } : { ...rest, untranslated: true };
+}
+
 /** 목록을 10개씩 끊어 페이지들을 만든다. 글이 없어도 1페이지는 만든다 ("아직 글이 없어요") */
 function* listPages(
   site: SiteConfig,
-  posts: Post[],
+  locale: Locale,
+  cards: PostCardData[],
   listPath: string,
   imageSizes: ReadonlyMap<string, ImageSize>,
   tag?: string,
 ): Generator<[string, Html]> {
-  const totalPages = Math.ceil(posts.length / SITE_PAGE_SIZE);
+  const totalPages = Math.ceil(cards.length / SITE_PAGE_SIZE);
   for (let page = 1; page <= Math.max(totalPages, 1); page++) {
-    const items = posts.slice((page - 1) * SITE_PAGE_SIZE, page * SITE_PAGE_SIZE).map(withoutBody);
-    yield [pagePath(listPath, page), listPage({ site, posts: items, pagination: { page, totalPages, listPath }, tag, imageSizes })];
+    const items = cards.slice((page - 1) * SITE_PAGE_SIZE, page * SITE_PAGE_SIZE);
+    yield [
+      localizedPath(locale, pagePath(listPath, page)),
+      listPage({ site, locale, posts: items, pagination: { page, totalPages, listPath }, tag, imageSizes }),
+    ];
   }
-}
-
-function withoutBody({ body: _body, ...rest }: Post): PostCardData {
-  return rest;
 }
 
 /** 공개 글 기준 태그별 개수, 이름순 (관리자 태그 목록과 같은 순서) */
@@ -97,41 +152,43 @@ function countTags(posts: Post[]): TagCount[] {
 
 // ── RSS·sitemap ─────────────────────────────────────
 
-/** RSS 2.0. 글 내용은 소개글만 (전문은 사이트에서) */
-function rss(site: SiteConfig, posts: Post[]): string {
-  const items = posts.map((post) => {
-    const link = absoluteUrl(site, postPath(post.id));
+/** RSS 2.0. 글 내용은 소개글만 (전문은 사이트에서). 번역 언어는 번역본 제목·소개 */
+function rss(site: SiteConfig, locale: Locale, items: LocalizedPost[]): string {
+  const entries = items.map(({ post, translation }) => {
+    const link = absoluteUrl(site, localizedPath(locale, postPath(post.id)));
+    const title = translation ? translation.title : post.title;
+    const summary = translation ? translation.summary : post.summary;
     return `    <item>
-      <title>${xml(post.title)}</title>
+      <title>${xml(title)}</title>
       <link>${xml(link)}</link>
       <guid isPermaLink="true">${xml(link)}</guid>
       <pubDate>${new Date(post.publishedAt!).toUTCString()}</pubDate>
-${post.summary ? `      <description>${xml(post.summary)}</description>\n` : ""}${post.tags.map((tag) => `      <category>${xml(tag)}</category>\n`).join("")}    </item>`;
+${summary ? `      <description>${xml(summary)}</description>\n` : ""}${post.tags.map((tag) => `      <category>${xml(tag)}</category>\n`).join("")}    </item>`;
   });
+  const newest = items[0]?.post;
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
   <channel>
     <title>${xml(site.name)}</title>
-    <link>${xml(absoluteUrl(site, "/"))}</link>
-    <description>${xml(site.description)}</description>
-    <language>ko</language>
-${posts[0] ? `    <lastBuildDate>${new Date(posts[0].publishedAt!).toUTCString()}</lastBuildDate>\n` : ""}${items.join("\n")}${items.length ? "\n" : ""}  </channel>
+    <link>${xml(absoluteUrl(site, localizedPath(locale, "/")))}</link>
+    <description>${xml(site.descriptions?.[locale] ?? site.description)}</description>
+    <language>${locale}</language>
+${newest ? `    <lastBuildDate>${new Date(newest.publishedAt!).toUTCString()}</lastBuildDate>\n` : ""}${entries.join("\n")}${entries.length ? "\n" : ""}  </channel>
 </rss>
 `;
 }
 
 /**
- * sitemap: 만든 HTML 페이지 전부(404 제외). 글은 마지막으로 고친 날짜(lastmod)를 붙인다.
+ * sitemap: 만든 HTML 페이지 전부(404·미번역 글 페이지 제외). 글은 마지막으로 고친 날짜(lastmod)를 붙인다.
  * 주소는 이미 인코딩된 상태(/tags/%EB%B8%94…)라 그대로 쓴다.
  */
-function sitemap(site: SiteConfig, posts: Post[], paths: string[]): string {
-  const updatedAt = new Map(posts.map((post) => [postPath(post.id), post.updatedAt]));
+function sitemap(site: SiteConfig, paths: string[], noindex: ReadonlySet<string>, lastmod: ReadonlyMap<string, string>): string {
   const urls = paths
-    .filter((path) => path !== NOT_FOUND_PATH && !path.endsWith(".xml"))
+    .filter((path) => !noindex.has(path) && !path.endsWith(".xml"))
     .sort()
     .map((path) => {
-      const lastmod = updatedAt.get(path);
-      return `  <url><loc>${xml(absoluteUrl(site, path))}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}</url>`;
+      const modified = lastmod.get(path);
+      return `  <url><loc>${xml(absoluteUrl(site, path))}</loc>${modified ? `<lastmod>${modified}</lastmod>` : ""}</url>`;
     });
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

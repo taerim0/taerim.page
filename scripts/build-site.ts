@@ -6,8 +6,8 @@
  *       필요한 환경 변수: CLOUDFLARE_API_TOKEN(권한: D1 읽기, R2 읽기), CLOUDFLARE_ACCOUNT_ID
  *       DB id·버킷 이름은 wrangler.jsonc의 database_id·bucket_name
  *
- *   ① 공개 글 읽기 (listPublished)
- *   ② 글(본문·대표 이미지)이 쓰는 /images/… 이름 모으기
+ *   ① 공개 글 + 언어별 공개 번역본 읽기 (listPublished)
+ *   ② 글(본문·대표 이미지)과 번역본 본문이 쓰는 /images/… 이름 모으기
  *   ③ 그 이미지들의 정보(D1 images)와 파일(R2) 읽기. 없는 이미지는 경고만 하고 계속
  *   ④ buildSite → { 주소: 내용 } (이미지 원래 크기로 <img width height>)
  *   ⑤ dist/site/ 를 비우고 → site-static/(CSS·기본 이미지·_headers) 복사 → 페이지·이미지 파일 쓰기
@@ -30,6 +30,10 @@ import { buildSite } from "../src/site/build.ts";
 import { SITE_CONFIG } from "../src/site/config.ts";
 import { fileNameFor } from "../src/site/files.ts";
 import { collectImageNames } from "../src/site/images.ts";
+import { D1TranslationRepository } from "../src/translations/d1-repository.ts";
+import type { TranslationRepository } from "../src/translations/repository.ts";
+import { TRANSLATION_LANGS } from "../src/translations/types.ts";
+import type { PublishedTranslation } from "../src/translations/types.ts";
 
 const OUT_DIR = "dist/site";
 const IMAGES_DIR = join(OUT_DIR, "images");
@@ -42,6 +46,7 @@ const DOWNLOAD_CONCURRENCY = 6;
 interface Source {
   label: string;
   posts: D1PostRepository;
+  translations: TranslationRepository;
   images: ImageRepository;
   files: ImageStore;
   close(): Promise<void>;
@@ -67,6 +72,7 @@ async function openRemote(): Promise<Source> {
   return {
     label: "원격",
     posts: new D1PostRepository(db),
+    translations: new D1TranslationRepository(db),
     images: new D1ImageRepository(db),
     files: new R2ImageStore(bucket),
     close: async () => {},
@@ -79,6 +85,7 @@ async function openLocal(): Promise<Source> {
   return {
     label: "로컬",
     posts: new D1PostRepository(proxy.env.DB),
+    translations: new D1TranslationRepository(proxy.env.DB),
     images: new D1ImageRepository(proxy.env.DB),
     files: new R2ImageStore(proxy.env.IMAGES),
     close: () => proxy.dispose(),
@@ -91,11 +98,14 @@ interface Downloaded {
   bytes: Uint8Array;
 }
 
+/** 이미지를 쓰는 글 하나 (한글 글, 번역본은 대표 이미지 없이 본문만) */
+type ImageUser = Pick<Post, "id" | "body" | "thumbnail">;
+
 /**
  * 글이 쓰는 이미지의 정보·파일 읽기. 없는 것은 경고하고 빼고 계속한다
  * (이미지 하나 때문에 모든 글의 배포가 막히지 않게. 그 이미지만 깨져 보임)
  */
-async function readImages(source: Source, posts: Post[]): Promise<Downloaded[]> {
+async function readImages(source: Source, posts: readonly ImageUser[]): Promise<Downloaded[]> {
   const names = collectImageNames(posts);
   const infos = new Map((await source.images.getMany(names)).map((info) => [info.name, info]));
 
@@ -112,7 +122,7 @@ async function readImages(source: Source, posts: Post[]): Promise<Downloaded[]> 
   await Promise.all(Array.from({ length: DOWNLOAD_CONCURRENCY }, worker));
 
   for (const name of [...missing].sort()) {
-    const usedBy = posts.filter((post) => collectImageNames([post]).includes(name)).map((post) => post.id);
+    const usedBy = [...new Set(posts.filter((post) => collectImageNames([post]).includes(name)).map((post) => post.id))];
     console.warn(`⚠ 없는 이미지: /images/${name} (글 ${usedBy.join(", ")}) → 이 이미지는 깨져 보여요`);
   }
   return downloaded.sort((a, b) => (a.info.name < b.info.name ? -1 : 1));
@@ -123,8 +133,12 @@ async function main(): Promise<void> {
   const source = process.argv.includes("--remote") ? await openRemote() : await openLocal();
   try {
     const posts = await source.posts.listPublished();
-    const images = await readImages(source, posts);
-    const files = await buildSite({ site: SITE_CONFIG, posts, images: images.map((image) => image.info) });
+    // 번역 언어마다 공개된 번역본 (공개된 한글 글의 것만 쓰는 건 buildSite가 거름)
+    const translations: PublishedTranslation[] = [];
+    for (const lang of TRANSLATION_LANGS) translations.push(...(await source.translations.listPublished(lang)));
+    const imageUsers = [...posts, ...translations.map((t) => ({ id: t.postId, body: t.body, thumbnail: null }))];
+    const images = await readImages(source, imageUsers);
+    const files = await buildSite({ site: SITE_CONFIG, posts, translations, images: images.map((image) => image.info) });
 
     // 지난 빌드의 파일(지운 글 등)이 남지 않게 통째로 비우고 다시 쓴다
     await rm(OUT_DIR, { recursive: true, force: true });
@@ -140,7 +154,7 @@ async function main(): Promise<void> {
     const seconds = ((performance.now() - started) / 1000).toFixed(1);
     const megabytes = (images.reduce((sum, image) => sum + image.bytes.byteLength, 0) / 1024 / 1024).toFixed(1);
     console.log(
-      `${source.label} D1·R2: 공개 글 ${posts.length}개 → 파일 ${files.size}개 + 이미지 ${images.length}개 (${megabytes}MB) (+ 정적 파일) → ${OUT_DIR}/ (${seconds}초)`,
+      `${source.label} D1·R2: 공개 글 ${posts.length}개 (번역 ${translations.length}개) → 파일 ${files.size}개 + 이미지 ${images.length}개 (${megabytes}MB) (+ 정적 파일) → ${OUT_DIR}/ (${seconds}초)`,
     );
   } finally {
     await source.close();

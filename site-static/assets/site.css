@@ -65,3 +65,20 @@ a { color: var(--accent); }
 .untranslated-button.primary { border-color: var(--accent); background: var(--accent); color: #fff; }
 /* 머리글은 팝업 배경 위로 (언어를 바로 바꿀 수 있게) */
 .site-header { position: relative; z-index: 11; background: #fff; }
+
+/* 인용·콜아웃 (설계 13-3). 콜아웃 색은 GitHub와 비슷하게, 제목 앞 표시는 글자로 (그림 파일 없음) */
+.post-body blockquote { margin: 1em 0; padding: 0 1em; border-left: 4px solid #d0d7de; color: #57606a; }
+.post-body .callout { --callout: #0969da; margin: 1em 0; padding: 8px 16px; border-left: 4px solid var(--callout); border-radius: 0 6px 6px 0; background: color-mix(in srgb, var(--callout) 6%, transparent); }
+.post-body .callout > :last-child { margin-bottom: 0; }
+.post-body .callout-title { margin: 0 0 4px; color: var(--callout); font-weight: 700; }
+.post-body .callout-title::before { margin-right: 6px; }
+.post-body .callout-note { --callout: #0969da; }
+.post-body .callout-note .callout-title::before { content: "ⓘ"; }
+.post-body .callout-tip { --callout: #1a7f37; }
+.post-body .callout-tip .callout-title::before { content: "✓"; }
+.post-body .callout-important { --callout: #8250df; }
+.post-body .callout-important .callout-title::before { content: "❢"; }
+.post-body .callout-warning { --callout: #9a6700; }
+.post-body .callout-warning .callout-title::before { content: "⚠"; }
+.post-body .callout-caution { --callout: #cf222e; }
+.post-body .callout-caution .callout-title::before { content: "⊘"; }

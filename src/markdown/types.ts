@@ -1,5 +1,10 @@
 import type { MarkdownIt } from "markdown-it";
+import type { CalloutEnv } from "./callout.ts";
 import type { TocItem } from "./headings.ts";
+import type { ImageEnv } from "./image.ts";
+
+/** 렌더링할 때 넘길 수 있는 것: 이미지 원래 크기(빌드), 언어(콜아웃 기본 제목 등) */
+export type RenderEnv = ImageEnv & CalloutEnv;
 
 /**
  * Markdown 기능 모듈.
@@ -17,7 +22,7 @@ export interface MarkdownModule {
 }
 
 /** Markdown 문자열을 받아 HTML 문자열을 돌려주는 함수. */
-export type RenderFn = (markdown: string) => string;
+export type RenderFn = (markdown: string, env?: RenderEnv) => string;
 
 /** 글 페이지용 렌더링 결과: HTML + 목차 */
 export interface RenderedDocument {

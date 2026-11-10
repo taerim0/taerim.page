@@ -235,7 +235,8 @@ function renderPane() {
     preview.innerHTML = renderMarkdown(source.body);
   } else {
     previewTitle.textContent = currentValues().title;
-    preview.innerHTML = renderMarkdown(inputs.body.value);
+    // 번역 언어로 그림 (콜아웃 기본 제목 등)
+    preview.innerHTML = renderMarkdown(inputs.body.value, { locale: lang });
   }
 }
 

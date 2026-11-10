@@ -2,8 +2,7 @@ import MarkdownItFactory from "markdown-it";
 import type { MarkdownIt } from "markdown-it";
 import { addHeadingIds } from "./headings.ts";
 import type { HeadingEnv } from "./headings.ts";
-import type { ImageEnv } from "./image.ts";
-import type { MarkdownModule, RenderedDocument, RenderFn } from "./types.ts";
+import type { MarkdownModule, RenderedDocument, RenderEnv, RenderFn } from "./types.ts";
 
 /** 렌더러 설정 */
 export interface RendererOptions {
@@ -22,7 +21,7 @@ const DEFAULT_SITE_HOST = "taerim.page";
  * - 블록: 제목(# 방식), 목록, 코드 블록(```), 구분선. 문단(paragraph)은 zero에서도 켜져 있음
  * - 인라인: 굵게·기울임, 링크, 인라인 코드, 줄바꿈, 이스케이프
  *
- * 일부러 켜지 않은 것: 인용(blockquote → 모듈), 밑줄식 제목(lheading),
+ * 일부러 켜지 않은 것: 인용(blockquote → quote 모듈), 밑줄식 제목(lheading),
  * 4칸 들여쓰기 코드(code), HTML(html_block, html_inline), 표, 이미지, 취소선 등
  */
 const CORE_BLOCK_RULES = ["heading", "list", "fence", "hr"];
@@ -37,7 +36,8 @@ const CORE_INLINE_RULES = ["emphasis", "link", "backticks", "newline", "escape"]
  */
 export function createRenderer(modules: MarkdownModule[] = [], options: RendererOptions = {}): RenderFn {
   const md = createMarkdownIt(modules, options);
-  return (markdown) => md.render(markdown);
+  // env는 렌더링마다 새로 (모듈이 env에 값을 모으기도 하므로 넘겨받은 것을 그대로 쓰지 않음)
+  return (markdown, env = {}) => md.render(markdown, { ...env });
 }
 
 /**
@@ -47,11 +47,11 @@ export function createRenderer(modules: MarkdownModule[] = [], options: Renderer
 export function createDocumentRenderer(
   modules: MarkdownModule[] = [],
   options: RendererOptions = {},
-): (markdown: string, extra?: ImageEnv) => RenderedDocument {
+): (markdown: string, extra?: RenderEnv) => RenderedDocument {
   const md = createMarkdownIt(modules, options);
   return (markdown, extra = {}) => {
-    // extra.imageSizes: 이미지 원래 크기 (이미지 모듈이 width·height에 씀)
-    const env: HeadingEnv & ImageEnv = { ...extra, toc: [] };
+    // extra.imageSizes: 이미지 원래 크기 (이미지 모듈이 width·height에 씀), extra.locale: 언어 (콜아웃 기본 제목)
+    const env: HeadingEnv & RenderEnv = { ...extra, toc: [] };
     const html = md.render(markdown, env);
     return { html, toc: env.toc ?? [] };
   };

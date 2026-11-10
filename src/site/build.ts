@@ -83,7 +83,7 @@ export async function buildSite({ site, posts, translations = [], images = [] }:
         await add(path, postPage({ site, post, bodyHtml: html, toc, alternates: localesOf(post.id) }));
         lastmod.set(path, post.updatedAt);
       } else if (translation) {
-        const { html, toc } = renderDocument(translation.body, { imageSizes });
+        const { html, toc } = renderDocument(translation.body, { imageSizes, locale });
         const translated = { ...post, title: translation.title, summary: translation.summary };
         await add(path, postPage({ site, locale, post: translated, bodyHtml: html, toc, alternates: localesOf(post.id) }));
         lastmod.set(path, translation.updatedAt);

@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import type { EmbedService } from "../embeds/service.ts";
 import type { ImageService } from "../images/service.ts";
 import type { AdminEnv } from "./auth.ts";
 import { HttpError } from "./http-errors.ts";
@@ -33,6 +34,27 @@ export function createImageRoutes(images: ImageService | undefined): Hono<AdminE
     });
   });
 
+  return routes;
+}
+
+/** 임베드 카드 그림 주소 앞부분 (관리자 미리보기용, 설계 13-9). 공개 사이트는 /embeds/ */
+export const EMBED_IMAGE_PATH_PREFIX = "/embed-images/";
+
+/** GET /embed-images/:name → R2의 카드 그림 (이미지와 같은 캐시·보안 헤더) */
+export function createEmbedImageRoutes(embeds: EmbedService | undefined): Hono<AdminEnv> {
+  const routes = new Hono<AdminEnv>();
+  routes.get(`${EMBED_IMAGE_PATH_PREFIX}:name`, async (c) => {
+    const image = embeds ? await embeds.openImage(c.req.param("name")) : null;
+    if (!image) throw new HttpError("not_found", "그림을 찾을 수 없어요");
+    return new Response(image.body, {
+      headers: {
+        "Content-Type": image.contentType,
+        "Content-Length": String(image.size),
+        "Cache-Control": IMAGE_CACHE_CONTROL,
+        "Content-Security-Policy": "default-src 'none'; sandbox",
+      },
+    });
+  });
   return routes;
 }
 

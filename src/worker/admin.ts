@@ -20,6 +20,8 @@ import { renderMarkdown } from "../markdown/index.ts";
 import type { D1Database } from "../posts/d1.ts";
 import { D1PostRepository } from "../posts/d1-repository.ts";
 import { PostService } from "../posts/service.ts";
+import { D1EmbedRepository } from "../embeds/repository.ts";
+import { EmbedService } from "../embeds/service.ts";
 import { createLlmClient } from "../translations/config.ts";
 import { D1TranslationRepository } from "../translations/d1-repository.ts";
 import { TranslationService } from "../translations/service.ts";
@@ -88,6 +90,8 @@ function buildApp(env: AdminWorkerEnv): Hono<AdminEnv> {
     authenticator: chooseAuthenticator(env),
     deploy: chooseDeploy(env),
     images: env.IMAGES ? new ImageService(new R2ImageStore(env.IMAGES), new D1ImageRepository(env.DB)) : undefined,
+    // 임베드 카드: 정보는 D1, 대표 그림은 R2(이미지와 같은 버킷), GitHub API는 배포 토큰이 있으면 같이 (요청 한도용)
+    embeds: new EmbedService(new D1EmbedRepository(env.DB), { bucket: env.IMAGES, githubToken: env.GITHUB_DEPLOY_TOKEN }),
     translations: new TranslationService(posts, new D1TranslationRepository(env.DB), { llm: createLlmClient(env) }),
     assets: env.ASSETS,
   });

@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { requireAdmin, requireSameOrigin } from "./auth.ts";
 import type { AdminAuthenticator, AdminEnv } from "./auth.ts";
 import { HttpError, toErrorResponse } from "./http-errors.ts";
-import { createImageRoutes, IMAGE_PATH_PREFIX } from "./images.ts";
+import { createEmbedImageRoutes, createImageRoutes, EMBED_IMAGE_PATH_PREFIX, IMAGE_PATH_PREFIX } from "./images.ts";
 import { createPageRoutes } from "./pages.ts";
 import type { AssetFetcher } from "./pages.ts";
 import { createApiRoutes } from "./routes.ts";
@@ -37,7 +37,7 @@ export function createAdminApp(deps: AdminAppDeps): Hono<AdminEnv> {
     await next();
     // 관리자 데이터는 브라우저·중간 서버가 저장해 두지 않게
     // 단, 이미지는 내용이 절대 안 바뀌므로 내 브라우저에만 저장 (images.ts의 IMAGE_CACHE_CONTROL)
-    const isImage = c.req.path.startsWith(IMAGE_PATH_PREFIX) && c.res.ok;
+    const isImage = (c.req.path.startsWith(IMAGE_PATH_PREFIX) || c.req.path.startsWith(EMBED_IMAGE_PATH_PREFIX)) && c.res.ok;
     if (!isImage) c.header("Cache-Control", "no-store");
     // 응답 형식을 브라우저가 멋대로 추측하지 않게 (JSON을 HTML로 해석하는 공격 방지)
     c.header("X-Content-Type-Options", "nosniff");
@@ -48,6 +48,7 @@ export function createAdminApp(deps: AdminAppDeps): Hono<AdminEnv> {
 
   app.route("/api", createApiRoutes(deps));
   app.route("/", createImageRoutes(deps.images));
+  app.route("/", createEmbedImageRoutes(deps.embeds));
   if (deps.assets) app.route("/", createPageRoutes(deps.assets));
 
   app.notFound((c) => {

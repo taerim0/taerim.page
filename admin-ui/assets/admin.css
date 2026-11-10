@@ -316,3 +316,20 @@ a.pill:hover { text-decoration: underline; }
 .preview .embed-repo .embed-meta::before { content: "◉ "; }
 .preview .embed-image { flex: 0 0 auto; width: 180px; max-width: 35%; object-fit: cover; background: var(--surface); }
 @media (max-width: 520px) { .preview .embed-card.has-image { flex-direction: column-reverse; } .preview .embed-image { width: 100%; max-width: none; aspect-ratio: 1200 / 630; } }
+
+/* ── 사이트 설정 화면 (settings.html, 설계 15-3) ── */
+.settings-page { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 24px; align-items: start; }
+@media (max-width: 799px) { .settings-page { grid-template-columns: 1fr; } }
+.settings-heading { margin: 0 0 12px; font-size: 1.3em; }
+.settings-form fieldset { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; }
+.settings-form legend { padding: 0 6px; color: var(--muted); font-size: .9em; }
+.settings-form .field { margin-bottom: 8px; }
+.photo-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.avatar { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; background: #eef1f5; }
+.avatar-large { width: 96px; height: 96px; }
+.settings-preview { position: sticky; top: 16px; }
+.profile-card { padding: 16px; border: 1px solid var(--line); border-radius: 12px; text-align: center; }
+.profile-name { margin: 8px 0 2px; font-weight: 700; font-size: 1.1em; }
+.profile-tagline { margin: 0; color: var(--muted); }
+.profile-links { margin: 8px 0 0; font-size: .9em; }
+.profile-links a { color: var(--accent); }

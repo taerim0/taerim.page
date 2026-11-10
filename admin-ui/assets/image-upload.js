@@ -122,8 +122,26 @@ export function bindImageUpload({ textarea, button, fileInput }) {
   });
 }
 
+/**
+ * 파일 하나를 본문과 같은 방식(WebP 변환·GIF 그대로)으로 올리고 주소(/images/…)를 돌려준다.
+ * 사이트 설정의 프로필 사진 등 본문 밖에서 쓴다. 실패하면 사람이 읽을 이유를 담은 Error
+ * @param {File} file
+ * @returns {Promise<string>}
+ */
+export async function uploadImageFile(file) {
+  const plan = planUpload(file.type, file.size);
+  if (plan.kind === "reject") throw new UploadFailed(plan.message);
+  const body = plan.kind === "convert" ? await toWebp(file) : file;
+  try {
+    const { image } = await imagesApi.upload(body, file.name);
+    return `/images/${image.name}`;
+  } catch (error) {
+    throw new UploadFailed(error instanceof ApiError ? error.message : "알 수 없는 문제가 생겼어요");
+  }
+}
+
 /** 브라우저에서 미리 막은 경우 (메시지를 그대로 보여준다) */
-class UploadFailed extends Error {}
+export class UploadFailed extends Error {}
 
 /** @param {FileList} list */
 function imageFiles(list) {

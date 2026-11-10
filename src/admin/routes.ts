@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
 import type { EmbedService } from "../embeds/service.ts";
+import type { SettingsService } from "../settings/settings.ts";
 import type { ImageService } from "../images/service.ts";
 import { MAX_IMAGE_BYTES } from "../images/service.ts";
 import type { RenderFn } from "../markdown/index.ts";
@@ -26,6 +27,8 @@ export interface ApiDeps {
   deploy?: DeployTrigger;
   /** 이미지 기능. 없으면 이미지 API는 503 (R2 설정이 없을 때) */
   images?: ImageService;
+  /** 사이트 설정 (설계 15-3). 없으면 설정 API는 503 */
+  settings?: SettingsService;
   /** 임베드 카드 정보 (설계 13-9). 없으면 임베드 API는 503 */
   embeds?: EmbedService;
   /** 번역 기능. 없으면 번역 API는 503 (제공자 설정이 없어도 이건 있음 — 그때는 번역 버튼만 503) */
@@ -40,7 +43,7 @@ export const MAX_BODY_BYTES = 1024 * 1024;
  * 여기서는 요청을 읽어 서비스에 넘기고 결과를 JSON으로 돌려주기만 한다.
  * 실패하면 오류를 던지고, 응답 변환은 app.ts의 오류 처리가 맡는다.
  */
-export function createApiRoutes({ service, render, deploy, images, translations, embeds }: ApiDeps): Hono<AdminEnv> {
+export function createApiRoutes({ service, render, deploy, images, translations, embeds, settings }: ApiDeps): Hono<AdminEnv> {
   const api = new Hono<AdminEnv>();
 
   // ── 글 ─────────────────────────────────────────────
@@ -149,6 +152,11 @@ export function createApiRoutes({ service, render, deploy, images, translations,
     return c.json(await requireTranslations(translations).unpublish(idParam(c), langParam(c)));
   });
 
+  // ── 사이트 설정 (설계 15-3) ──────────────────────────
+  api.get("/settings", async (c) => c.json(await requireSettings(settings).get()));
+  /** 통째로 저장 (칸별 오류는 400). 공개 사이트는 배포해야 바뀜 */
+  api.put("/settings", async (c) => c.json(await requireSettings(settings).save(await readJson(c))));
+
   // ── 임베드 (설계 13-9) ──────────────────────────────
   /** 카드 정보: 저장된 게 새것이면 그대로, 아니면 받아서 저장. 임베드 대상 주소가 아니면 404 */
   api.get("/embeds", async (c) => {
@@ -169,6 +177,11 @@ export function createApiRoutes({ service, render, deploy, images, translations,
   api.get("/deploy", async (c) => c.json({ run: await requireDeploy(deploy).latest().catch(toHttpError) }));
 
   return api;
+}
+
+function requireSettings(settings: SettingsService | undefined): SettingsService {
+  if (!settings) throw new HttpError("unavailable", "설정 기능이 설정되지 않았어요");
+  return settings;
 }
 
 function requireTranslations(translations: TranslationService | undefined): TranslationService {

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>사이트 설정 · taerim.page 관리자</title>
+  <link rel="stylesheet" href="/assets/admin.css">
+  <script type="module" src="/assets/settings.js"></script>
+</head>
+<body>
+  <!-- 사이트 설정 (설계 15-3): 홈 소개 카드·바닥글 링크·사이트 소개. 저장 후 [배포]하면 공개 사이트에 반영 -->
+  <header class="topbar">
+    <a class="brand" href="/">taerim.page 관리자</a>
+    <nav>
+      <a class="button" href="/">글 목록</a>
+      <a class="button" href="/tags">태그</a>
+      <a class="button" href="/trash">휴지통</a>
+    </nav>
+  </header>
+
+  <main>
+    <p id="loading" class="muted">불러오는 중…</p>
+    <div id="settings" class="settings-page" hidden>
+      <form id="settings-form" class="settings-form" novalidate>
+        <h1 class="settings-heading">사이트 설정</h1>
+
+        <fieldset>
+          <legend>소개 카드</legend>
+          <div class="field">
+            <label>사진</label>
+            <div class="photo-row">
+              <img id="photo-preview" class="avatar" alt="" src="/assets/default-avatar.svg">
+              <button id="photo-button" class="button" type="button">사진 올리기</button>
+              <button id="photo-clear" class="button" type="button">기본 그림으로</button>
+              <input id="photo-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+              <input id="photo" name="photo" type="hidden">
+            </div>
+            <p class="field-error" data-error-for="photo"></p>
+          </div>
+          <div class="field">
+            <label for="name">이름</label>
+            <input id="name" name="name" type="text" autocomplete="off">
+            <p class="field-error" data-error-for="name"></p>
+          </div>
+          <div class="field">
+            <label for="tagline">한 줄 소개</label>
+            <input id="tagline" name="tagline" type="text" autocomplete="off" placeholder="예: 웹을 만드는 개발자">
+            <p class="field-error" data-error-for="tagline"></p>
+          </div>
+          <div class="field">
+            <label for="taglineEn">한 줄 소개 (영어, 비우면 한국어 그대로)</label>
+            <input id="taglineEn" name="taglineEn" type="text" autocomplete="off" lang="en">
+            <p class="field-error" data-error-for="taglineEn"></p>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>링크 (소개 카드·바닥글, 비우면 안 보임)</legend>
+          <div class="field">
+            <label for="github">GitHub</label>
+            <input id="github" name="github" type="url" autocomplete="off" placeholder="https://github.com/아이디">
+            <p class="field-error" data-error-for="github"></p>
+          </div>
+          <div class="field">
+            <label for="email">이메일</label>
+            <input id="email" name="email" type="email" autocomplete="off">
+            <p class="field-error" data-error-for="email"></p>
+          </div>
+          <div class="field">
+            <label for="linkedin">LinkedIn</label>
+            <input id="linkedin" name="linkedin" type="url" autocomplete="off" placeholder="https://www.linkedin.com/in/아이디">
+            <p class="field-error" data-error-for="linkedin"></p>
+          </div>
+          <div class="field">
+            <label for="solvedac">solved.ac</label>
+            <input id="solvedac" name="solvedac" type="url" autocomplete="off" placeholder="https://solved.ac/profile/아이디">
+            <p class="field-error" data-error-for="solvedac"></p>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>사이트 소개 (검색엔진·공유 미리보기·RSS 설명)</legend>
+          <div class="field">
+            <label for="description">한국어</label>
+            <input id="description" name="description" type="text" autocomplete="off">
+            <p class="field-error" data-error-for="description"></p>
+          </div>
+          <div class="field">
+            <label for="descriptionEn">영어 (비우면 한국어 그대로)</label>
+            <input id="descriptionEn" name="descriptionEn" type="text" autocomplete="off" lang="en">
+            <p class="field-error" data-error-for="descriptionEn"></p>
+          </div>
+        </fieldset>
+
+        <div class="actions">
+          <span id="saved-at" class="muted"></span>
+          <span id="dirty-mark" class="dirty" hidden>저장 안 됨</span>
+          <button id="save" class="button primary" type="submit">저장</button>
+        </div>
+      </form>
+
+      <!-- 소개 카드 미리보기 (공개 사이트 홈 왼쪽 위) -->
+      <aside class="settings-preview" aria-label="소개 카드 미리보기">
+        <p class="muted">미리보기</p>
+        <div id="card-preview" class="profile-card"></div>
+      </aside>
+    </div>
+  </main>
+</body>
+</html>

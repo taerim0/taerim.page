@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="기본 프로필 그림">
+  <!-- 기본 프로필 그림 (사이트 설정에서 사진을 정하지 않았을 때, 설계 15-3) -->
+  <rect width="120" height="120" fill="#c9d3e3"/>
+  <circle cx="60" cy="46" r="22" fill="#f4f6fa"/>
+  <path d="M18 120c4-26 22-40 42-40s38 14 42 40z" fill="#f4f6fa"/>
+</svg>

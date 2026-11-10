@@ -205,6 +205,16 @@ export const translationsApi = {
   unpublish: (id, lang) => request("POST", `/posts/${id}/translations/${lang}/unpublish`),
 };
 
+/** @typedef {import("../../src/settings/settings.ts").SiteSettings} SiteSettings */
+
+/** 사이트 설정 (설계 15-3) */
+export const settingsApi = {
+  /** 저장한 적 없으면 기본값, updatedAt null @returns {Promise<{ settings: SiteSettings, updatedAt: string | null }>} */
+  get: () => request("GET", "/settings"),
+  /** 통째로 저장. 칸별 오류는 ApiError(validation) @param {SiteSettings} settings @returns {Promise<{ settings: SiteSettings, updatedAt: string }>} */
+  save: (settings) => request("PUT", "/settings", settings),
+};
+
 /** 임베드 카드 정보 (설계 13-9). 임베드 대상이 아니면 ApiError(not_found) */
 export const embedsApi = {
   /** @param {string} url @returns {Promise<import("../../src/embeds/types.ts").EmbedInfo>} */

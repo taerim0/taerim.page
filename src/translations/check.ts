@@ -1,6 +1,7 @@
 import MarkdownItFactory from "markdown-it";
 import type { Token } from "markdown-it";
 import { calloutMarkers } from "../markdown/callout.ts";
+import { embedUrls } from "../markdown/embed.ts";
 import { parseImageOptions } from "../markdown/image.ts";
 import { findPlaceholders, hasUnknownPlaceholder } from "./protect.ts";
 import type { TranslationContent } from "./types.ts";
@@ -32,6 +33,7 @@ export function checkTranslation(source: TranslationContent, result: Translation
   if (before.headings !== after.headings) return `제목 줄 개수가 달라요 (원문 ${before.headings}, 번역 ${after.headings})`;
   if (!sameList(calloutMarkers(source.body), calloutMarkers(result.body))) return "콜아웃이 원문과 달라요";
   if (!sameList(before.tables, after.tables)) return "표 모양이 원문과 달라요";
+  if (!sameList(embedUrls(source.body), embedUrls(result.body))) return "임베드(!embed) 주소가 원문과 달라요";
   return null;
 }
 

@@ -275,3 +275,17 @@ a { color: var(--accent); }
 @media (max-width: 520px) { .post-nav-next { grid-column: 1; } }
 .post-nav-label { color: var(--muted); font-size: .85em; }
 .post-nav-title { font-weight: 600; }
+
+/* ── 검색 (설계 15-7). 꾸미기는 UI/UX 단계 ── */
+.search-form { margin: 0 0 8px; }
+.search-label { display: block; margin-bottom: 4px; color: var(--muted); font-size: .9em; }
+.search-input { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; font-size: 1.05em; }
+.search-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.search-status { min-height: 1.5em; color: var(--muted); font-size: .9em; }
+.search-results { list-style: none; margin: 0; padding: 0; }
+.search-result { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.search-result-head { margin: 0; }
+.search-result-title { font-weight: 700; }
+.search-result .post-meta { margin: 2px 0; }
+.search-excerpt { margin: 4px 0 0; color: var(--muted); font-size: .92em; overflow-wrap: anywhere; }
+.search-excerpt mark { background: color-mix(in srgb, var(--accent) 25%, transparent); color: var(--text); border-radius: 2px; }

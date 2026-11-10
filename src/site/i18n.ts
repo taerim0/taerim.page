@@ -69,6 +69,18 @@ export interface Messages {
   postNavLabel: string;
   prevPost: string;
   nextPost: string;
+  /** 검색 (설계 15-7) */
+  navSearch: string;
+  searchHeading: string;
+  searchLabel: string;
+  searchPlaceholder: string;
+  /** 검색 스크립트가 쓰는 글자 ({n} = 개수) */
+  searchCount: string;
+  searchMore: string;
+  searchNone: string;
+  searchLoadingBody: string;
+  searchFailed: string;
+  searchNeedsJs: string;
 }
 
 export const MESSAGES: Record<Locale, Messages> = {
@@ -108,6 +120,16 @@ export const MESSAGES: Record<Locale, Messages> = {
     postNavLabel: "이전·다음 글",
     prevPost: "← 이전 글",
     nextPost: "다음 글 →",
+    navSearch: "검색",
+    searchHeading: "검색",
+    searchLabel: "찾을 말",
+    searchPlaceholder: "제목·태그·내용으로 찾기",
+    searchCount: "{n}개 찾았어요",
+    searchMore: "{n}개 찾았어요 (앞의 50개만 보여요. 낱말을 더 넣어 보세요)",
+    searchNone: "찾은 글이 없어요.",
+    searchLoadingBody: "본문 불러오는 중… (지금은 제목·태그·요약에서만 찾았어요)",
+    searchFailed: "검색 파일을 불러오지 못했어요. 새로고침해 보세요.",
+    searchNeedsJs: "검색은 JavaScript가 필요해요.",
   },
   en: {
     languageName: "English",
@@ -146,6 +168,16 @@ export const MESSAGES: Record<Locale, Messages> = {
     postNavLabel: "Previous and next posts",
     prevPost: "← Previous",
     nextPost: "Next →",
+    navSearch: "Search",
+    searchHeading: "Search",
+    searchLabel: "Search for",
+    searchPlaceholder: "Search titles, tags and content",
+    searchCount: "{n} found",
+    searchMore: "{n} found (showing the first 50 — try adding more words)",
+    searchNone: "Nothing found.",
+    searchLoadingBody: "Loading post bodies… (searched titles, tags and summaries only so far)",
+    searchFailed: "Couldn't load the search data. Try reloading.",
+    searchNeedsJs: "Search needs JavaScript.",
   },
 };
 

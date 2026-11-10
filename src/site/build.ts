@@ -14,14 +14,16 @@ import { TagTree } from "../posts/tag-tree.ts";
 import type { Post, TagCount, TagParent } from "../posts/types.ts";
 import type { ImageInfo } from "../images/types.ts";
 import type { PublishedTranslation } from "../translations/types.ts";
-import { LOCALES, localizedPath, SOURCE_LOCALE } from "./i18n.ts";
+import { formatDay, LOCALES, localizedPath, SOURCE_LOCALE } from "./i18n.ts";
 import type { Locale } from "./i18n.ts";
 import { imageSizeMap } from "./images.ts";
 import type { ImageSize } from "./images.ts";
-import { groupArchive } from "./archive.ts";
+import { groupArchive, postDate } from "./archive.ts";
+import { htmlToText } from "./search.ts";
+import type { SearchBodies, SearchIndex, SearchItem } from "./search.ts";
 import type { ArchiveIssue } from "./archive.ts";
-import { ARCHIVE_PATH, pagePath, postPath, POSTS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
-import { absoluteUrl, archivePage, HOME_ISSUE_COUNT, HOME_POST_COUNT, homePage, listPage, notFoundPage, postPage, tagsPage, untranslatedPostPage } from "./templates.ts";
+import { ARCHIVE_PATH, issueAnchor, pagePath, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, tagPath, TAGS_PATH } from "./paths.ts";
+import { absoluteUrl, archivePage, searchPage, HOME_ISSUE_COUNT, HOME_POST_COUNT, homePage, listPage, notFoundPage, postPage, tagsPage, untranslatedPostPage } from "./templates.ts";
 import type { Html, PostCardData, SiteConfig, TagNav } from "./templates.ts";
 
 /** 목록 한 페이지의 글 수 (관리자 목록과 같은 10개) */
@@ -113,21 +115,26 @@ export async function buildSite({ site: baseSite, settings, issues = [], posts, 
     for (const [path, page] of listPages(site, locale, cardsOf(published), POSTS_PATH, imageSizes)) await add(path, page);
 
     // 글: 한국어 / 번역본 / 미번역(한글을 흐리게 + 안내)
+    /** 검색용 본문 HTML (글 id → 이 언어 페이지에 보이는 본문) */
+    const bodyHtmlOf = new Map<number, string>();
     for (const [index, { post, translation }] of localized.entries()) {
       const path = localizedPath(locale, postPath(post.id));
       // 이전 = 더 옛날 글(목록에서 다음 칸), 다음 = 더 새 글 (설계 15-6)
       const neighbors = { prev: localized[index + 1] && cards.get(localized[index + 1]!.post.id), next: localized[index - 1] && cards.get(localized[index - 1]!.post.id) };
       if (locale === SOURCE_LOCALE) {
         const { html, toc } = renderDocument(post.body, { imageSizes });
+        bodyHtmlOf.set(post.id, html);
         await add(path, postPage({ site, post, bodyHtml: html, toc, alternates: localesOf(post.id), neighbors }));
         lastmod.set(path, post.updatedAt);
       } else if (translation) {
         const { html, toc } = renderDocument(translation.body, { imageSizes, locale });
         const translated = { ...post, title: translation.title, summary: translation.summary };
+        bodyHtmlOf.set(post.id, html);
         await add(path, postPage({ site, locale, post: translated, bodyHtml: html, toc, alternates: localesOf(post.id), neighbors }));
         lastmod.set(path, translation.updatedAt);
       } else {
         const { html } = renderDocument(post.body, { imageSizes });
+        bodyHtmlOf.set(post.id, html);
         await add(path, untranslatedPostPage({ site, locale, post, bodyHtml: html }));
         noindex.add(path);
       }
@@ -142,6 +149,12 @@ export async function buildSite({ site: baseSite, settings, issues = [], posts, 
       for (const [path, page] of listPages(site, locale, cardsOf(tagged), tagPath(name), imageSizes, name, nav)) await add(path, page);
     }
 
+    // 검색 (설계 15-7): 페이지 + 검색 파일 둘 (제목·태그·요약 / 본문)
+    await add(localizedPath(locale, SEARCH_PATH), searchPage({ site, locale }));
+    const search = searchFiles(locale, cardsOf(published), bodyHtmlOf, archiveIssues);
+    files.set(localizedPath(locale, SEARCH_INDEX_PATH), JSON.stringify(search.index));
+    files.set(localizedPath(locale, SEARCH_BODY_PATH), JSON.stringify(search.bodies));
+
     // RSS: 번역 언어는 번역된 글만
     const feed = localized.filter((item) => locale === SOURCE_LOCALE || item.translation).slice(0, RSS_ITEM_COUNT);
     files.set(localizedPath(locale, "/rss.xml"), rss(site, locale, feed));
@@ -151,6 +164,41 @@ export async function buildSite({ site: baseSite, settings, issues = [], posts, 
   await add(NOT_FOUND_PATH, notFoundPage({ site }));
   files.set("/sitemap.xml", sitemap(site, [...files.keys()], noindex, lastmod));
   return files;
+}
+
+/** 검색 파일 내용: 글(최신 순) 다음 이슈(최신 순). 본문은 HTML을 걷어낸 글자 */
+function searchFiles(locale: Locale, cards: PostCardData[], bodyHtmlOf: ReadonlyMap<number, string>, issues: ArchiveIssue[]): { index: SearchIndex; bodies: SearchBodies } {
+  const korean = (untranslated: boolean) => (untranslated && locale !== SOURCE_LOCALE ? { l: SOURCE_LOCALE, kr: true as const } : {});
+  const items: SearchItem[] = [];
+  const bodies: string[] = [];
+  for (const card of cards) {
+    const date = postDate(card);
+    items.push({
+      k: "post",
+      u: localizedPath(locale, postPath(card.id)),
+      t: card.title,
+      d: date,
+      dt: formatDay(date, locale),
+      g: card.tags,
+      s: card.summary ?? "",
+      ...korean(card.untranslated === true),
+    });
+    bodies.push(htmlToText(bodyHtmlOf.get(card.id) ?? ""));
+  }
+  for (const issue of issues) {
+    items.push({
+      k: "issue",
+      u: `${localizedPath(locale, ARCHIVE_PATH)}#${issueAnchor(issue.id)}`,
+      t: issue.title,
+      d: issue.date,
+      dt: formatDay(issue.date, locale),
+      g: [],
+      s: "",
+      ...(issue.titleLang ? { l: issue.titleLang } : {}),
+    });
+    bodies.push(htmlToText(issue.bodyHtml));
+  }
+  return { index: { items }, bodies: { b: bodies } };
 }
 
 /** 이슈를 그 언어로: 영어 제목이 없으면 한국어 그대로(lang=ko), 영어 내용이 없으면 한국어 내용 */
@@ -242,7 +290,7 @@ ${newest ? `    <lastBuildDate>${new Date(newest.publishedAt!).toUTCString()}</l
  */
 function sitemap(site: SiteConfig, paths: string[], noindex: ReadonlySet<string>, lastmod: ReadonlyMap<string, string>): string {
   const urls = paths
-    .filter((path) => !noindex.has(path) && !path.endsWith(".xml"))
+    .filter((path) => !noindex.has(path) && !path.endsWith(".xml") && !path.endsWith(".json"))
     .sort()
     .map((path) => {
       const modified = lastmod.get(path);

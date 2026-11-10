@@ -19,7 +19,7 @@ import type { ArchiveIssue, ArchiveYear } from "./archive.ts";
 import { formatDate, formatDay, SITE_SCRIPT, LOCALES, localizedPath, MESSAGES, SOURCE_LOCALE } from "./i18n.ts";
 import type { Locale } from "./i18n.ts";
 import type { ImageSize } from "./images.ts";
-import { ARCHIVE_PATH, issueAnchor, pagePath, postPath, POSTS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
+import { ARCHIVE_PATH, issueAnchor, pagePath, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, tagPath, TAGS_PATH } from "./paths.ts";
 
 export { formatDate } from "./i18n.ts";
 
@@ -86,6 +86,8 @@ interface LayoutProps {
   alternates?: readonly Locale[];
   /** <body> class (홈은 넓은 2칸 배치용 page-home) */
   bodyClass?: string;
+  /** 이 페이지에만 붙일 모듈 스크립트 (검색 페이지의 /assets/search.js) */
+  moduleScript?: string;
   body: Html;
 }
 
@@ -122,12 +124,13 @@ export function layout(props: LayoutProps): Html {
   <link rel="stylesheet" href="/assets/site.css">
   ${props.math ? html`<link rel="stylesheet" href="${KATEX_CSS}">` : ""}
   <script>${raw(SITE_SCRIPT)}</script>
+  ${props.moduleScript ? html`<script type="module" src="${props.moduleScript}"></script>` : ""}
 </head>
 <body${props.bodyClass ? html` class="${props.bodyClass}"` : ""}>
   <header class="site-header">
     <a class="site-name" href="${localizedPath(locale, "/")}">${site.name}</a>
     <nav class="site-nav">
-      <a href="${localizedPath(locale, POSTS_PATH)}">${m.navPosts}</a> <a href="${localizedPath(locale, TAGS_PATH)}">${m.navTags}</a> <a href="${localizedPath(locale, ARCHIVE_PATH)}">${m.navArchive}</a>
+      <a href="${localizedPath(locale, POSTS_PATH)}">${m.navPosts}</a> <a href="${localizedPath(locale, TAGS_PATH)}">${m.navTags}</a> <a href="${localizedPath(locale, ARCHIVE_PATH)}">${m.navArchive}</a> <a href="${localizedPath(locale, SEARCH_PATH)}">${m.navSearch}</a>
       <span class="lang-switch" role="group" aria-label="${m.languageLabel}">${LOCALES.map(
         (l) => html`<a href="${localizedPath(l, props.path)}" hreflang="${l}" lang="${l}" data-set-lang="${l}"${l === locale ? html` aria-current="true"` : ""}>${MESSAGES[l].languageName}</a>`,
       )}</span>
@@ -523,6 +526,33 @@ function archivePostLine(locale: Locale, date: string, post: PostCardData): Html
   const m = MESSAGES[locale];
   const korean = post.untranslated === true && locale !== SOURCE_LOCALE;
   return html`<li class="archive-post"><time datetime="${date}">${date.slice(5)}</time> <a href="${localizedPath(locale, postPath(post.id))}"${korean ? html` lang="ko"` : ""}>${post.title}</a>${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</li>`;
+}
+
+// ── 검색 (설계 15-7) ─────────────────────────────────
+
+/** 검색 스크립트 주소 (빌드가 src/site/search-client.ts를 묶어 씀) */
+export const SEARCH_SCRIPT = "/assets/search.js";
+
+/**
+ * 검색 페이지: 입력 칸 + 결과 자리. 찾기는 검색 스크립트가 (검색 파일 둘을 받아서).
+ * 화면 글자·파일 주소는 data-* 로 넘김 (스크립트는 언어를 모름). JS가 없으면 안내 + 아카이브 링크
+ */
+export function searchPage({ site, locale = SOURCE_LOCALE }: { site: SiteConfig; locale?: Locale }): Html {
+  const m = MESSAGES[locale];
+  const body = html`
+    <h1 class="list-heading">${m.searchHeading}</h1>
+    <form class="search-form" role="search" action="${localizedPath(locale, SEARCH_PATH)}" method="get"
+      data-index="${localizedPath(locale, SEARCH_INDEX_PATH)}" data-body="${localizedPath(locale, SEARCH_BODY_PATH)}"
+      data-msg-count="${m.searchCount}" data-msg-more="${m.searchMore}" data-msg-none="${m.searchNone}"
+      data-msg-loading="${m.searchLoadingBody}" data-msg-failed="${m.searchFailed}"
+      data-badge-issue="${m.issueBadge}" data-badge-kr="${m.koreanOnly}" data-badge-kr-title="${m.koreanOnlyTitle}">
+      <label class="search-label" for="search-q">${m.searchLabel}</label>
+      <input class="search-input" id="search-q" name="q" type="search" placeholder="${m.searchPlaceholder}" autocomplete="off" autofocus>
+    </form>
+    <p class="search-status" aria-live="polite"></p>
+    <ul class="search-results"></ul>
+    <noscript><p class="empty">${m.searchNeedsJs} <a href="${localizedPath(locale, ARCHIVE_PATH)}">${m.archiveHeading}</a></p></noscript>`;
+  return layout({ site, locale, title: m.searchHeading, path: SEARCH_PATH, moduleScript: SEARCH_SCRIPT, body });
 }
 
 // ── 없는 주소 ────────────────────────────────────────

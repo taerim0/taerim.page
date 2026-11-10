@@ -28,6 +28,11 @@ export function issueAnchor(id: number): string {
   return `issue-${id}`;
 }
 
+/** 검색 페이지와 검색 파일 (설계 15-7) */
+export const SEARCH_PATH = "/search";
+export const SEARCH_INDEX_PATH = "/search-index.json";
+export const SEARCH_BODY_PATH = "/search-body.json";
+
 /** 태그 모음 주소 */
 export const TAGS_PATH = "/tags";
 

@@ -4,6 +4,7 @@
  * 순수 함수다. 데이터를 어디서 읽는지(D1), 파일을 어디에 어떤 이름으로 쓰는지는 모른다 (그건 빌드 스크립트 몫).
  * 그래서 테스트에서는 글 목록만 넣어 결과를 바로 확인할 수 있다.
  */
+import type { SiteSettings } from "../settings/settings.ts";
 import { renderDocument } from "../markdown/index.ts";
 import { compareTagNames } from "../posts/tag-order.ts";
 import { TagTree } from "../posts/tag-tree.ts";
@@ -27,6 +28,8 @@ export const NOT_FOUND_PATH = "/404";
 
 export interface BuildInput {
   site: SiteConfig;
+  /** 사이트 설정 (설계 15-3). 지금은 사이트 소개만 반영, 홈 소개 카드·바닥글은 2단계 */
+  settings?: SiteSettings;
   /** 공개 글들 (본문 포함). 초안·휴지통 글이 섞여 있어도 여기서 한 번 더 걸러낸다 */
   posts: Post[];
   /** 공개된 번역본들 (언어 섞여도 됨). 공개된 한글 글의 것만 쓴다 (설계 12-11) */
@@ -47,7 +50,14 @@ interface LocalizedPost {
  * 사이트 전체를 만든다. 한국어 페이지들 + 번역 언어마다 같은 구성의 /{언어}/… 페이지들 (설계 12-11)
  * @returns 주소("/", "/posts/7", "/en/posts/7", "/rss.xml" …) → 파일 내용. 주소 순서는 정해져 있지 않다
  */
-export async function buildSite({ site, posts, translations = [], images = [], tagParents = [] }: BuildInput): Promise<Map<string, string>> {
+/** 코드 설정 + 관리자 사이트 설정 → 빌드에 쓸 설정 (사이트 소개는 관리자 설정이 이김, 영어가 비면 한국어) */
+export function applySettings(site: SiteConfig, settings: SiteSettings | undefined): SiteConfig {
+  if (!settings) return site;
+  return { ...site, description: settings.description, descriptions: { ...site.descriptions, en: settings.descriptionEn ?? settings.description } };
+}
+
+export async function buildSite({ site: baseSite, settings, posts, translations = [], images = [], tagParents = [] }: BuildInput): Promise<Map<string, string>> {
+  const site = applySettings(baseSite, settings);
   const imageSizes = imageSizeMap(images);
   const tree = new TagTree(tagParents);
   // 글의 태그 = 직접 고른 태그 + 상위 태그 (트리 순). 이후 목록·태그 페이지·개수·RSS가 모두 이걸로 → #개발 목록에 #react 글도

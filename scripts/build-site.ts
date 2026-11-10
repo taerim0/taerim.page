@@ -33,6 +33,8 @@ import { embedUrls, setEmbedResolver, setMathRenderer } from "../src/markdown/in
 import type { EmbedView } from "../src/markdown/index.ts";
 import { copyKatex } from "./copy-katex.ts";
 import { buildSite } from "../src/site/build.ts";
+import { DEFAULT_SETTINGS, D1SettingsRepository } from "../src/settings/settings.ts";
+import type { SettingsRepository } from "../src/settings/settings.ts";
 import { SITE_CONFIG } from "../src/site/config.ts";
 import { fileNameFor } from "../src/site/files.ts";
 import { collectImageNames } from "../src/site/images.ts";
@@ -58,6 +60,7 @@ interface Source {
   translations: TranslationRepository;
   embeds: EmbedRepository;
   images: ImageRepository;
+  settings: SettingsRepository;
   files: ImageStore;
   close(): Promise<void>;
 }
@@ -85,6 +88,7 @@ async function openRemote(): Promise<Source> {
     translations: new D1TranslationRepository(db),
     embeds: new D1EmbedRepository(db),
     images: new D1ImageRepository(db),
+    settings: new D1SettingsRepository(db),
     files: new R2ImageStore(bucket),
     close: async () => {},
   };
@@ -99,6 +103,7 @@ async function openLocal(): Promise<Source> {
     translations: new D1TranslationRepository(proxy.env.DB),
     embeds: new D1EmbedRepository(proxy.env.DB),
     images: new D1ImageRepository(proxy.env.DB),
+    settings: new D1SettingsRepository(proxy.env.DB),
     files: new R2ImageStore(proxy.env.IMAGES),
     close: () => proxy.dispose(),
   };
@@ -176,12 +181,18 @@ async function main(): Promise<void> {
     // 번역 언어마다 공개된 번역본 (공개된 한글 글의 것만 쓰는 건 buildSite가 거름)
     const translations: PublishedTranslation[] = [];
     for (const lang of TRANSLATION_LANGS) translations.push(...(await source.translations.listPublished(lang)));
-    const imageUsers = [...posts, ...translations.map((t) => ({ id: t.postId, body: t.body, thumbnail: null }))];
+    // 사이트 설정 (설계 15-3): 저장한 적 없으면 기본값. 프로필 사진도 이미지처럼 복사 (id 0 = 설정)
+    const settings = (await source.settings.get())?.settings ?? DEFAULT_SETTINGS;
+    const imageUsers = [
+      ...posts,
+      ...translations.map((t) => ({ id: t.postId, body: t.body, thumbnail: null })),
+      ...(settings.photo ? [{ id: 0, body: "", thumbnail: settings.photo }] : []),
+    ];
     const images = await readImages(source, imageUsers);
     // 태그 상하관계 (설계 14): 글의 태그에 상위 태그를 붙이고 태그 모음을 트리로
     const tagParents = await source.posts.listTagParents();
     const embeds = await readEmbeds(source, [...posts.map((p) => p.body), ...translations.map((t) => t.body)]);
-    const files = await buildSite({ site: SITE_CONFIG, posts, translations, tagParents, images: images.map((image) => image.info) });
+    const files = await buildSite({ site: SITE_CONFIG, settings, posts, translations, tagParents, images: images.map((image) => image.info) });
 
     // 지난 빌드의 파일(지운 글 등)이 남지 않게 통째로 비우고 다시 쓴다
     await rm(OUT_DIR, { recursive: true, force: true });

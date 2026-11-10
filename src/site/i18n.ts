@@ -55,6 +55,16 @@ export interface Messages {
   allPosts: string;
   profileLabel: string;
   email: string;
+  /** 아카이브·이슈 (설계 15-5) */
+  navArchive: string;
+  archiveHeading: string;
+  archiveYears: string;
+  /** "글 3 · 이슈 1" (0인 쪽은 뺌) */
+  archiveCounts: (posts: number, issues: number) => string;
+  monthName: (month: number) => string;
+  issueBadge: string;
+  recentIssues: string;
+  viewArchive: string;
 }
 
 export const MESSAGES: Record<Locale, Messages> = {
@@ -83,6 +93,14 @@ export const MESSAGES: Record<Locale, Messages> = {
     allPosts: "전체 글 보기 →",
     profileLabel: "소개",
     email: "이메일",
+    navArchive: "아카이브",
+    archiveHeading: "아카이브",
+    archiveYears: "연도",
+    archiveCounts: (posts, issues) => [posts > 0 ? `글 ${posts}` : "", issues > 0 ? `이슈 ${issues}` : ""].filter(Boolean).join(" · "),
+    monthName: (month) => `${month}월`,
+    issueBadge: "이슈",
+    recentIssues: "최근 이슈",
+    viewArchive: "아카이브 보기 →",
   },
   en: {
     languageName: "English",
@@ -109,6 +127,15 @@ export const MESSAGES: Record<Locale, Messages> = {
     allPosts: "All posts →",
     profileLabel: "About",
     email: "Email",
+    navArchive: "Archive",
+    archiveHeading: "Archive",
+    archiveYears: "Years",
+    archiveCounts: (posts, issues) =>
+      [posts > 0 ? `${posts} ${posts === 1 ? "post" : "posts"}` : "", issues > 0 ? `${issues} ${issues === 1 ? "issue" : "issues"}` : ""].filter(Boolean).join(" · "),
+    monthName: (month) => new Intl.DateTimeFormat("en-US", { month: "long", timeZone: "UTC" }).format(new Date(Date.UTC(2000, month - 1, 1))),
+    issueBadge: "Issue",
+    recentIssues: "Recent issues",
+    viewArchive: "View archive →",
   },
 };
 
@@ -118,6 +145,11 @@ const DATE_FORMATS: Record<Locale, Intl.DateTimeFormat> = {
   ko: new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Seoul" }),
   en: new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Seoul", year: "numeric", month: "short", day: "numeric" }),
 };
+
+/** 한국 날짜(YYYY-MM-DD) → 그 언어 날짜 글자 ("2026-11-08" / "Nov 8, 2026") */
+export function formatDay(day: string, locale: Locale = SOURCE_LOCALE): string {
+  return formatDate(`${day}T12:00:00+09:00`, locale);
+}
 
 /** ISO 시각 → "2026-11-08" / "Nov 8, 2026" */
 export function formatDate(iso: string, locale: Locale = SOURCE_LOCALE): string {

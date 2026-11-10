@@ -15,10 +15,11 @@ import type { SiteSettings } from "../settings/settings.ts";
 import { DEFAULT_AVATAR } from "../settings/settings.ts";
 import type { TagTree } from "../posts/tag-tree.ts";
 import type { Post, TagCount } from "../posts/types.ts";
-import { formatDate, SITE_SCRIPT, LOCALES, localizedPath, MESSAGES, SOURCE_LOCALE } from "./i18n.ts";
+import type { ArchiveIssue, ArchiveYear } from "./archive.ts";
+import { formatDate, formatDay, SITE_SCRIPT, LOCALES, localizedPath, MESSAGES, SOURCE_LOCALE } from "./i18n.ts";
 import type { Locale } from "./i18n.ts";
 import type { ImageSize } from "./images.ts";
-import { pagePath, postPath, POSTS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
+import { ARCHIVE_PATH, issueAnchor, pagePath, postPath, POSTS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
 
 export { formatDate } from "./i18n.ts";
 
@@ -126,7 +127,7 @@ export function layout(props: LayoutProps): Html {
   <header class="site-header">
     <a class="site-name" href="${localizedPath(locale, "/")}">${site.name}</a>
     <nav class="site-nav">
-      <a href="${localizedPath(locale, POSTS_PATH)}">${m.navPosts}</a> <a href="${localizedPath(locale, TAGS_PATH)}">${m.navTags}</a>
+      <a href="${localizedPath(locale, POSTS_PATH)}">${m.navPosts}</a> <a href="${localizedPath(locale, TAGS_PATH)}">${m.navTags}</a> <a href="${localizedPath(locale, ARCHIVE_PATH)}">${m.navArchive}</a>
       <span class="lang-switch" role="group" aria-label="${m.languageLabel}">${LOCALES.map(
         (l) => html`<a href="${localizedPath(l, props.path)}" hreflang="${l}" lang="${l}" data-set-lang="${l}"${l === locale ? html` aria-current="true"` : ""}>${MESSAGES[l].languageName}</a>`,
       )}</span>
@@ -390,13 +391,18 @@ interface HomePageProps {
   tags: TagCount[];
   tree?: TagTree;
   imageSizes?: ReadonlyMap<string, ImageSize>;
+  /** 최근 이슈 (설계 15-5, HOME_ISSUE_COUNT개까지). 없으면 그 부분을 안 보임 */
+  issues?: ArchiveIssue[];
 }
+
+/** 홈에 보일 최근 이슈 수 */
+export const HOME_ISSUE_COUNT = 10;
 
 /**
  * 홈: 넓으면 왼쪽(소개 카드 + 태그 트리) · 오른쪽(최신 글 + 전체 글 보기), 좁으면 세로로 (CSS).
  * 태그 트리는 <details open> 하나 → 좁은 화면에서는 방문자 스크립트가 처음에 접음
  */
-export function homePage({ site, locale = SOURCE_LOCALE, profile, posts, tags, tree, imageSizes }: HomePageProps): Html {
+export function homePage({ site, locale = SOURCE_LOCALE, profile, posts, tags, tree, imageSizes, issues = [] }: HomePageProps): Html {
   const m = MESSAGES[locale];
   const body = html`
     <div class="home">
@@ -415,6 +421,16 @@ export function homePage({ site, locale = SOURCE_LOCALE, profile, posts, tags, t
           ? html`<p class="empty">${m.emptyPosts}</p>`
           : html`<ul class="post-list">${posts.map((post) => postCard(site, locale, post, imageSizes))}</ul>
         <p class="more"><a href="${localizedPath(locale, POSTS_PATH)}">${m.allPosts}</a></p>`}
+        ${issues.length === 0
+          ? ""
+          : html`<section class="home-issues" aria-labelledby="home-issues">
+          <h2 class="section-heading" id="home-issues">${m.recentIssues}</h2>
+          <ul class="issue-lines">${issues.map(
+            (issue) =>
+              html`<li><time datetime="${issue.date}">${formatDay(issue.date, locale)}</time> <a href="${localizedPath(locale, ARCHIVE_PATH)}#${issueAnchor(issue.id)}"${issue.titleLang ? html` lang="${issue.titleLang}"` : ""}>${issue.title}</a></li>`,
+          )}</ul>
+          <p class="more"><a href="${localizedPath(locale, ARCHIVE_PATH)}">${m.viewArchive}</a></p>
+        </section>`}
       </section>
     </div>`;
   return layout({ site, locale, path: "/", bodyClass: "page-home", body });
@@ -437,6 +453,53 @@ function profileCard(locale: Locale, p: SiteSettings): Html {
           ${tagline ? html`<p class="profile-tagline"${taglineLang ? html` lang="${taglineLang}"` : ""}>${tagline}</p>` : ""}
           ${links.length > 0 ? html`<ul class="profile-links">${links}</ul>` : ""}
         </section>`;
+}
+
+// ── 아카이브 (설계 15-5) ─────────────────────────────
+
+/**
+ * 아카이브: 글과 이슈를 연 → 월로 (최신부터), 맨 위에 연도 바로 가기.
+ * 글은 날짜 + 제목 링크 한 줄, 이슈는 꼬리표 + 제목 + 내용을 펼쳐서 (id="issue-n")
+ */
+export function archivePage({ site, locale = SOURCE_LOCALE, years }: { site: SiteConfig; locale?: Locale; years: ArchiveYear[] }): Html {
+  const m = MESSAGES[locale];
+  const total = years.reduce((sum, y) => ({ posts: sum.posts + y.posts, issues: sum.issues + y.issues }), { posts: 0, issues: 0 });
+  const day = (date: string) => date.slice(5);
+  const body = html`
+    <h1 class="list-heading">${m.archiveHeading}</h1>
+    ${years.length === 0
+      ? html`<p class="empty">${m.emptyPosts}</p>`
+      : html`<p class="archive-total">${m.archiveCounts(total.posts, total.issues)}</p>
+    <nav class="archive-years" aria-label="${m.archiveYears}">${years.map(
+      (y, i) => html`${i > 0 ? " · " : ""}<a href="#year-${y.year}">${y.year}</a>`,
+    )}</nav>
+    ${years.map(
+      (y) => html`<section class="archive-year">
+      <h2 id="year-${y.year}">${y.year} <span class="count">${m.archiveCounts(y.posts, y.issues)}</span></h2>
+      ${y.months.map(
+        (month) => html`<section class="archive-month">
+        <h3>${m.monthName(month.month)} <span class="count">${m.archiveCounts(month.posts, month.issues)}</span></h3>
+        <ul class="archive-list">${month.entries.map((entry) =>
+          entry.kind === "post"
+            ? archivePostLine(locale, entry.date, entry.post)
+            : html`<li class="archive-issue" id="${issueAnchor(entry.issue.id)}">
+            <p class="archive-issue-head"><time datetime="${entry.date}">${day(entry.date)}</time> <span class="issue-badge">${m.issueBadge}</span> <span class="archive-issue-title"${entry.issue.titleLang ? html` lang="${entry.issue.titleLang}"` : ""}>${entry.issue.title}</span></p>
+            ${entry.issue.bodyHtml ? html`<div class="post-body archive-issue-body"${entry.issue.bodyLang ? html` lang="${entry.issue.bodyLang}"` : ""}>${raw(entry.issue.bodyHtml)}</div>` : ""}
+          </li>`,
+        )}</ul>
+      </section>`,
+      )}
+    </section>`,
+    )}`}`;
+  const math = years.some((y) => y.months.some((mo) => mo.entries.some((e) => e.kind === "issue" && hasMath(e.issue.bodyHtml))));
+  return layout({ site, locale, title: m.archiveHeading, path: ARCHIVE_PATH, math, body });
+}
+
+/** 아카이브의 글 한 줄: 월-일 + 제목 (번역 언어의 미번역 글은 한글 제목 + KR) */
+function archivePostLine(locale: Locale, date: string, post: PostCardData): Html {
+  const m = MESSAGES[locale];
+  const korean = post.untranslated === true && locale !== SOURCE_LOCALE;
+  return html`<li class="archive-post"><time datetime="${date}">${date.slice(5)}</time> <a href="${localizedPath(locale, postPath(post.id))}"${korean ? html` lang="ko"` : ""}>${post.title}</a>${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</li>`;
 }
 
 // ── 없는 주소 ────────────────────────────────────────

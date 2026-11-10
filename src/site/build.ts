@@ -6,7 +6,9 @@
  */
 import { DEFAULT_SETTINGS } from "../settings/settings.ts";
 import type { SiteSettings } from "../settings/settings.ts";
-import { renderDocument } from "../markdown/index.ts";
+import type { Issue } from "../issues/issues.ts";
+import { byNewestIssue } from "../issues/issues.ts";
+import { renderDocument, renderMarkdown } from "../markdown/index.ts";
 import { compareTagNames } from "../posts/tag-order.ts";
 import { TagTree } from "../posts/tag-tree.ts";
 import type { Post, TagCount, TagParent } from "../posts/types.ts";
@@ -16,8 +18,10 @@ import { LOCALES, localizedPath, SOURCE_LOCALE } from "./i18n.ts";
 import type { Locale } from "./i18n.ts";
 import { imageSizeMap } from "./images.ts";
 import type { ImageSize } from "./images.ts";
-import { pagePath, postPath, POSTS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
-import { absoluteUrl, HOME_POST_COUNT, homePage, listPage, notFoundPage, postPage, tagsPage, untranslatedPostPage } from "./templates.ts";
+import { groupArchive } from "./archive.ts";
+import type { ArchiveIssue } from "./archive.ts";
+import { ARCHIVE_PATH, pagePath, postPath, POSTS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
+import { absoluteUrl, archivePage, HOME_ISSUE_COUNT, HOME_POST_COUNT, homePage, listPage, notFoundPage, postPage, tagsPage, untranslatedPostPage } from "./templates.ts";
 import type { Html, PostCardData, SiteConfig, TagNav } from "./templates.ts";
 
 /** 목록 한 페이지의 글 수 (관리자 목록과 같은 10개) */
@@ -31,6 +35,8 @@ export interface BuildInput {
   site: SiteConfig;
   /** 사이트 설정 (설계 15-3). 지금은 사이트 소개만 반영, 홈 소개 카드·바닥글은 2단계 */
   settings?: SiteSettings;
+  /** 이슈 (설계 15-5): 아카이브에 글과 섞이고 홈에 최근 몇 개 */
+  issues?: Issue[];
   /** 공개 글들 (본문 포함). 초안·휴지통 글이 섞여 있어도 여기서 한 번 더 걸러낸다 */
   posts: Post[];
   /** 공개된 번역본들 (언어 섞여도 됨). 공개된 한글 글의 것만 쓴다 (설계 12-11) */
@@ -62,7 +68,7 @@ export function applySettings(site: SiteConfig, settings: SiteSettings | undefin
   };
 }
 
-export async function buildSite({ site: baseSite, settings, posts, translations = [], images = [], tagParents = [] }: BuildInput): Promise<Map<string, string>> {
+export async function buildSite({ site: baseSite, settings, issues = [], posts, translations = [], images = [], tagParents = [] }: BuildInput): Promise<Map<string, string>> {
   const site = applySettings(baseSite, settings);
   const imageSizes = imageSizeMap(images);
   const tree = new TagTree(tagParents);
@@ -88,6 +94,7 @@ export async function buildSite({ site: baseSite, settings, posts, translations 
   /** 이 글이 있는 언어들 (hreflang) */
   const localesOf = (id: number) => LOCALES.filter((l) => l === SOURCE_LOCALE || byLocale.get(l)?.has(id));
   const tags = countTags(published);
+  const sortedIssues = [...issues].sort(byNewestIssue);
 
   for (const locale of LOCALES) {
     const localized: LocalizedPost[] = published.map((post) => ({ post, translation: byLocale.get(locale)?.get(post.id) }));
@@ -96,7 +103,13 @@ export async function buildSite({ site: baseSite, settings, posts, translations 
 
     // 홈 (설계 15-4): 소개 카드 + 태그 트리 + 최신 글. 전체 목록은 /posts (10개씩)
     const profile = site.profile ?? { ...DEFAULT_SETTINGS, name: site.name };
-    await add(localizedPath(locale, "/"), homePage({ site, locale, profile, posts: cardsOf(published.slice(0, HOME_POST_COUNT)), tags, tree, imageSizes }));
+    const archiveIssues = sortedIssues.map((issue) => localizeIssue(issue, locale, imageSizes));
+    await add(
+      localizedPath(locale, "/"),
+      homePage({ site, locale, profile, posts: cardsOf(published.slice(0, HOME_POST_COUNT)), tags, tree, imageSizes, issues: archiveIssues.slice(0, HOME_ISSUE_COUNT) }),
+    );
+    // 아카이브 (설계 15-5): 글 + 이슈를 연 → 월로
+    await add(localizedPath(locale, ARCHIVE_PATH), archivePage({ site, locale, years: groupArchive(cardsOf(published), archiveIssues) }));
     for (const [path, page] of listPages(site, locale, cardsOf(published), POSTS_PATH, imageSizes)) await add(path, page);
 
     // 글: 한국어 / 번역본 / 미번역(한글을 흐리게 + 안내)
@@ -136,6 +149,22 @@ export async function buildSite({ site: baseSite, settings, posts, translations 
   await add(NOT_FOUND_PATH, notFoundPage({ site }));
   files.set("/sitemap.xml", sitemap(site, [...files.keys()], noindex, lastmod));
   return files;
+}
+
+/** 이슈를 그 언어로: 영어 제목이 없으면 한국어 그대로(lang=ko), 영어 내용이 없으면 한국어 내용 */
+function localizeIssue(issue: Issue, locale: Locale, imageSizes: ReadonlyMap<string, ImageSize>): ArchiveIssue {
+  const english = locale !== SOURCE_LOCALE;
+  const title = english && issue.titleEn ? issue.titleEn : issue.title;
+  const translatedBody = english && issue.bodyEn !== null;
+  const body = translatedBody ? issue.bodyEn! : issue.body;
+  return {
+    id: issue.id,
+    date: issue.date,
+    title,
+    titleLang: english && !issue.titleEn ? SOURCE_LOCALE : null,
+    bodyHtml: body.trim() === "" ? "" : renderMarkdown(body, { imageSizes, locale: translatedBody || !english ? locale : SOURCE_LOCALE }),
+    bodyLang: english && !translatedBody ? SOURCE_LOCALE : null,
+  };
 }
 
 /** 최신 공개 순 (같으면 id가 큰 글이 앞). 관리자 목록의 "공개" 정렬과 같다 */

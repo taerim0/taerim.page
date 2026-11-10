@@ -67,7 +67,6 @@ function refresh() {
 function renderCard(s) {
   const links = [
     s.github && el("a", { href: s.github, target: "_blank", rel: "noopener" }, "GitHub"),
-    s.email && el("a", { href: `mailto:${s.email}` }, "이메일"),
     s.linkedin && el("a", { href: s.linkedin, target: "_blank", rel: "noopener" }, "LinkedIn"),
     s.solvedac && el("a", { href: s.solvedac, target: "_blank", rel: "noopener" }, "solved.ac"),
   ].filter(Boolean);
@@ -76,6 +75,8 @@ function renderCard(s) {
     el("p", { class: "profile-name" }, s.name || "(이름)"),
     s.tagline ? el("p", { class: "profile-tagline" }, s.tagline) : "",
     links.length > 0 ? el("p", { class: "profile-links" }, ...links.flatMap((link, i) => (i === 0 ? [link] : [" · ", link]))) : "",
+    // 이메일은 링크 없이 글로만 (공개 사이트와 같게)
+    s.email ? el("p", { class: "profile-contact" }, "Contact: ", el("span", { class: "contact-email" }, s.email)) : "",
   );
 }
 

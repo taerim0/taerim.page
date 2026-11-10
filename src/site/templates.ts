@@ -149,19 +149,24 @@ ${props.body}
 `;
 }
 
-/** 바닥글 (설계 15-4): RSS · GitHub · 이메일 (비운 칸은 안 보임) + © 빌드한 해 이름 */
+/** 바닥글 (설계 15-4): RSS · GitHub · Contact: 이메일 (비운 칸은 안 보임, 이메일은 링크 없이 글로만) + © 빌드한 해 이름 */
 function footer(site: SiteConfig, locale: Locale): Html {
   const m = MESSAGES[locale];
   const p = site.profile;
   const links = [
     html`<a href="${localizedPath(locale, "/rss.xml")}">RSS</a>`,
     p?.github ? html`<a href="${p.github}" rel="me noopener">GitHub</a>` : null,
-    p?.email ? html`<a href="mailto:${p.email}">${m.email}</a>` : null,
+    p?.email ? contact(locale, p.email) : null,
   ].filter((link) => link !== null);
   return html`<footer class="site-footer">
     <p class="footer-links">${links.map((link, i) => (i === 0 ? link : html` · ${link}`))}</p>
     <p class="copyright">© ${new Date().getFullYear()} ${p?.name ?? site.name}</p>
   </footer>`;
+}
+
+/** 이메일은 링크(mailto) 없이 글로만: "Contact: me@example.com" */
+function contact(locale: Locale, email: string): Html {
+  return html`<span class="contact">${MESSAGES[locale].contact}: <span class="contact-email">${email}</span></span>`;
 }
 
 function siteDescription(site: SiteConfig, locale: Locale): string {
@@ -487,14 +492,13 @@ export function homePage({ site, locale = SOURCE_LOCALE, profile, posts, tags, t
   return layout({ site, locale, path: "/", bodyClass: "page-home", body });
 }
 
-/** 소개 카드: 사진(없으면 기본 그림) · 이름 · 한 줄 소개 · 링크(비운 칸은 안 보임) */
+/** 소개 카드: 사진(없으면 기본 그림) · 이름 · 한 줄 소개 · 링크(비운 칸은 안 보임) · Contact: 이메일(글로만) */
 function profileCard(locale: Locale, p: SiteSettings): Html {
   const m = MESSAGES[locale];
   const tagline = locale === SOURCE_LOCALE ? p.tagline : (p.taglineEn ?? p.tagline);
   const taglineLang = locale !== SOURCE_LOCALE && !p.taglineEn ? SOURCE_LOCALE : null;
   const links = [
     p.github ? html`<li><a href="${p.github}" rel="me noopener">GitHub</a></li>` : null,
-    p.email ? html`<li><a href="mailto:${p.email}">${m.email}</a></li>` : null,
     p.linkedin ? html`<li><a href="${p.linkedin}" rel="me noopener">LinkedIn</a></li>` : null,
     p.solvedac ? html`<li><a href="${p.solvedac}" rel="me noopener">solved.ac</a></li>` : null,
   ].filter((link) => link !== null);
@@ -503,6 +507,7 @@ function profileCard(locale: Locale, p: SiteSettings): Html {
           <p class="profile-name">${p.name}</p>
           ${tagline ? html`<p class="profile-tagline"${taglineLang ? html` lang="${taglineLang}"` : ""}>${tagline}</p>` : ""}
           ${links.length > 0 ? html`<ul class="profile-links">${links}</ul>` : ""}
+          ${p.email ? html`<p class="profile-contact">${contact(locale, p.email)}</p>` : ""}
         </section>`;
 }
 

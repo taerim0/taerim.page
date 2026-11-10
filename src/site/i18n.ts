@@ -54,7 +54,8 @@ export interface Messages {
   latestPosts: string;
   allPosts: string;
   profileLabel: string;
-  email: string;
+  /** 이메일 앞 글자 "Contact" (링크 없이 글로만, 2026-11-11) */
+  contact: string;
   /** 아카이브·활동 (설계 15-5, 15-8) */
   navArchive: string;
   archiveHeading: string;
@@ -113,7 +114,7 @@ export const MESSAGES: Record<Locale, Messages> = {
     latestPosts: "최신 글",
     allPosts: "전체 글 보기 →",
     profileLabel: "소개",
-    email: "이메일",
+    contact: "Contact",
     navArchive: "아카이브",
     archiveHeading: "아카이브",
     archiveYears: "연도",
@@ -163,7 +164,7 @@ export const MESSAGES: Record<Locale, Messages> = {
     latestPosts: "Latest posts",
     allPosts: "All posts →",
     profileLabel: "About",
-    email: "Email",
+    contact: "Contact",
     navArchive: "Archive",
     archiveHeading: "Archive",
     archiveYears: "Years",

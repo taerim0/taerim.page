@@ -333,6 +333,7 @@ a.pill:hover { text-decoration: underline; }
 .profile-tagline { margin: 0; color: var(--muted); }
 .profile-links { margin: 8px 0 0; font-size: .9em; }
 .profile-links a { color: var(--accent); }
+.profile-contact { margin: 6px 0 0; color: var(--muted); font-size: .9em; }
 
 /* ── 활동 화면 (activities.html, 설계 15-5, 15-8) ── */
 .activities-page { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 24px; align-items: start; }

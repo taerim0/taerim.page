@@ -6,7 +6,8 @@
  */
 import { renderDocument } from "../markdown/index.ts";
 import { compareTagNames } from "../posts/tag-order.ts";
-import type { Post, TagCount } from "../posts/types.ts";
+import { TagTree } from "../posts/tag-tree.ts";
+import type { Post, TagCount, TagParent } from "../posts/types.ts";
 import type { ImageInfo } from "../images/types.ts";
 import type { PublishedTranslation } from "../translations/types.ts";
 import { LOCALES, localizedPath, SOURCE_LOCALE } from "./i18n.ts";
@@ -15,7 +16,7 @@ import { imageSizeMap } from "./images.ts";
 import type { ImageSize } from "./images.ts";
 import { pagePath, postPath, tagPath, TAGS_PATH } from "./paths.ts";
 import { absoluteUrl, listPage, notFoundPage, postPage, tagsPage, untranslatedPostPage } from "./templates.ts";
-import type { Html, PostCardData, SiteConfig } from "./templates.ts";
+import type { Html, PostCardData, SiteConfig, TagNav } from "./templates.ts";
 
 /** 목록 한 페이지의 글 수 (관리자 목록과 같은 10개) */
 export const SITE_PAGE_SIZE = 10;
@@ -32,6 +33,8 @@ export interface BuildInput {
   translations?: readonly PublishedTranslation[];
   /** 글이 쓰는 블로그 이미지 정보 → <img width height>. 없으면 크기 없이 (파일 복사는 빌드 스크립트 몫) */
   images?: readonly ImageInfo[];
+  /** 태그 상하관계 (설계 14). 글의 태그에 상위 태그를 붙여 보여 주고, 태그 모음·태그 페이지를 트리로 */
+  tagParents?: readonly TagParent[];
 }
 
 /** 언어 하나의 글: 글 + 그 언어 번역본(없으면 undefined) */
@@ -44,10 +47,13 @@ interface LocalizedPost {
  * 사이트 전체를 만든다. 한국어 페이지들 + 번역 언어마다 같은 구성의 /{언어}/… 페이지들 (설계 12-11)
  * @returns 주소("/", "/posts/7", "/en/posts/7", "/rss.xml" …) → 파일 내용. 주소 순서는 정해져 있지 않다
  */
-export async function buildSite({ site, posts, translations = [], images = [] }: BuildInput): Promise<Map<string, string>> {
+export async function buildSite({ site, posts, translations = [], images = [], tagParents = [] }: BuildInput): Promise<Map<string, string>> {
   const imageSizes = imageSizeMap(images);
+  const tree = new TagTree(tagParents);
+  // 글의 태그 = 직접 고른 태그 + 상위 태그 (트리 순). 이후 목록·태그 페이지·개수·RSS가 모두 이걸로 → #개발 목록에 #react 글도
   const published = posts
     .filter((post) => post.status === "published" && post.deletedAt === null && post.publishedAt !== null)
+    .map((post) => ({ ...post, tags: tree.withAncestors(post.tags) }))
     .sort(byNewest);
   const files = new Map<string, string>();
   /** 검색 엔진에 넣지 않는 페이지 (sitemap에서 뺌) */
@@ -95,10 +101,12 @@ export async function buildSite({ site, posts, translations = [], images = [] }:
     }
 
     // 태그 모음 + 태그별 목록 (태그 이름은 번역하지 않음)
-    await add(localizedPath(locale, TAGS_PATH), tagsPage({ site, locale, tags }));
+    await add(localizedPath(locale, TAGS_PATH), tagsPage({ site, locale, tags, tree }));
     for (const { name } of tags) {
       const tagged = published.filter((post) => post.tags.includes(name));
-      for (const [path, page] of listPages(site, locale, cardsOf(tagged), tagPath(name), imageSizes, name)) await add(path, page);
+      // 태그 페이지 위: 상위 경로 / 아래: 하위 태그 (글이 있는 것만)
+      const nav = { ancestors: tree.ancestorsOf(name), children: tags.filter((tag) => tree.parentOf(tag.name) === name) };
+      for (const [path, page] of listPages(site, locale, cardsOf(tagged), tagPath(name), imageSizes, name, nav)) await add(path, page);
     }
 
     // RSS: 번역 언어는 번역된 글만
@@ -132,13 +140,14 @@ function* listPages(
   listPath: string,
   imageSizes: ReadonlyMap<string, ImageSize>,
   tag?: string,
+  tagNav?: TagNav,
 ): Generator<[string, Html]> {
   const totalPages = Math.ceil(cards.length / SITE_PAGE_SIZE);
   for (let page = 1; page <= Math.max(totalPages, 1); page++) {
     const items = cards.slice((page - 1) * SITE_PAGE_SIZE, page * SITE_PAGE_SIZE);
     yield [
       localizedPath(locale, pagePath(listPath, page)),
-      listPage({ site, locale, posts: items, pagination: { page, totalPages, listPath }, tag, imageSizes }),
+      listPage({ site, locale, posts: items, pagination: { page, totalPages, listPath }, tag, tagNav, imageSizes }),
     ];
   }
 }

@@ -11,6 +11,7 @@
 import { html, raw } from "hono/html";
 import type { HtmlEscapedString } from "hono/utils/html";
 import type { TocItem } from "../markdown/index.ts";
+import type { TagTree } from "../posts/tag-tree.ts";
 import type { Post, TagCount } from "../posts/types.ts";
 import { formatDate, SITE_SCRIPT, LOCALES, localizedPath, MESSAGES, SOURCE_LOCALE } from "./i18n.ts";
 import type { Locale } from "./i18n.ts";
@@ -143,6 +144,14 @@ function siteDescription(site: SiteConfig, locale: Locale): string {
 
 // ── 목록 (홈·태그별) ─────────────────────────────────
 
+/** 태그 페이지의 위아래 길잡이 (설계 14) */
+export interface TagNav {
+  /** 맨 위부터 바로 위 부모까지 */
+  ancestors: string[];
+  /** 바로 아래 태그들 (글이 있는 것만) */
+  children: TagCount[];
+}
+
 interface ListPageProps {
   site: SiteConfig;
   locale?: Locale;
@@ -150,16 +159,28 @@ interface ListPageProps {
   pagination: Pagination;
   /** 태그별 목록이면 그 태그 */
   tag?: string;
+  /** 태그 페이지의 상위 경로·하위 태그 */
+  tagNav?: TagNav;
   /** 이미지 주소 → 원래 크기 (대표 이미지에 width·height). 없으면 크기 없이 */
   imageSizes?: ReadonlyMap<string, ImageSize>;
 }
 
-export function listPage({ site, locale = SOURCE_LOCALE, posts, pagination, tag, imageSizes }: ListPageProps): Html {
+export function listPage({ site, locale = SOURCE_LOCALE, posts, pagination, tag, tagNav, imageSizes }: ListPageProps): Html {
   const m = MESSAGES[locale];
   const heading = tag === undefined ? null : `#${tag}`;
   const pageSuffix = pagination.page > 1 ? m.pageSuffix(pagination.page) : "";
   const body = html`
+    ${tagNav && tagNav.ancestors.length > 0
+      ? html`<nav class="tag-path" aria-label="${m.tagsHeading}">${tagNav.ancestors.map(
+          (name) => html`<a class="tag" href="${localizedPath(locale, tagPath(name))}">#${name}</a> › `,
+        )}</nav>`
+      : ""}
     ${heading === null ? "" : html`<h1 class="list-heading">${heading}</h1>`}
+    ${tagNav && tagNav.children.length > 0
+      ? html`<ul class="tag-children">${tagNav.children.map(
+          (child) => html`<li><a class="tag" href="${localizedPath(locale, tagPath(child.name))}">#${child.name} <span class="count">${child.count}</span></a></li>`,
+        )}</ul>`
+      : ""}
     ${posts.length === 0
       ? html`<p class="empty">${m.emptyPosts}</p>`
       : html`<ul class="post-list">${posts.map((post) => postCard(site, locale, post, imageSizes))}</ul>`}
@@ -308,16 +329,31 @@ export function untranslatedPostPage({ site, locale, post, bodyHtml }: Untransla
 
 // ── 태그 모음 ────────────────────────────────────────
 
-export function tagsPage({ site, locale = SOURCE_LOCALE, tags }: { site: SiteConfig; locale?: Locale; tags: TagCount[] }): Html {
+/**
+ * 태그 모음. 상하관계가 있으면 트리(들여쓴 목록)로 (설계 14). 개수는 그 태그 + 하위 태그 글 (중복 없이)
+ */
+export function tagsPage({ site, locale = SOURCE_LOCALE, tags, tree }: { site: SiteConfig; locale?: Locale; tags: TagCount[]; tree?: TagTree }): Html {
   const m = MESSAGES[locale];
+  const counts = new Map(tags.map((tag) => [tag.name, tag.count]));
+  const item = (name: string): Html =>
+    html`<li><a class="tag" href="${localizedPath(locale, tagPath(name))}">#${name} <span class="count">${counts.get(name) ?? 0}</span></a>${branch(name)}</li>`;
+  /** 글이 있는 하위 태그들 (트리가 없으면 하위 없음) */
+  const branch = (name: string | null): Html | "" => {
+    const kids = tree ? tree.childrenOf(name).filter((child) => counts.has(child)) : [];
+    return kids.length === 0 ? "" : html`<ul class="tag-tree">${kids.map(item)}</ul>`;
+  };
+  // 맨 위: 트리에서 부모가 없거나(또는 부모에 글이 없어) 위에서 안 보이는 태그들
+  const roots = tags.map((tag) => tag.name).filter((name) => !tree || tree.parentOf(name) === null || !counts.has(tree.parentOf(name)!));
   const body = html`
     <h1 class="list-heading">${m.tagsHeading}</h1>
     ${tags.length === 0
       ? html`<p class="empty">${m.emptyTags}</p>`
-      : html`<ul class="tag-cloud">${tags.map(
-          (tag) =>
-            html`<li><a class="tag" href="${localizedPath(locale, tagPath(tag.name))}">#${tag.name} <span class="count">${tag.count}</span></a></li>`,
-        )}</ul>`}`;
+      : tree
+        ? html`<ul class="tag-tree tag-tree-root">${roots.map(item)}</ul>`
+        : html`<ul class="tag-cloud">${tags.map(
+            (tag) =>
+              html`<li><a class="tag" href="${localizedPath(locale, tagPath(tag.name))}">#${tag.name} <span class="count">${tag.count}</span></a></li>`,
+          )}</ul>`}`;
   return layout({ site, locale, title: m.tagsHeading, path: TAGS_PATH, body });
 }
 

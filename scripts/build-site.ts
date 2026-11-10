@@ -147,7 +147,9 @@ async function main(): Promise<void> {
     for (const lang of TRANSLATION_LANGS) translations.push(...(await source.translations.listPublished(lang)));
     const imageUsers = [...posts, ...translations.map((t) => ({ id: t.postId, body: t.body, thumbnail: null }))];
     const images = await readImages(source, imageUsers);
-    const files = await buildSite({ site: SITE_CONFIG, posts, translations, images: images.map((image) => image.info) });
+    // 태그 상하관계 (설계 14): 글의 태그에 상위 태그를 붙이고 태그 모음을 트리로
+    const tagParents = await source.posts.listTagParents();
+    const files = await buildSite({ site: SITE_CONFIG, posts, translations, tagParents, images: images.map((image) => image.info) });
 
     // 지난 빌드의 파일(지운 글 등)이 남지 않게 통째로 비우고 다시 쓴다
     await rm(OUT_DIR, { recursive: true, force: true });

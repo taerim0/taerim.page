@@ -9,7 +9,7 @@ import type { TranslationContent } from "./types.ts";
  * 번역 결과 검사 (설계 12-8). 둘 다 코드 블록이 자리표로 바뀐 상태로 비교한다.
  * 문제가 있으면 화면에 보여 줄 이유(한국어), 없으면 null.
  *
- * 이미지·링크·제목 줄은 Markdown을 실제로 읽어서 센다 (글자 찾기보다 정확: 인라인 코드 속 ![x](y)는 이미지가 아님)
+ * 이미지·링크·제목 줄·표는 Markdown을 실제로 읽어서 센다 (글자 찾기보다 정확: 인라인 코드 속 ![x](y)는 이미지가 아님)
  */
 export function checkTranslation(source: TranslationContent, result: TranslationContent, codeBlocks: number): string | null {
   if (result.title === "") return "제목이 비어 있어요";
@@ -31,6 +31,7 @@ export function checkTranslation(source: TranslationContent, result: Translation
   if (!sameList([...before.links].sort(), [...after.links].sort())) return "링크 주소가 원문과 달라요";
   if (before.headings !== after.headings) return `제목 줄 개수가 달라요 (원문 ${before.headings}, 번역 ${after.headings})`;
   if (!sameList(calloutMarkers(source.body), calloutMarkers(result.body))) return "콜아웃이 원문과 달라요";
+  if (!sameList(before.tables, after.tables)) return "표 모양이 원문과 달라요";
   return null;
 }
 
@@ -44,13 +45,23 @@ interface Outline {
   links: string[];
   /** 제목 줄 개수 */
   headings: number;
+  /** 표마다 "줄 수x칸 수" (순서대로) */
+  tables: string[];
 }
 
 function outline(markdown: string): Outline {
-  const result: Outline = { images: [], links: [], headings: 0 };
+  const result: Outline = { images: [], links: [], headings: 0, tables: [] };
+  let table: { rows: number; cols: number } | null = null;
   const visit = (tokens: Token[]) => {
     for (const token of tokens) {
       if (token.type === "heading_open") result.headings++;
+      if (token.type === "table_open") table = { rows: 0, cols: 0 };
+      if (table && token.type === "tr_open") table.rows++;
+      if (table && token.type === "th_open") table.cols++;
+      if (table && token.type === "table_close") {
+        result.tables.push(`${table.rows}x${table.cols}`);
+        table = null;
+      }
       if (token.type === "link_open") result.links.push(String(token.attrGet("href") ?? ""));
       if (token.type === "image") {
         const { width, align } = parseImageOptions(token.content);

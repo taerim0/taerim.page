@@ -11,12 +11,14 @@
 import { html, raw } from "hono/html";
 import type { HtmlEscapedString } from "hono/utils/html";
 import type { TocItem } from "../markdown/index.ts";
+import type { SiteSettings } from "../settings/settings.ts";
+import { DEFAULT_AVATAR } from "../settings/settings.ts";
 import type { TagTree } from "../posts/tag-tree.ts";
 import type { Post, TagCount } from "../posts/types.ts";
 import { formatDate, SITE_SCRIPT, LOCALES, localizedPath, MESSAGES, SOURCE_LOCALE } from "./i18n.ts";
 import type { Locale } from "./i18n.ts";
 import type { ImageSize } from "./images.ts";
-import { pagePath, postPath, tagPath, TAGS_PATH } from "./paths.ts";
+import { pagePath, postPath, POSTS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
 
 export { formatDate } from "./i18n.ts";
 
@@ -35,6 +37,8 @@ export interface SiteConfig {
   descriptions?: Partial<Record<Locale, string>>;
   /** 대표 이미지가 없는 글에 쓸 기본 이미지 주소 (예: /assets/default-thumbnail.svg) */
   defaultThumbnail: string;
+  /** 관리자 사이트 설정 (설계 15-3): 홈 소개 카드·바닥글. 없으면 바닥글은 RSS와 사이트 이름만 */
+  profile?: SiteSettings;
 }
 
 /**
@@ -47,7 +51,7 @@ export type PostCardData = Omit<Post, "body"> & { untranslated?: boolean };
 export interface Pagination {
   page: number;
   totalPages: number;
-  /** 목록 주소 (한국어 기준: "/" 또는 태그 주소). n페이지 주소는 pagePath(listPath, n), 언어는 템플릿이 붙임 */
+  /** 목록 주소 (한국어 기준: "/posts" 또는 태그 주소). n페이지 주소는 pagePath(listPath, n), 언어는 템플릿이 붙임 */
   listPath: string;
 }
 
@@ -79,6 +83,8 @@ interface LayoutProps {
   math?: boolean;
   /** 검색 엔진에 "같은 페이지의 다른 언어"로 알릴 언어들 (hreflang). 생략하면 모든 언어. 둘 미만이면 넣지 않음 */
   alternates?: readonly Locale[];
+  /** <body> class (홈은 넓은 2칸 배치용 page-home) */
+  bodyClass?: string;
   body: Html;
 }
 
@@ -116,11 +122,11 @@ export function layout(props: LayoutProps): Html {
   ${props.math ? html`<link rel="stylesheet" href="${KATEX_CSS}">` : ""}
   <script>${raw(SITE_SCRIPT)}</script>
 </head>
-<body>
+<body${props.bodyClass ? html` class="${props.bodyClass}"` : ""}>
   <header class="site-header">
     <a class="site-name" href="${localizedPath(locale, "/")}">${site.name}</a>
     <nav class="site-nav">
-      <a href="${localizedPath(locale, "/")}">${m.navPosts}</a> <a href="${localizedPath(locale, TAGS_PATH)}">${m.navTags}</a>
+      <a href="${localizedPath(locale, POSTS_PATH)}">${m.navPosts}</a> <a href="${localizedPath(locale, TAGS_PATH)}">${m.navTags}</a>
       <span class="lang-switch" role="group" aria-label="${m.languageLabel}">${LOCALES.map(
         (l) => html`<a href="${localizedPath(l, props.path)}" hreflang="${l}" lang="${l}" data-set-lang="${l}"${l === locale ? html` aria-current="true"` : ""}>${MESSAGES[l].languageName}</a>`,
       )}</span>
@@ -130,12 +136,25 @@ export function layout(props: LayoutProps): Html {
   <main class="site-main">
 ${props.body}
   </main>
-  <footer class="site-footer">
-    <a href="${localizedPath(locale, "/rss.xml")}">RSS</a>
-  </footer>
+  ${footer(site, locale)}
 </body>
 </html>
 `;
+}
+
+/** 바닥글 (설계 15-4): RSS · GitHub · 이메일 (비운 칸은 안 보임) + © 빌드한 해 이름 */
+function footer(site: SiteConfig, locale: Locale): Html {
+  const m = MESSAGES[locale];
+  const p = site.profile;
+  const links = [
+    html`<a href="${localizedPath(locale, "/rss.xml")}">RSS</a>`,
+    p?.github ? html`<a href="${p.github}" rel="me noopener">GitHub</a>` : null,
+    p?.email ? html`<a href="mailto:${p.email}">${m.email}</a>` : null,
+  ].filter((link) => link !== null);
+  return html`<footer class="site-footer">
+    <p class="footer-links">${links.map((link, i) => (i === 0 ? link : html` · ${link}`))}</p>
+    <p class="copyright">© ${new Date().getFullYear()} ${p?.name ?? site.name}</p>
+  </footer>`;
 }
 
 function siteDescription(site: SiteConfig, locale: Locale): string {
@@ -188,7 +207,7 @@ export function listPage({ site, locale = SOURCE_LOCALE, posts, pagination, tag,
   return layout({
     site,
     locale,
-    title: heading === null ? (pagination.page > 1 ? `${m.postListTitle}${pageSuffix}` : undefined) : `${heading}${pageSuffix}`,
+    title: heading === null ? `${m.postListTitle}${pageSuffix}` : `${heading}${pageSuffix}`,
     description: heading === null ? undefined : m.tagDescription(heading),
     path: pagePath(pagination.listPath, pagination.page),
     body,
@@ -334,27 +353,90 @@ export function untranslatedPostPage({ site, locale, post, bodyHtml }: Untransla
  */
 export function tagsPage({ site, locale = SOURCE_LOCALE, tags, tree }: { site: SiteConfig; locale?: Locale; tags: TagCount[]; tree?: TagTree }): Html {
   const m = MESSAGES[locale];
+  const body = html`
+    <h1 class="list-heading">${m.tagsHeading}</h1>
+    ${tags.length === 0 ? html`<p class="empty">${m.emptyTags}</p>` : tagList(locale, tags, tree)}`;
+  return layout({ site, locale, title: m.tagsHeading, path: TAGS_PATH, body });
+}
+
+/** 태그 목록: 트리가 있으면 들여쓴 트리, 없으면 나열. 태그 모음·홈이 같이 씀 */
+function tagList(locale: Locale, tags: TagCount[], tree?: TagTree): Html {
   const counts = new Map(tags.map((tag) => [tag.name, tag.count]));
-  const item = (name: string): Html =>
-    html`<li><a class="tag" href="${localizedPath(locale, tagPath(name))}">#${name} <span class="count">${counts.get(name) ?? 0}</span></a>${branch(name)}</li>`;
-  /** 글이 있는 하위 태그들 (트리가 없으면 하위 없음) */
-  const branch = (name: string | null): Html | "" => {
-    const kids = tree ? tree.childrenOf(name).filter((child) => counts.has(child)) : [];
+  const link = (name: string) => html`<a class="tag" href="${localizedPath(locale, tagPath(name))}">#${name} <span class="count">${counts.get(name) ?? 0}</span></a>`;
+  if (!tree) return html`<ul class="tag-cloud">${tags.map((tag) => html`<li>${link(tag.name)}</li>`)}</ul>`;
+  const item = (name: string): Html => html`<li>${link(name)}${branch(name)}</li>`;
+  /** 글이 있는 하위 태그들 */
+  const branch = (name: string): Html | "" => {
+    const kids = tree.childrenOf(name).filter((child) => counts.has(child));
     return kids.length === 0 ? "" : html`<ul class="tag-tree">${kids.map(item)}</ul>`;
   };
   // 맨 위: 트리에서 부모가 없거나(또는 부모에 글이 없어) 위에서 안 보이는 태그들
-  const roots = tags.map((tag) => tag.name).filter((name) => !tree || tree.parentOf(name) === null || !counts.has(tree.parentOf(name)!));
+  const roots = tags.map((tag) => tag.name).filter((name) => tree.parentOf(name) === null || !counts.has(tree.parentOf(name)!));
+  return html`<ul class="tag-tree tag-tree-root">${roots.map(item)}</ul>`;
+}
+
+// ── 홈 (설계 15-4) ───────────────────────────────────
+
+/** 홈에 보일 최신 글 수 */
+export const HOME_POST_COUNT = 5;
+
+interface HomePageProps {
+  site: SiteConfig;
+  locale?: Locale;
+  profile: SiteSettings;
+  /** 최신 글 (HOME_POST_COUNT개까지) */
+  posts: PostCardData[];
+  /** 태그별 글 수 (없으면 태그 트리를 안 보임) */
+  tags: TagCount[];
+  tree?: TagTree;
+  imageSizes?: ReadonlyMap<string, ImageSize>;
+}
+
+/**
+ * 홈: 넓으면 왼쪽(소개 카드 + 태그 트리) · 오른쪽(최신 글 + 전체 글 보기), 좁으면 세로로 (CSS).
+ * 태그 트리는 <details open> 하나 → 좁은 화면에서는 방문자 스크립트가 처음에 접음
+ */
+export function homePage({ site, locale = SOURCE_LOCALE, profile, posts, tags, tree, imageSizes }: HomePageProps): Html {
+  const m = MESSAGES[locale];
   const body = html`
-    <h1 class="list-heading">${m.tagsHeading}</h1>
-    ${tags.length === 0
-      ? html`<p class="empty">${m.emptyTags}</p>`
-      : tree
-        ? html`<ul class="tag-tree tag-tree-root">${roots.map(item)}</ul>`
-        : html`<ul class="tag-cloud">${tags.map(
-            (tag) =>
-              html`<li><a class="tag" href="${localizedPath(locale, tagPath(tag.name))}">#${tag.name} <span class="count">${tag.count}</span></a></li>`,
-          )}</ul>`}`;
-  return layout({ site, locale, title: m.tagsHeading, path: TAGS_PATH, body });
+    <div class="home">
+      <aside class="home-side">
+        ${profileCard(locale, profile)}
+        ${tags.length === 0
+          ? ""
+          : html`<details class="home-tags" open>
+          <summary>${m.tagsHeading}</summary>
+          ${tagList(locale, tags, tree)}
+        </details>`}
+      </aside>
+      <section class="home-main" aria-labelledby="home-latest">
+        <h2 class="section-heading" id="home-latest">${m.latestPosts}</h2>
+        ${posts.length === 0
+          ? html`<p class="empty">${m.emptyPosts}</p>`
+          : html`<ul class="post-list">${posts.map((post) => postCard(site, locale, post, imageSizes))}</ul>
+        <p class="more"><a href="${localizedPath(locale, POSTS_PATH)}">${m.allPosts}</a></p>`}
+      </section>
+    </div>`;
+  return layout({ site, locale, path: "/", bodyClass: "page-home", body });
+}
+
+/** 소개 카드: 사진(없으면 기본 그림) · 이름 · 한 줄 소개 · 링크(비운 칸은 안 보임) */
+function profileCard(locale: Locale, p: SiteSettings): Html {
+  const m = MESSAGES[locale];
+  const tagline = locale === SOURCE_LOCALE ? p.tagline : (p.taglineEn ?? p.tagline);
+  const taglineLang = locale !== SOURCE_LOCALE && !p.taglineEn ? SOURCE_LOCALE : null;
+  const links = [
+    p.github ? html`<li><a href="${p.github}" rel="me noopener">GitHub</a></li>` : null,
+    p.email ? html`<li><a href="mailto:${p.email}">${m.email}</a></li>` : null,
+    p.linkedin ? html`<li><a href="${p.linkedin}" rel="me noopener">LinkedIn</a></li>` : null,
+    p.solvedac ? html`<li><a href="${p.solvedac}" rel="me noopener">solved.ac</a></li>` : null,
+  ].filter((link) => link !== null);
+  return html`<section class="profile-card" aria-label="${m.profileLabel}">
+          <img class="avatar" src="${p.photo ?? DEFAULT_AVATAR}" alt="" width="96" height="96">
+          <p class="profile-name">${p.name}</p>
+          ${tagline ? html`<p class="profile-tagline"${taglineLang ? html` lang="${taglineLang}"` : ""}>${tagline}</p>` : ""}
+          ${links.length > 0 ? html`<ul class="profile-links">${links}</ul>` : ""}
+        </section>`;
 }
 
 // ── 없는 주소 ────────────────────────────────────────

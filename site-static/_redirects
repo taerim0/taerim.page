@@ -1,0 +1,3 @@
+# 옛 주소 → 새 주소 (설계 15-4: 전체 글 목록이 홈에서 /posts로 옮겨 감)
+/page/* /posts/page/:splat 301
+/en/page/* /en/posts/page/:splat 301

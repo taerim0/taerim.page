@@ -4,6 +4,7 @@
  * 순수 함수다. 데이터를 어디서 읽는지(D1), 파일을 어디에 어떤 이름으로 쓰는지는 모른다 (그건 빌드 스크립트 몫).
  * 그래서 테스트에서는 글 목록만 넣어 결과를 바로 확인할 수 있다.
  */
+import { DEFAULT_SETTINGS } from "../settings/settings.ts";
 import type { SiteSettings } from "../settings/settings.ts";
 import { renderDocument } from "../markdown/index.ts";
 import { compareTagNames } from "../posts/tag-order.ts";
@@ -15,8 +16,8 @@ import { LOCALES, localizedPath, SOURCE_LOCALE } from "./i18n.ts";
 import type { Locale } from "./i18n.ts";
 import { imageSizeMap } from "./images.ts";
 import type { ImageSize } from "./images.ts";
-import { pagePath, postPath, tagPath, TAGS_PATH } from "./paths.ts";
-import { absoluteUrl, listPage, notFoundPage, postPage, tagsPage, untranslatedPostPage } from "./templates.ts";
+import { pagePath, postPath, POSTS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
+import { absoluteUrl, HOME_POST_COUNT, homePage, listPage, notFoundPage, postPage, tagsPage, untranslatedPostPage } from "./templates.ts";
 import type { Html, PostCardData, SiteConfig, TagNav } from "./templates.ts";
 
 /** 목록 한 페이지의 글 수 (관리자 목록과 같은 10개) */
@@ -53,7 +54,12 @@ interface LocalizedPost {
 /** 코드 설정 + 관리자 사이트 설정 → 빌드에 쓸 설정 (사이트 소개는 관리자 설정이 이김, 영어가 비면 한국어) */
 export function applySettings(site: SiteConfig, settings: SiteSettings | undefined): SiteConfig {
   if (!settings) return site;
-  return { ...site, description: settings.description, descriptions: { ...site.descriptions, en: settings.descriptionEn ?? settings.description } };
+  return {
+    ...site,
+    description: settings.description,
+    descriptions: { ...site.descriptions, en: settings.descriptionEn ?? settings.description },
+    profile: settings,
+  };
 }
 
 export async function buildSite({ site: baseSite, settings, posts, translations = [], images = [], tagParents = [] }: BuildInput): Promise<Map<string, string>> {
@@ -88,8 +94,10 @@ export async function buildSite({ site: baseSite, settings, posts, translations 
     const cards = new Map(localized.map((item) => [item.post.id, toCard(locale, item)]));
     const cardsOf = (list: Post[]) => list.map((post) => cards.get(post.id)!);
 
-    // 홈 = 전체 글 목록 (10개씩)
-    for (const [path, page] of listPages(site, locale, cardsOf(published), "/", imageSizes)) await add(path, page);
+    // 홈 (설계 15-4): 소개 카드 + 태그 트리 + 최신 글. 전체 목록은 /posts (10개씩)
+    const profile = site.profile ?? { ...DEFAULT_SETTINGS, name: site.name };
+    await add(localizedPath(locale, "/"), homePage({ site, locale, profile, posts: cardsOf(published.slice(0, HOME_POST_COUNT)), tags, tree, imageSizes }));
+    for (const [path, page] of listPages(site, locale, cardsOf(published), POSTS_PATH, imageSizes)) await add(path, page);
 
     // 글: 한국어 / 번역본 / 미번역(한글을 흐리게 + 안내)
     for (const { post, translation } of localized) {

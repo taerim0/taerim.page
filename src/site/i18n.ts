@@ -50,6 +50,11 @@ export interface Messages {
   untranslatedTitle: string;
   readInKorean: string;
   backToPosts: string;
+  /** 홈 (설계 15-4) */
+  latestPosts: string;
+  allPosts: string;
+  profileLabel: string;
+  email: string;
 }
 
 export const MESSAGES: Record<Locale, Messages> = {
@@ -74,6 +79,10 @@ export const MESSAGES: Record<Locale, Messages> = {
     untranslatedTitle: "아직 번역되지 않은 글입니다.",
     readInKorean: "한국어로 읽기",
     backToPosts: "글 목록으로",
+    latestPosts: "최신 글",
+    allPosts: "전체 글 보기 →",
+    profileLabel: "소개",
+    email: "이메일",
   },
   en: {
     languageName: "English",
@@ -96,6 +105,10 @@ export const MESSAGES: Record<Locale, Messages> = {
     untranslatedTitle: "This post hasn't been translated yet.",
     readInKorean: "한국어로 읽기",
     backToPosts: "Back to posts",
+    latestPosts: "Latest posts",
+    allPosts: "All posts →",
+    profileLabel: "About",
+    email: "Email",
   },
 };
 
@@ -129,5 +142,8 @@ export function formatDate(iso: string, locale: Locale = SOURCE_LOCALE): string 
  * - 기본은 기기 설정 (CSS의 prefers-color-scheme). 머리글 버튼(data-theme-toggle)을 누르면 반대 모드로 바꾸고 기억
  * - 기억한 모드는 그리기 전에 <html data-theme="light|dark">로 → 깜빡임 없음. CSS가 data-theme을 기기 설정보다 먼저 봄
  * - 버튼의 aria-pressed = 지금 다크인지
+ *
+ * 홈 태그 트리 (설계 15-4)
+ * - <details class="home-tags" open>을 좁은 화면(799px 이하)이면 처음에 접음. JS가 꺼지면 펼친 채
  */
-export const SITE_SCRIPT = `(function(){var K="lang",T="theme",d=document.documentElement;d.classList.add("js");try{var m=localStorage.getItem(T);if(m==="dark"||m==="light")d.setAttribute("data-theme",m)}catch(e){}function dark(){var v=d.getAttribute("data-theme");return v==="dark"||(v!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches)}function sync(){var g=document.querySelector("[data-theme-toggle]");if(g)g.setAttribute("aria-pressed",String(dark()))}document.addEventListener("DOMContentLoaded",sync);try{var s=localStorage.getItem(K);if(s&&s!==d.lang&&!/[?&]lang=/.test(location.search)){var p=d.getAttribute("data-path-"+s);if(p){location.replace(p+location.hash);return}}}catch(e){}document.addEventListener("click",function(e){var t=e.target&&e.target.closest?e.target:null;if(!t)return;var a=t.closest("a[data-set-lang]");if(a)try{localStorage.setItem(K,a.getAttribute("data-set-lang"))}catch(x){}if(t.closest("[data-theme-toggle]")){var n=dark()?"light":"dark";d.setAttribute("data-theme",n);try{localStorage.setItem(T,n)}catch(x){}sync();return}var b=t.closest(".code-copy"),c=b&&b.closest(".code-block");if(!c||!navigator.clipboard)return;var l=[].slice.call(c.querySelectorAll(".line")).filter(function(n){return!n.classList.contains("line-del")}).map(function(n){var x=n.querySelector(".code-text");return x?x.textContent:""});navigator.clipboard.writeText(l.join("\\n")).then(function(){b.setAttribute("data-copied","true");setTimeout(function(){b.removeAttribute("data-copied")},1500)})})})();`;
+export const SITE_SCRIPT = `(function(){var K="lang",T="theme",d=document.documentElement;d.classList.add("js");try{var m=localStorage.getItem(T);if(m==="dark"||m==="light")d.setAttribute("data-theme",m)}catch(e){}function dark(){var v=d.getAttribute("data-theme");return v==="dark"||(v!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches)}function sync(){var g=document.querySelector("[data-theme-toggle]");if(g)g.setAttribute("aria-pressed",String(dark()))}document.addEventListener("DOMContentLoaded",function(){sync();var h=document.querySelector(".home-tags");if(h&&matchMedia("(max-width: 799px)").matches)h.removeAttribute("open")});try{var s=localStorage.getItem(K);if(s&&s!==d.lang&&!/[?&]lang=/.test(location.search)){var p=d.getAttribute("data-path-"+s);if(p){location.replace(p+location.hash);return}}}catch(e){}document.addEventListener("click",function(e){var t=e.target&&e.target.closest?e.target:null;if(!t)return;var a=t.closest("a[data-set-lang]");if(a)try{localStorage.setItem(K,a.getAttribute("data-set-lang"))}catch(x){}if(t.closest("[data-theme-toggle]")){var n=dark()?"light":"dark";d.setAttribute("data-theme",n);try{localStorage.setItem(T,n)}catch(x){}sync();return}var b=t.closest(".code-copy"),c=b&&b.closest(".code-block");if(!c||!navigator.clipboard)return;var l=[].slice.call(c.querySelectorAll(".line")).filter(function(n){return!n.classList.contains("line-del")}).map(function(n){var x=n.querySelector(".code-text");return x?x.textContent:""});navigator.clipboard.writeText(l.join("\\n")).then(function(){b.setAttribute("data-copied","true");setTimeout(function(){b.removeAttribute("data-copied")},1500)})})})();`;

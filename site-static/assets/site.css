@@ -226,3 +226,20 @@ a { color: var(--accent); }
 .post-body .embed-repo .embed-meta::before { content: "◉ "; }
 .post-body .embed-image { flex: 0 0 auto; width: 180px; max-width: 35%; object-fit: cover; background: var(--surface); }
 @media (max-width: 520px) { .post-body .embed-card.has-image { flex-direction: column-reverse; } .post-body .embed-image { width: 100%; max-width: none; aspect-ratio: 1200 / 630; } }
+
+/* ── 홈 (설계 15-4): 넓으면 2칸, 좁으면 세로. 꾸미기는 UI/UX 단계 ── */
+.page-home .site-header, .page-home .site-main, .page-home .site-footer { max-width: 1040px; }
+.home { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 32px; align-items: start; }
+@media (max-width: 799px) { .home { grid-template-columns: 1fr; gap: 20px; } }
+.home-side { display: grid; gap: 16px; }
+.profile-card { padding: 16px; border: 1px solid var(--line); border-radius: 12px; text-align: center; }
+.profile-card .avatar { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; }
+.profile-name { margin: 8px 0 2px; font-weight: 700; font-size: 1.15em; }
+.profile-tagline { margin: 0; color: var(--muted); }
+.profile-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; list-style: none; margin: 10px 0 0; padding: 0; font-size: .9em; }
+.home-tags summary { cursor: pointer; font-weight: 700; margin-bottom: 6px; }
+.section-heading { margin: 0 0 8px; font-size: 1.2em; }
+.more { margin: 12px 0 0; text-align: right; }
+
+/* 바닥글 */
+.footer-links, .copyright { margin: 4px 0; }

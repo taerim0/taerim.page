@@ -17,6 +17,9 @@ export function tagPath(tag: string): string {
   return `/tags/${encodePathSegment(tag)}`;
 }
 
+/** 전체 글 목록 주소 (설계 15-4: 홈에서 옮김) */
+export const POSTS_PATH = "/posts";
+
 /** 태그 모음 주소 */
 export const TAGS_PATH = "/tags";
 

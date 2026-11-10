@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>이슈 · taerim.page 관리자</title>
+  <link rel="stylesheet" href="/assets/admin.css">
+  <script type="module" src="/assets/issues.js"></script>
+</head>
+<body>
+  <!-- 이슈 (설계 15-5): 아카이브·홈에 보이는 짧은 기록. 저장 후 [배포]하면 공개 사이트에 반영 -->
+  <header class="topbar">
+    <a class="brand" href="/">taerim.page 관리자</a>
+    <nav>
+      <a class="button" href="/">글 목록</a>
+      <a class="button" href="/tags">태그</a>
+      <a class="button" href="/trash">휴지통</a>
+      <a class="button" href="/settings">설정</a>
+    </nav>
+  </header>
+
+  <main>
+    <p id="loading" class="muted">불러오는 중…</p>
+    <div id="issues" class="issues-page" hidden>
+      <!-- 왼쪽: 목록 -->
+      <aside class="issue-side">
+        <div class="issue-side-head">
+          <h1 class="settings-heading">이슈</h1>
+          <button id="new-issue" class="button primary" type="button">+ 새 이슈</button>
+        </div>
+        <p class="muted issue-help">아카이브에 글과 함께, 홈에는 최근 10개가 보여요. 자기 페이지는 없어요.</p>
+        <ul id="issue-list" class="issue-list"></ul>
+        <p id="issue-empty" class="muted" hidden>아직 이슈가 없어요.</p>
+      </aside>
+
+      <!-- 오른쪽: 쓰기 -->
+      <form id="issue-form" class="issue-form" novalidate>
+        <p id="editing-label" class="muted">새 이슈</p>
+        <div class="issue-row">
+          <div class="field issue-date">
+            <label for="date">날짜</label>
+            <input id="date" name="date" type="date" required>
+            <p class="field-error" data-error-for="date"></p>
+          </div>
+          <div class="field issue-title">
+            <label for="title">제목</label>
+            <input id="title" name="title" type="text" autocomplete="off" required>
+            <div class="field-foot">
+              <p class="field-error" data-error-for="title"></p>
+              <span class="count" data-count-for="title"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="issue-body-head">
+            <label for="body">내용 (Markdown, 비워도 됨)</label>
+            <button id="image-button" class="button" type="button">이미지</button>
+            <input id="image-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden>
+          </div>
+          <textarea id="body" name="body" class="issue-body-input" spellcheck="false"></textarea>
+          <div class="field-foot">
+            <p class="field-error" data-error-for="body"></p>
+            <span class="count" data-count-for="body"></span>
+          </div>
+        </div>
+
+        <section class="issue-preview" aria-label="미리보기">
+          <p class="muted">미리보기 (아카이브에 이렇게 보여요)</p>
+          <div class="issue-preview-box">
+            <p class="issue-preview-title"><span class="issue-badge">이슈</span> <span id="preview-title"></span></p>
+            <article id="preview" class="preview"></article>
+          </div>
+        </section>
+
+        <details id="english" class="issue-english">
+          <summary>영어 (선택, 비우면 영어 페이지에도 한국어)</summary>
+          <div class="field">
+            <label for="titleEn">제목 (영어)</label>
+            <input id="titleEn" name="titleEn" type="text" autocomplete="off" lang="en">
+            <div class="field-foot">
+              <p class="field-error" data-error-for="titleEn"></p>
+              <span class="count" data-count-for="titleEn"></span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="bodyEn">내용 (영어)</label>
+            <textarea id="bodyEn" name="bodyEn" class="issue-body-input" spellcheck="false" lang="en"></textarea>
+            <div class="field-foot">
+              <p class="field-error" data-error-for="bodyEn"></p>
+              <span class="count" data-count-for="bodyEn"></span>
+            </div>
+          </div>
+        </details>
+
+        <div class="actions">
+          <span id="saved-at" class="muted"></span>
+          <span id="dirty-mark" class="dirty" hidden>저장 안 됨</span>
+          <button id="delete" class="button danger" type="button" hidden>지우기</button>
+          <button id="save" class="button primary" type="submit">저장</button>
+        </div>
+      </form>
+    </div>
+  </main>
+</body>
+</html>

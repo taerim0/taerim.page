@@ -22,6 +22,7 @@ export interface AssetFetcher {
  *   /posts/translate/:id/:lang → translate.html  번역본 편집 (지원 언어만, 설계 12-10)
  *   /tags             → tags.html    태그
  *   /settings         → settings.html 사이트 설정 (설계 15-3)
+ *   /issues           → issues.html 이슈 쓰기 (설계 15-5)
  *   /trash            → trash.html   휴지통
  *   /assets/…         → 그대로       CSS·JS
  */
@@ -38,6 +39,7 @@ export function createPageRoutes(assets: AssetFetcher): Hono<AdminEnv> {
   });
   pages.get("/tags", serve("/tags.html"));
   pages.get("/settings", serve("/settings.html"));
+  pages.get("/issues", serve("/issues.html"));
   pages.get("/trash", serve("/trash.html"));
   pages.get("/assets/*", (c) => serveFile(c, assets, c.req.path));
 

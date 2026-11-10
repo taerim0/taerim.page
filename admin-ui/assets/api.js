@@ -215,6 +215,21 @@ export const settingsApi = {
   save: (settings) => request("PUT", "/settings", settings),
 };
 
+/** @typedef {import("../../src/issues/issues.ts").Issue} Issue */
+/** @typedef {import("../../src/issues/issues.ts").IssueInput} IssueInput */
+
+/** 이슈 (설계 15-5): 아카이브·홈에 보이는 짧은 기록 */
+export const issuesApi = {
+  /** 최신 순 @returns {Promise<Issue[]>} */
+  list: () => request("GET", "/issues"),
+  /** @param {IssueInput} input @returns {Promise<Issue>} */
+  create: (input) => request("POST", "/issues", input),
+  /** @param {number} id @param {IssueInput} input @returns {Promise<Issue>} */
+  update: (id, input) => request("PUT", `/issues/${id}`, input),
+  /** @param {number} id @returns {Promise<void>} */
+  remove: (id) => request("DELETE", `/issues/${id}`),
+};
+
 /** 임베드 카드 정보 (설계 13-9). 임베드 대상이 아니면 ApiError(not_found) */
 export const embedsApi = {
   /** @param {string} url @returns {Promise<import("../../src/embeds/types.ts").EmbedInfo>} */

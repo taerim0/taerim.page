@@ -197,3 +197,12 @@ a.pill:hover { text-decoration: underline; }
 /* 칸 안은 띄어쓰기에서만 줄을 바꿈 (한글이 한 글자씩 세로로 쪼개지지 않게) → 칸이 넓어지면 표만 가로 스크롤 */
 .preview th, .preview td { overflow-wrap: normal; word-break: keep-all; }
 .preview th { background: #f6f8fa; font-weight: 700; }
+
+/* 접기 (설계 13-5): 접는 콜아웃은 details. 제목 줄을 눌러 접고 펼침, 오른쪽 ▸/▾ */
+.preview .callout-fold { --callout: #6e7781; }
+.preview .callout-fold .callout-title::before { content: "≡"; }
+.preview details.callout > summary { display: flex; align-items: center; cursor: pointer; list-style: none; }
+.preview details.callout > summary::-webkit-details-marker { display: none; }
+.preview details.callout > summary::after { content: "▸"; margin-left: auto; padding-left: 12px; }
+.preview details.callout[open] > summary::after { content: "▾"; }
+.preview details.callout:not([open]) > summary { margin-bottom: 0; }

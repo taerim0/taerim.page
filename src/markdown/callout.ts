@@ -10,6 +10,9 @@ import type { MarkdownModule } from "./types.ts";
  *
  * - 종류는 대소문자 상관없음. 모르는 종류는 그냥 인용으로 둔다 (글자 그대로 보임 → 미리보기에서 바로 알아챔)
  * - 출력: <div class="callout callout-note" role="note"><p class="callout-title">참고</p> … </div> (JS 없음)
+ * - 접기 (설계 13-5, Obsidian 방식): `[!NOTE]-` 접힌 채로, `[!NOTE]+` 펼친 채로 시작
+ *   → <details class="callout callout-note"[ open]><summary class="callout-title">…</summary> … </details>
+ *   FOLD 종류(회색)는 기호가 없어도 접힌 채로
  * - 제목은 글자 그대로(이스케이프), 꾸밈 문법은 읽지 않음
  * - 기본 제목의 언어는 env.locale (없으면 한국어)
  * - 인용 모듈(quote)이 켜져 있어야 동작한다
@@ -34,11 +37,14 @@ export const calloutModule: MarkdownModule = {
 
         const close = findClose(tokens, i);
         if (close === -1) continue;
+        const sign = marker![2];
+        // 접기: - 접힘, + 펼침, 기호 없으면 접지 않음 (FOLD는 기호 없어도 접힘)
+        const fold: CalloutMeta["fold"] = sign === "-" ? "closed" : sign === "+" ? "open" : kind === "fold" ? "closed" : null;
         open.type = "callout_open";
-        open.tag = "div";
-        open.meta = { kind, title: marker![2]?.trim() || null } satisfies CalloutMeta;
+        open.tag = fold ? "details" : "div";
+        open.meta = { kind, title: marker![3]?.trim() || null, fold } satisfies CalloutMeta;
         tokens[close]!.type = "callout_close";
-        tokens[close]!.tag = "div";
+        tokens[close]!.tag = open.tag;
 
         // 첫 줄([!종류] …)을 본문에서 뺀다. 남는 게 없으면 그 문단을 통째로 지운다
         const remaining = rest.join("\n");
@@ -48,17 +54,20 @@ export const calloutModule: MarkdownModule = {
     });
 
     md.renderer.rules.callout_open = (tokens, idx, _opts, env) => {
-      const { kind, title } = tokens[idx]!.meta as unknown as CalloutMeta;
+      const { kind, title, fold } = tokens[idx]!.meta as unknown as CalloutMeta;
       const locale = (env as CalloutEnv | undefined)?.locale ?? "ko";
-      const label = title ?? (DEFAULT_TITLES[locale] ?? KOREAN_TITLES)[kind];
-      return `<div class="callout callout-${kind}" role="note">\n<p class="callout-title">${md.utils.escapeHtml(label)}</p>\n`;
+      const label = md.utils.escapeHtml(title ?? (DEFAULT_TITLES[locale] ?? KOREAN_TITLES)[kind]);
+      if (fold) {
+        return `<details class="callout callout-${kind}"${fold === "open" ? " open" : ""}>\n<summary class="callout-title">${label}</summary>\n`;
+      }
+      return `<div class="callout callout-${kind}" role="note">\n<p class="callout-title">${label}</p>\n`;
     };
-    md.renderer.rules.callout_close = () => "</div>\n";
+    md.renderer.rules.callout_close = (tokens, idx) => `</${tokens[idx]!.tag}>\n`;
   },
 };
 
-/** 콜아웃 종류 (GitHub 다섯 가지) */
-export const CALLOUT_KINDS = ["note", "tip", "important", "warning", "caution"] as const;
+/** 콜아웃 종류 (GitHub 다섯 가지 + 색 없는 접기 fold) */
+export const CALLOUT_KINDS = ["note", "tip", "important", "warning", "caution", "fold"] as const;
 export type CalloutKind = (typeof CALLOUT_KINDS)[number];
 
 /** 렌더링할 때 넘기는 언어 (기본 제목용). type 별칭: markdown-it Env에 넣을 수 있게 */
@@ -67,20 +76,29 @@ export type CalloutEnv = {
   locale?: string;
 };
 
-/** 첫 줄: [!종류] 뒤에 (띄어쓰고) 제목 */
-const CALLOUT_LINE = /^\[!([A-Za-z]+)\](?:[ \t]+(.*))?$/;
+/** 첫 줄: [!종류] + 접기 기호(-·+) + (띄어쓰고) 제목 */
+const CALLOUT_LINE = /^\[!([A-Za-z]+)\]([+-])?(?:[ \t]+(.*))?$/;
 
 /** 기본 제목 */
-const KOREAN_TITLES: Record<CalloutKind, string> = { note: "참고", tip: "팁", important: "중요", warning: "주의", caution: "경고" };
+const KOREAN_TITLES: Record<CalloutKind, string> = {
+  note: "참고",
+  tip: "팁",
+  important: "중요",
+  warning: "주의",
+  caution: "경고",
+  fold: "펼쳐 보기",
+};
 const DEFAULT_TITLES: Partial<Record<string, Record<CalloutKind, string>>> = {
   ko: KOREAN_TITLES,
-  en: { note: "Note", tip: "Tip", important: "Important", warning: "Warning", caution: "Caution" },
+  en: { note: "Note", tip: "Tip", important: "Important", warning: "Warning", caution: "Caution", fold: "Details" },
 };
 
 interface CalloutMeta {
   kind: CalloutKind;
   /** 직접 쓴 제목. 없으면 null (기본 제목) */
   title: string | null;
+  /** 접기: 접힌 채로 / 펼친 채로 / 접지 않음 */
+  fold: "closed" | "open" | null;
 }
 
 function isCalloutKind(kind: string): kind is CalloutKind {
@@ -102,9 +120,11 @@ function findClose(tokens: Token[], i: number): number {
 }
 
 /**
- * Markdown 글에 쓰인 콜아웃 종류들 (나온 순서대로, 대문자). 번역 결과 검사용.
+ * Markdown 글에 쓰인 콜아웃 종류들 (나온 순서대로, 대문자 + 접기 기호, 예: "NOTE", "TIP-"). 번역 결과 검사용.
  * 코드 블록은 부르는 쪽에서 미리 빼 둔다(번역은 자리표로 바꾼 상태). 모르는 종류도 그대로 센다
  */
 export function calloutMarkers(markdown: string): string[] {
-  return [...markdown.matchAll(/^[ \t]*(?:>[ \t]?)+\[!([A-Za-z]+)\]/gm)].map((match) => match[1]!.toUpperCase());
+  return [...markdown.matchAll(/^[ \t]*(?:>[ \t]?)+\[!([A-Za-z]+)\]([+-]?)/gm)].map(
+    (match) => match[1]!.toUpperCase() + match[2]!,
+  );
 }

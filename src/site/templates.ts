@@ -3,7 +3,7 @@
  *
  * - Hono `html` 태그 템플릿: ${…}로 넣는 값은 자동으로 이스케이프된다 (제목에 <b>가 있어도 글자로)
  * - 본문만 `raw(…)`: 렌더러가 HTML을 막고 안전하게 만든 결과이기 때문
- * - 방문자 화면의 JS는 언어 기억용 작은 스크립트 하나뿐 (설계 12-11, i18n.ts의 LANGUAGE_SCRIPT)
+ * - 방문자 화면의 JS는 작은 스크립트 하나뿐: 언어 기억(설계 12-11) + 코드 복사(설계 13-6) — i18n.ts의 SITE_SCRIPT
  * - 요소에 id를 쓰지 않고 class만 쓴다 → 본문 제목 id(#설치-하기 등)와 겹치지 않게
  * - 언어(locale): 화면 글자는 i18n.ts 사전에서, 주소는 localizedPath로. 생략하면 한국어
  * - 꾸미기는 나중(UI/UX 단계). 지금은 구조와 의미만
@@ -12,7 +12,7 @@ import { html, raw } from "hono/html";
 import type { HtmlEscapedString } from "hono/utils/html";
 import type { TocItem } from "../markdown/index.ts";
 import type { Post, TagCount } from "../posts/types.ts";
-import { formatDate, LANGUAGE_SCRIPT, LOCALES, localizedPath, MESSAGES, SOURCE_LOCALE } from "./i18n.ts";
+import { formatDate, SITE_SCRIPT, LOCALES, localizedPath, MESSAGES, SOURCE_LOCALE } from "./i18n.ts";
 import type { Locale } from "./i18n.ts";
 import type { ImageSize } from "./images.ts";
 import { pagePath, postPath, tagPath, TAGS_PATH } from "./paths.ts";
@@ -85,6 +85,7 @@ export function layout(props: LayoutProps): Html {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
   <title>${fullTitle}</title>
   <meta name="description" content="${description}">
   <link rel="canonical" href="${absoluteUrl(site, here)}">
@@ -101,7 +102,7 @@ export function layout(props: LayoutProps): Html {
   <meta property="og:image" content="${image}">
   <link rel="alternate" type="application/rss+xml" title="${site.name}" href="${localizedPath(locale, "/rss.xml")}">
   <link rel="stylesheet" href="/assets/site.css">
-  <script>${raw(LANGUAGE_SCRIPT)}</script>
+  <script>${raw(SITE_SCRIPT)}</script>
 </head>
 <body>
   <header class="site-header">
@@ -111,6 +112,7 @@ export function layout(props: LayoutProps): Html {
       <span class="lang-switch" role="group" aria-label="${m.languageLabel}">${LOCALES.map(
         (l) => html`<a href="${localizedPath(l, props.path)}" hreflang="${l}" lang="${l}" data-set-lang="${l}"${l === locale ? html` aria-current="true"` : ""}>${MESSAGES[l].languageName}</a>`,
       )}</span>
+      <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="${m.themeToggle}" title="${m.themeToggle}"></button>
     </nav>
   </header>
   <main class="site-main">

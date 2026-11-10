@@ -96,8 +96,8 @@ a { color: inherit; }
 .chip.over { border-color: var(--danger); background: #fdecea; color: var(--danger); }
 
 /* 미리보기 사이드바: 넓은 화면은 오른쪽 칸 */
-.preview-pane { position: relative; min-height: 0; overflow-y: auto; padding: 0 16px 16px; border-left: 1px solid var(--line); background: #fff; }
-.preview-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; padding: 6px 0; background: #fff; }
+.preview-pane { position: relative; min-height: 0; overflow-y: auto; padding: 0 16px 16px; border-left: 1px solid var(--line); background: var(--bg); color: var(--text); color-scheme: var(--scheme); }
+.preview-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; padding: 6px 0; background: var(--bg); }
 .preview-head .button { padding: 0 8px; }
 .preview-title { margin: 8px 0 16px; font-size: 2em; overflow-wrap: anywhere; }
 
@@ -127,8 +127,8 @@ a { color: inherit; }
 .preview a { color: var(--accent); }
 .preview ul, .preview ol { padding-left: 1.6em; }
 .preview hr { border: 0; border-top: 1px solid var(--line); margin: 2em 0; }
-.preview code { padding: .1em .35em; border-radius: 4px; background: #f3f4f6; font-family: ui-monospace, "D2Coding", Consolas, monospace; font-size: .9em; }
-.preview pre { padding: 12px 14px; border-radius: 6px; background: #f6f8fa; overflow-x: auto; line-height: 1.5; }
+.preview code { padding: .1em .35em; border-radius: 4px; background: var(--inline-code); font-family: ui-monospace, "D2Coding", Consolas, monospace; font-size: .9em; }
+.preview pre { padding: 12px 14px; border-radius: 6px; background: var(--surface); overflow-x: auto; line-height: 1.5; }
 .preview pre code { padding: 0; background: none; font-size: .9em; }
 .preview img { max-width: 100%; height: auto; } /* height:auto: 크기(|400)나 width/height 속성이 있어도 비율 유지 */
 /* 이미지만 있는 문단: 줄(.img-row)마다 가로로, 사이 간격은 고정 8px. 정렬은 문단 클래스 (기본 가운데) */
@@ -173,36 +173,112 @@ a.pill:hover { text-decoration: underline; }
 .pane-tabs button + button { border-left: 0; }
 .pane-tabs button[aria-selected="true"] { background: #222; color: #fff; border-color: #222; }
 
+
+/* ── 미리보기 칸 라이트/다크 (설계 13-7): 공개 사이트와 같은 색. 관리자는 버튼 없이 기기 설정만 ──
+   (관리자 화면 나머지는 아직 라이트 — UI 단계에서) */
+.preview-pane {
+  --scheme: light;
+  --bg: #ffffff;
+  --text: #1f2328;
+  --muted: #6b7280;
+  --line: #e3e6ea;
+  --accent: #2b5fd9;
+  --surface: #f6f8fa;
+  --inline-code: #eff1f3;
+  --thumb-bg: #eef1f5;
+  --quote-line: #d0d7de;
+  --quote-text: #57606a;
+  --table-line: #d0d7de;
+  --overlay: rgba(255, 255, 255, .35);
+  --dialog-bg: #ffffff;
+  --shadow: rgba(0, 0, 0, .15);
+  /* 콜아웃 색과 옅은 바탕 비율 */
+  --c-note: #0969da; --c-tip: #1a7f37; --c-important: #8250df; --c-warning: #9a6700; --c-caution: #cf222e; --c-fold: #6e7781;
+  --callout-tint: 6%;
+  /* 코드 블록 (github-light-default) */
+  --code-bg: #f6f8fa; --code-text: #1f2328; --code-border: #d1d9e0; --code-muted: #59636e; --code-ln: #8c959f; --code-btn: #ffffff;
+  --code-add: rgba(46, 160, 67, .15); --code-add-mark: #1a7f37;
+  --code-del: rgba(248, 81, 73, .15); --code-del-mark: #cf222e;
+  --code-mark: rgba(84, 174, 255, .2); --code-mark-bar: #0969da;
+}
+@media (prefers-color-scheme: dark) {
+  .preview-pane {
+    --scheme: dark;
+    --bg: #0d1117; --text: #e6edf3; --muted: #8b949e; --line: #30363d; --accent: #4493f8;
+    --surface: #161b22; --inline-code: #262c36; --thumb-bg: #161b22; --quote-line: #3d444d; --quote-text: #9198a1; --table-line: #3d444d;
+    --overlay: rgba(13, 17, 23, .45); --dialog-bg: #161b22; --shadow: rgba(0, 0, 0, .5);
+    --c-note: #4493f8; --c-tip: #3fb950; --c-important: #ab7df8; --c-warning: #d29922; --c-caution: #f85149; --c-fold: #9198a1;
+    --callout-tint: 10%;
+    --code-bg: #0d1117; --code-text: #e6edf3; --code-border: #30363d; --code-muted: #8b949e; --code-ln: #6e7681; --code-btn: #161b22;
+    --code-add: rgba(46, 160, 67, .18); --code-add-mark: #3fb950;
+    --code-del: rgba(248, 81, 73, .18); --code-del-mark: #f85149;
+    --code-mark: rgba(56, 139, 253, .15); --code-mark-bar: #388bfd;
+  }
+}
+
 /* 인용·콜아웃 (설계 13-3). 콜아웃 색은 GitHub와 비슷하게, 제목 앞 표시는 글자로 (그림 파일 없음) */
-.preview blockquote { margin: 1em 0; padding: 0 1em; border-left: 4px solid #d0d7de; color: #57606a; }
-.preview .callout { --callout: #0969da; margin: 1em 0; padding: 8px 16px; border-left: 4px solid var(--callout); border-radius: 0 6px 6px 0; background: color-mix(in srgb, var(--callout) 6%, transparent); }
+.preview blockquote { margin: 1em 0; padding: 0 1em; border-left: 4px solid var(--quote-line); color: var(--quote-text); }
+.preview .callout { --callout: var(--c-note); margin: 1em 0; padding: 8px 16px; border-left: 4px solid var(--callout); border-radius: 0 6px 6px 0; background: color-mix(in srgb, var(--callout) var(--callout-tint), transparent); }
 .preview .callout > :last-child { margin-bottom: 0; }
 .preview .callout-title { margin: 0 0 4px; color: var(--callout); font-weight: 700; }
 .preview .callout-title::before { margin-right: 6px; }
-.preview .callout-note { --callout: #0969da; }
+.preview .callout-note { --callout: var(--c-note); }
 .preview .callout-note .callout-title::before { content: "ⓘ"; }
-.preview .callout-tip { --callout: #1a7f37; }
+.preview .callout-tip { --callout: var(--c-tip); }
 .preview .callout-tip .callout-title::before { content: "✓"; }
-.preview .callout-important { --callout: #8250df; }
+.preview .callout-important { --callout: var(--c-important); }
 .preview .callout-important .callout-title::before { content: "❢"; }
-.preview .callout-warning { --callout: #9a6700; }
+.preview .callout-warning { --callout: var(--c-warning); }
 .preview .callout-warning .callout-title::before { content: "⚠"; }
-.preview .callout-caution { --callout: #cf222e; }
+.preview .callout-caution { --callout: var(--c-caution); }
 .preview .callout-caution .callout-title::before { content: "⊘"; }
 
 /* 표 (설계 13-4): 넓으면 표만 가로 스크롤. 정렬은 칸의 style(text-align) */
 .preview .table-wrap { margin: 1em 0; overflow-x: auto; }
 .preview table { border-collapse: collapse; line-height: 1.5; }
-.preview th, .preview td { padding: 6px 12px; border: 1px solid #d0d7de; }
+.preview th, .preview td { padding: 6px 12px; border: 1px solid var(--table-line); }
 /* 칸 안은 띄어쓰기에서만 줄을 바꿈 (한글이 한 글자씩 세로로 쪼개지지 않게) → 칸이 넓어지면 표만 가로 스크롤 */
 .preview th, .preview td { overflow-wrap: normal; word-break: keep-all; }
-.preview th { background: #f6f8fa; font-weight: 700; }
+.preview th { background: var(--surface); font-weight: 700; }
 
 /* 접기 (설계 13-5): 접는 콜아웃은 details. 제목 줄을 눌러 접고 펼침, 오른쪽 ▸/▾ */
-.preview .callout-fold { --callout: #6e7781; }
+.preview .callout-fold { --callout: var(--c-fold); }
 .preview .callout-fold .callout-title::before { content: "≡"; }
 .preview details.callout > summary { display: flex; align-items: center; cursor: pointer; list-style: none; }
 .preview details.callout > summary::-webkit-details-marker { display: none; }
 .preview details.callout > summary::after { content: "▸"; margin-left: auto; padding-left: 12px; }
 .preview details.callout[open] > summary::after { content: "▾"; }
 .preview details.callout:not([open]) > summary { margin-bottom: 0; }
+
+/* 코드 블록 (설계 13-6·13-7): 라이트는 github-light-default, 다크는 github-dark-default.
+ * 글자 조각의 색은 HTML의 --sl(라이트)·--sd(다크) 중 지금 모드 것. 변수가 없는 조각은 기본 글자색 */
+.preview .code-block { margin: 1em 0; border: 1px solid var(--code-border); border-radius: 8px; background: var(--code-bg); color: var(--code-text); overflow: hidden; }
+.preview .code-text [style] { color: var(--sl); }
+@media (prefers-color-scheme: dark) { .preview .code-text [style] { color: var(--sd); } }
+.preview .code-head { display: flex; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--code-border); color: var(--code-muted); font-size: .9em; line-height: 1.4; }
+.preview details.code-block > summary.code-head { cursor: pointer; list-style: none; }
+.preview details.code-block > summary.code-head::-webkit-details-marker { display: none; }
+.preview details.code-block > summary.code-head::after { content: "▸"; margin-left: auto; padding-left: 12px; }
+.preview details.code-block[open] > summary.code-head::after { content: "▾"; }
+.preview details.code-block:not([open]) > summary.code-head { border-bottom: 0; }
+.preview .code-body { position: relative; }
+.preview .code-block pre.code { margin: 0; padding: 14px 0; border-radius: 0; background: transparent; overflow-x: auto; line-height: 1.6; }
+.preview .code-block pre.code code { display: block; width: max-content; min-width: 100%; padding: 0; background: none; color: inherit; font-size: .88em; }
+.preview .code-block .line { display: inline-block; box-sizing: border-box; width: 100%; min-height: 1.6em; padding: 0 56px 0 16px; }
+.preview .code-block .ln { display: inline-block; width: 2.2em; margin-right: 14px; color: var(--code-ln); text-align: right; user-select: none; }
+.preview .code-block .diff-mark { display: inline-block; width: 1.4em; color: var(--code-muted); user-select: none; }
+.preview .code-block .line-add { background: var(--code-add); }
+.preview .code-block .line-add .diff-mark { color: var(--code-add-mark); }
+.preview .code-block .line-del { background: var(--code-del); }
+.preview .code-block .line-del .diff-mark { color: var(--code-del-mark); }
+.preview .code-block .line-mark { background: var(--code-mark); box-shadow: inset 3px 0 0 var(--code-mark-bar); }
+/* 복사 아이콘: 겹친 사각형 두 개(CSS로 그림), 평소 흐리게 → 올리면 진하게, 복사하면 ✓
+ * (관리자 화면은 항상 JS가 있으므로 늘 보임) */
+.preview .code-copy { position: absolute; top: 8px; right: 8px; z-index: 1; width: 32px; height: 32px; padding: 0; border: 1px solid var(--code-border); border-radius: 6px; background: var(--code-btn); cursor: pointer; opacity: .55; }
+.preview .code-copy:hover, .preview .code-copy:focus-visible { opacity: 1; }
+.preview .code-copy::before, .preview .code-copy::after { content: ""; position: absolute; width: 10px; height: 12px; border: 1.5px solid var(--code-muted); border-radius: 2px; }
+.preview .code-copy::before { top: 7px; left: 8px; }
+.preview .code-copy::after { top: 11px; left: 12px; background: var(--code-btn); }
+.preview .code-copy[data-copied] { opacity: 1; }
+.preview .code-copy[data-copied]::before { content: "✓"; top: 5px; left: 9px; width: auto; height: auto; border: 0; color: var(--code-add-mark); font-size: 15px; line-height: 1; }
+.preview .code-copy[data-copied]::after { display: none; }

@@ -1,20 +1,84 @@
-/* 공개 사이트 최소 스타일. 구조를 알아볼 수 있을 정도만 (꾸미기는 나중 UI/UX 단계) */
-:root { --line: #e3e6ea; --muted: #6b7280; --accent: #2b5fd9; color-scheme: light; }  /* 다크 모드는 나중 */
+/* 공개 사이트 최소 스타일. 구조를 알아볼 수 있을 정도만 (꾸미기는 나중 UI/UX 단계)
+ *
+ * 라이트/다크 (설계 13-7): 색은 모두 아래 변수로. 기본 라이트 →
+ *   기기가 다크이고 <html data-theme="light">가 아니면 다크 / <html data-theme="dark">면 다크
+ *   (data-theme은 머리글 버튼으로 고른 것을 스크립트가 붙임. 같은 다크 변수 묶음이 두 번 나오는 건 이 두 경우 때문)
+ */
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --text: #1f2328;
+  --muted: #6b7280;
+  --line: #e3e6ea;
+  --accent: #2b5fd9;
+  --surface: #f6f8fa;
+  --inline-code: #eff1f3;
+  --thumb-bg: #eef1f5;
+  --quote-line: #d0d7de;
+  --quote-text: #57606a;
+  --table-line: #d0d7de;
+  --overlay: rgba(255, 255, 255, .35);
+  --dialog-bg: #ffffff;
+  --shadow: rgba(0, 0, 0, .15);
+  /* 콜아웃 색과 옅은 바탕 비율 */
+  --c-note: #0969da; --c-tip: #1a7f37; --c-important: #8250df; --c-warning: #9a6700; --c-caution: #cf222e; --c-fold: #6e7781;
+  --callout-tint: 6%;
+  /* 코드 블록 (github-light-default) */
+  --code-bg: #f6f8fa; --code-text: #1f2328; --code-border: #d1d9e0; --code-muted: #59636e; --code-ln: #8c959f; --code-btn: #ffffff;
+  --code-add: rgba(46, 160, 67, .15); --code-add-mark: #1a7f37;
+  --code-del: rgba(248, 81, 73, .15); --code-del-mark: #cf222e;
+  --code-mark: rgba(84, 174, 255, .2); --code-mark-bar: #0969da;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0d1117; --text: #e6edf3; --muted: #8b949e; --line: #30363d; --accent: #4493f8;
+    --surface: #161b22; --inline-code: #262c36; --thumb-bg: #161b22; --quote-line: #3d444d; --quote-text: #9198a1; --table-line: #3d444d;
+    --overlay: rgba(13, 17, 23, .45); --dialog-bg: #161b22; --shadow: rgba(0, 0, 0, .5);
+    --c-note: #4493f8; --c-tip: #3fb950; --c-important: #ab7df8; --c-warning: #d29922; --c-caution: #f85149; --c-fold: #9198a1;
+    --callout-tint: 10%;
+    --code-bg: #0d1117; --code-text: #e6edf3; --code-border: #30363d; --code-muted: #8b949e; --code-ln: #6e7681; --code-btn: #161b22;
+    --code-add: rgba(46, 160, 67, .18); --code-add-mark: #3fb950;
+    --code-del: rgba(248, 81, 73, .18); --code-del-mark: #f85149;
+    --code-mark: rgba(56, 139, 253, .15); --code-mark-bar: #388bfd;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0d1117; --text: #e6edf3; --muted: #8b949e; --line: #30363d; --accent: #4493f8;
+  --surface: #161b22; --inline-code: #262c36; --thumb-bg: #161b22; --quote-line: #3d444d; --quote-text: #9198a1; --table-line: #3d444d;
+  --overlay: rgba(13, 17, 23, .45); --dialog-bg: #161b22; --shadow: rgba(0, 0, 0, .5);
+  --c-note: #4493f8; --c-tip: #3fb950; --c-important: #ab7df8; --c-warning: #d29922; --c-caution: #f85149; --c-fold: #9198a1;
+  --callout-tint: 10%;
+  --code-bg: #0d1117; --code-text: #e6edf3; --code-border: #30363d; --code-muted: #8b949e; --code-ln: #6e7681; --code-btn: #161b22;
+  --code-add: rgba(46, 160, 67, .18); --code-add-mark: #3fb950;
+  --code-del: rgba(248, 81, 73, .18); --code-del-mark: #f85149;
+  --code-mark: rgba(56, 139, 253, .15); --code-mark-bar: #388bfd;
+}
+
 * { box-sizing: border-box; }
-body { margin: 0; background: #fff; font-family: system-ui, "Malgun Gothic", sans-serif; color: #1f2328; line-height: 1.7; }
+body { margin: 0; background: var(--bg); font-family: system-ui, "Malgun Gothic", sans-serif; color: var(--text); line-height: 1.7; }
 a { color: var(--accent); }
 
 .site-header, .site-main, .site-footer { max-width: 760px; margin: 0 auto; padding: 16px; }
 .site-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); }
 .site-name { font-weight: 700; color: inherit; text-decoration: none; }
+.site-nav { display: flex; align-items: center; flex-wrap: wrap; }
 .site-nav a { margin-left: 12px; }
 .site-footer { border-top: 1px solid var(--line); color: var(--muted); font-size: .9em; }
+
+/* 라이트/다크 버튼 (설계 13-7): 지금 라이트면 ☾, 다크면 ☀. 스크립트가 켜졌을 때만 보임 */
+.theme-toggle { display: none; align-items: center; justify-content: center; width: 28px; height: 28px; margin-left: 12px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: var(--text); font-size: 15px; line-height: 1; cursor: pointer; }
+.js .theme-toggle { display: inline-flex; }
+.theme-toggle::before { content: "☾"; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .theme-toggle::before { content: "☀"; } }
+:root[data-theme="dark"] .theme-toggle::before { content: "☀"; }
 
 /* 목록 */
 .post-list { list-style: none; margin: 0; padding: 0; }
 .post-card { padding: 16px 0; border-bottom: 1px solid var(--line); }
 .post-card-link { color: inherit; text-decoration: none; display: block; }
-.post-card .thumbnail { width: 100%; aspect-ratio: 1200 / 630; object-fit: cover; border-radius: 8px; background: #eef1f5; }
+.post-card .thumbnail { width: 100%; aspect-ratio: 1200 / 630; object-fit: cover; border-radius: 8px; background: var(--thumb-bg); }
 .post-card .post-title { margin: 8px 0 4px; font-size: 1.3em; }
 .summary { margin: 0; color: var(--muted); }
 .post-meta { margin: 4px 0 0; color: var(--muted); font-size: .9em; }
@@ -29,9 +93,8 @@ a { color: var(--accent); }
 .toc ol { list-style: none; margin: 0; padding: 0; }
 .toc-level-2 { padding-left: 1em; }
 .toc-level-3 { padding-left: 2em; }
-.post-body pre { padding: 12px 14px; border-radius: 6px; background: #f6f8fa; overflow-x: auto; line-height: 1.5; }
 .post-body code { font-family: ui-monospace, "D2Coding", Consolas, monospace; font-size: .9em; }
-.post-body :not(pre) > code { padding: .1em .35em; border-radius: 4px; background: #f3f4f6; }
+.post-body :not(pre) > code { padding: .1em .35em; border-radius: 4px; background: var(--inline-code); }
 .post-body img { max-width: 100%; height: auto; } /* height:auto: 크기(|400)나 width/height 속성이 있어도 비율 유지 */
 /* 이미지만 있는 문단: 줄(.img-row)마다 가로로, 사이 간격은 고정 8px. 정렬은 문단 클래스 (기본 가운데) */
 .post-body .img-row { display: flex; gap: 8px; align-items: flex-start; }
@@ -56,46 +119,81 @@ a { color: var(--accent); }
 
 /* 미번역 글: 한글을 흐리게 깔고 가운데 안내 카드 (CSS만, 머리글은 덮지 않음) */
 .untranslated-content { opacity: .35; filter: blur(2px); pointer-events: none; user-select: none; }
-.untranslated-backdrop { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(255, 255, 255, .35); pointer-events: none; }
-.untranslated-dialog { pointer-events: auto; width: min(420px, 100%); padding: 24px; border: 1px solid var(--line); border-radius: 12px; background: #fff; box-shadow: 0 8px 32px rgba(0, 0, 0, .15); text-align: center; }
+.untranslated-backdrop { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; padding: 16px; background: var(--overlay); pointer-events: none; }
+.untranslated-dialog { pointer-events: auto; width: min(420px, 100%); padding: 24px; border: 1px solid var(--line); border-radius: 12px; background: var(--dialog-bg); box-shadow: 0 8px 32px var(--shadow); text-align: center; }
 .untranslated-title { margin: 0; font-size: 1.15em; font-weight: 700; }
 .untranslated-note { margin: 4px 0 0; color: var(--muted); }
 .untranslated-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 20px 0 0; }
 .untranslated-button { padding: 6px 14px; border: 1px solid var(--line); border-radius: 6px; color: inherit; text-decoration: none; }
 .untranslated-button.primary { border-color: var(--accent); background: var(--accent); color: #fff; }
 /* 머리글은 팝업 배경 위로 (언어를 바로 바꿀 수 있게) */
-.site-header { position: relative; z-index: 11; background: #fff; }
+.site-header { position: relative; z-index: 11; background: var(--bg); }
 
 /* 인용·콜아웃 (설계 13-3). 콜아웃 색은 GitHub와 비슷하게, 제목 앞 표시는 글자로 (그림 파일 없음) */
-.post-body blockquote { margin: 1em 0; padding: 0 1em; border-left: 4px solid #d0d7de; color: #57606a; }
-.post-body .callout { --callout: #0969da; margin: 1em 0; padding: 8px 16px; border-left: 4px solid var(--callout); border-radius: 0 6px 6px 0; background: color-mix(in srgb, var(--callout) 6%, transparent); }
+.post-body blockquote { margin: 1em 0; padding: 0 1em; border-left: 4px solid var(--quote-line); color: var(--quote-text); }
+.post-body .callout { --callout: var(--c-note); margin: 1em 0; padding: 8px 16px; border-left: 4px solid var(--callout); border-radius: 0 6px 6px 0; background: color-mix(in srgb, var(--callout) var(--callout-tint), transparent); }
 .post-body .callout > :last-child { margin-bottom: 0; }
 .post-body .callout-title { margin: 0 0 4px; color: var(--callout); font-weight: 700; }
 .post-body .callout-title::before { margin-right: 6px; }
-.post-body .callout-note { --callout: #0969da; }
+.post-body .callout-note { --callout: var(--c-note); }
 .post-body .callout-note .callout-title::before { content: "ⓘ"; }
-.post-body .callout-tip { --callout: #1a7f37; }
+.post-body .callout-tip { --callout: var(--c-tip); }
 .post-body .callout-tip .callout-title::before { content: "✓"; }
-.post-body .callout-important { --callout: #8250df; }
+.post-body .callout-important { --callout: var(--c-important); }
 .post-body .callout-important .callout-title::before { content: "❢"; }
-.post-body .callout-warning { --callout: #9a6700; }
+.post-body .callout-warning { --callout: var(--c-warning); }
 .post-body .callout-warning .callout-title::before { content: "⚠"; }
-.post-body .callout-caution { --callout: #cf222e; }
+.post-body .callout-caution { --callout: var(--c-caution); }
 .post-body .callout-caution .callout-title::before { content: "⊘"; }
 
 /* 표 (설계 13-4): 넓으면 표만 가로 스크롤. 정렬은 칸의 style(text-align) */
 .post-body .table-wrap { margin: 1em 0; overflow-x: auto; }
 .post-body table { border-collapse: collapse; line-height: 1.5; }
-.post-body th, .post-body td { padding: 6px 12px; border: 1px solid #d0d7de; }
+.post-body th, .post-body td { padding: 6px 12px; border: 1px solid var(--table-line); }
 /* 칸 안은 띄어쓰기에서만 줄을 바꿈 (한글이 한 글자씩 세로로 쪼개지지 않게) → 칸이 넓어지면 표만 가로 스크롤 */
 .post-body th, .post-body td { overflow-wrap: normal; word-break: keep-all; }
-.post-body th { background: #f6f8fa; font-weight: 700; }
+.post-body th { background: var(--surface); font-weight: 700; }
 
 /* 접기 (설계 13-5): 접는 콜아웃은 details. 제목 줄을 눌러 접고 펼침, 오른쪽 ▸/▾ */
-.post-body .callout-fold { --callout: #6e7781; }
+.post-body .callout-fold { --callout: var(--c-fold); }
 .post-body .callout-fold .callout-title::before { content: "≡"; }
 .post-body details.callout > summary { display: flex; align-items: center; cursor: pointer; list-style: none; }
 .post-body details.callout > summary::-webkit-details-marker { display: none; }
 .post-body details.callout > summary::after { content: "▸"; margin-left: auto; padding-left: 12px; }
 .post-body details.callout[open] > summary::after { content: "▾"; }
 .post-body details.callout:not([open]) > summary { margin-bottom: 0; }
+
+/* 코드 블록 (설계 13-6·13-7): 라이트는 github-light-default, 다크는 github-dark-default.
+ * 글자 조각의 색은 HTML의 --sl(라이트)·--sd(다크) 중 지금 모드 것. 변수가 없는 조각은 기본 글자색 */
+.post-body .code-block { margin: 1em 0; border: 1px solid var(--code-border); border-radius: 8px; background: var(--code-bg); color: var(--code-text); overflow: hidden; }
+.post-body .code-text [style] { color: var(--sl); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .post-body .code-text [style] { color: var(--sd); } }
+:root[data-theme="dark"] .post-body .code-text [style] { color: var(--sd); }
+.post-body .code-head { display: flex; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--code-border); color: var(--code-muted); font-size: .9em; line-height: 1.4; }
+.post-body details.code-block > summary.code-head { cursor: pointer; list-style: none; }
+.post-body details.code-block > summary.code-head::-webkit-details-marker { display: none; }
+.post-body details.code-block > summary.code-head::after { content: "▸"; margin-left: auto; padding-left: 12px; }
+.post-body details.code-block[open] > summary.code-head::after { content: "▾"; }
+.post-body details.code-block:not([open]) > summary.code-head { border-bottom: 0; }
+.post-body .code-body { position: relative; }
+.post-body .code-block pre.code { margin: 0; padding: 14px 0; border-radius: 0; background: transparent; overflow-x: auto; line-height: 1.6; }
+.post-body .code-block pre.code code { display: block; width: max-content; min-width: 100%; padding: 0; background: none; color: inherit; font-size: .88em; }
+.post-body .code-block .line { display: inline-block; box-sizing: border-box; width: 100%; min-height: 1.6em; padding: 0 56px 0 16px; }
+.post-body .code-block .ln { display: inline-block; width: 2.2em; margin-right: 14px; color: var(--code-ln); text-align: right; user-select: none; }
+.post-body .code-block .diff-mark { display: inline-block; width: 1.4em; color: var(--code-muted); user-select: none; }
+.post-body .code-block .line-add { background: var(--code-add); }
+.post-body .code-block .line-add .diff-mark { color: var(--code-add-mark); }
+.post-body .code-block .line-del { background: var(--code-del); }
+.post-body .code-block .line-del .diff-mark { color: var(--code-del-mark); }
+.post-body .code-block .line-mark { background: var(--code-mark); box-shadow: inset 3px 0 0 var(--code-mark-bar); }
+/* 복사 아이콘: 겹친 사각형 두 개(CSS로 그림), 평소 흐리게 → 올리면 진하게, 복사하면 ✓
+ * 스크립트가 <html>에 js 표시를 붙였을 때만 보임 (JS가 꺼지면 눌러도 안 되는 버튼이 보이지 않게) */
+.post-body .code-copy { display: none; position: absolute; top: 8px; right: 8px; z-index: 1; width: 32px; height: 32px; padding: 0; border: 1px solid var(--code-border); border-radius: 6px; background: var(--code-btn); cursor: pointer; opacity: .55; }
+.js .post-body .code-copy { display: block; }
+.post-body .code-copy:hover, .post-body .code-copy:focus-visible { opacity: 1; }
+.post-body .code-copy::before, .post-body .code-copy::after { content: ""; position: absolute; width: 10px; height: 12px; border: 1.5px solid var(--code-muted); border-radius: 2px; }
+.post-body .code-copy::before { top: 7px; left: 8px; }
+.post-body .code-copy::after { top: 11px; left: 12px; background: var(--code-btn); }
+.post-body .code-copy[data-copied] { opacity: 1; }
+.post-body .code-copy[data-copied]::before { content: "✓"; top: 5px; left: 9px; width: auto; height: auto; border: 0; color: var(--code-add-mark); font-size: 15px; line-height: 1; }
+.post-body .code-copy[data-copied]::after { display: none; }

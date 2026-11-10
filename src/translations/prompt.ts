@@ -21,6 +21,7 @@ export function buildTranslationRequest(source: TranslationContent, lang: Transl
     "- Keep the Markdown structure exactly: headings and their levels, lists, tables, blockquotes, emphasis, blank lines, and line breaks.",
     "- Lines like [[CODE_1]] are placeholders for code blocks. Copy each one unchanged, on its own line, in the same place.",
     "- Do not change inline code (`like this`), URLs, link targets, or image addresses.",
+    "- Callout markers such as > [!NOTE], > [!TIP], > [!IMPORTANT], > [!WARNING], > [!CAUTION] must stay exactly as they are. Translate only the title text after the marker, if any.",
     "- Image syntax is ![description|options](address). Translate the description, but keep options such as |400, |50%, |center, |left, |right exactly as they are.",
     "- If the summary is an empty string, return an empty string.",
     "",

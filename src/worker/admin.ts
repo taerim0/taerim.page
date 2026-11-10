@@ -20,6 +20,9 @@ import { renderMarkdown } from "../markdown/index.ts";
 import type { D1Database } from "../posts/d1.ts";
 import { D1PostRepository } from "../posts/d1-repository.ts";
 import { PostService } from "../posts/service.ts";
+import { createLlmClient } from "../translations/config.ts";
+import { D1TranslationRepository } from "../translations/d1-repository.ts";
+import { TranslationService } from "../translations/service.ts";
 
 /** Worker 환경 변수·연결 */
 interface AdminWorkerEnv {
@@ -41,6 +44,12 @@ interface AdminWorkerEnv {
   GITHUB_REPOSITORY?: string;
   /** 배포 워크플로 실행용 GitHub 토큰 (시크릿: wrangler secret put GITHUB_DEPLOY_TOKEN) */
   GITHUB_DEPLOY_TOKEN?: string;
+  /** 번역 제공자 이름 (vars). 지금은 로컬 전용 "fake"만 — 실제 제공자는 정할 때 추가 (설계 12-8) */
+  TRANSLATE_PROVIDER?: string;
+  /** 번역 모델 이름 (vars) */
+  TRANSLATE_MODEL?: string;
+  /** 번역 제공자 API 키 (시크릿: 사용자가 wrangler secret put TRANSLATE_API_KEY로 직접 등록) */
+  TRANSLATE_API_KEY?: string;
 }
 
 /** 공개 사이트 빌드·배포 워크플로 파일 (.github/workflows/) */
@@ -71,13 +80,15 @@ function chooseDeploy(env: AdminWorkerEnv): DeployTrigger | undefined {
 }
 
 function buildApp(env: AdminWorkerEnv): Hono<AdminEnv> {
-  const service = new PostService(new D1PostRepository(env.DB));
+  const posts = new D1PostRepository(env.DB);
+  const service = new PostService(posts);
   return createAdminApp({
     service,
     render: renderMarkdown,
     authenticator: chooseAuthenticator(env),
     deploy: chooseDeploy(env),
     images: env.IMAGES ? new ImageService(new R2ImageStore(env.IMAGES), new D1ImageRepository(env.DB)) : undefined,
+    translations: new TranslationService(posts, new D1TranslationRepository(env.DB), { llm: createLlmClient(env) }),
     assets: env.ASSETS,
   });
 }

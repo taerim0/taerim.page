@@ -5,6 +5,9 @@ import { MAX_IMAGE_BYTES } from "../images/service.ts";
 import type { RenderFn } from "../markdown/index.ts";
 import type { PostService } from "../posts/service.ts";
 import { LIMITS } from "../posts/validation.ts";
+import type { TranslationService } from "../translations/service.ts";
+import { isTranslationLang } from "../translations/types.ts";
+import type { TranslationLang } from "../translations/types.ts";
 import type { AdminEnv } from "./auth.ts";
 import { DeployError } from "./deploy.ts";
 import type { DeployTrigger } from "./deploy.ts";
@@ -21,6 +24,8 @@ export interface ApiDeps {
   deploy?: DeployTrigger;
   /** 이미지 기능. 없으면 이미지 API는 503 (R2 설정이 없을 때) */
   images?: ImageService;
+  /** 번역 기능. 없으면 번역 API는 503 (제공자 설정이 없어도 이건 있음 — 그때는 번역 버튼만 503) */
+  translations?: TranslationService;
 }
 
 /** 요청 본문 최대 크기: 1MB */
@@ -31,7 +36,7 @@ export const MAX_BODY_BYTES = 1024 * 1024;
  * 여기서는 요청을 읽어 서비스에 넘기고 결과를 JSON으로 돌려주기만 한다.
  * 실패하면 오류를 던지고, 응답 변환은 app.ts의 오류 처리가 맡는다.
  */
-export function createApiRoutes({ service, render, deploy, images }: ApiDeps): Hono<AdminEnv> {
+export function createApiRoutes({ service, render, deploy, images, translations }: ApiDeps): Hono<AdminEnv> {
   const api = new Hono<AdminEnv>();
 
   // ── 글 ─────────────────────────────────────────────
@@ -109,6 +114,29 @@ export function createApiRoutes({ service, render, deploy, images }: ApiDeps): H
     return c.json({ image }, created ? 201 : 200);
   });
 
+  // ── 번역 (설계 12-9) ────────────────────────────────
+  /** 목록 표시용: 번역이 있는 글들의 상태 */
+  api.get("/translations/:lang", async (c) => c.json(await requireTranslations(translations).list(langParam(c))));
+
+  const translation = "/posts/:id/translations/:lang";
+  api.get(translation, async (c) => c.json(await requireTranslations(translations).get(idParam(c), langParam(c))));
+  /** LLM 번역 → 초안 (오래 걸릴 수 있음) */
+  api.post(`${translation}/generate`, async (c) => {
+    return c.json(await requireTranslations(translations).generate(idParam(c), langParam(c)));
+  });
+  api.patch(`${translation}/draft`, async (c) => {
+    const [id, lang] = [idParam(c), langParam(c)];
+    return c.json(await requireTranslations(translations).saveDraft(id, lang, await readJson(c)));
+  });
+  api.delete(`${translation}/draft`, async (c) => {
+    await requireTranslations(translations).deleteDraft(idParam(c), langParam(c));
+    return c.body(null, 204);
+  });
+  api.post(`${translation}/publish`, async (c) => c.json(await requireTranslations(translations).publish(idParam(c), langParam(c))));
+  api.post(`${translation}/unpublish`, async (c) => {
+    return c.json(await requireTranslations(translations).unpublish(idParam(c), langParam(c)));
+  });
+
   // ── 배포 ────────────────────────────────────────────
   /** 공개 사이트 배포 요청 → 202 (빌드·배포는 GitHub Actions에서 따로 진행) */
   api.post("/deploy", async (c) => {
@@ -120,6 +148,18 @@ export function createApiRoutes({ service, render, deploy, images }: ApiDeps): H
   api.get("/deploy", async (c) => c.json({ run: await requireDeploy(deploy).latest().catch(toHttpError) }));
 
   return api;
+}
+
+function requireTranslations(translations: TranslationService | undefined): TranslationService {
+  if (!translations) throw new HttpError("unavailable", "번역 기능이 설정되지 않았어요");
+  return translations;
+}
+
+/** 주소의 :lang. 지원하는 언어가 아니면 404 */
+function langParam(c: Context<AdminEnv>): TranslationLang {
+  const raw = c.req.param("lang") ?? "";
+  if (!isTranslationLang(raw)) throw new HttpError("not_found", "지원하지 않는 언어예요");
+  return raw;
 }
 
 function requireDeploy(deploy: DeployTrigger | undefined): DeployTrigger {

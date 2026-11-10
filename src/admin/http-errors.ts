@@ -1,6 +1,7 @@
 import { ImageError } from "../images/errors.ts";
 import { ConflictError, NotFoundError, PostError, ValidationError } from "../posts/errors.ts";
 import type { FieldIssue } from "../posts/errors.ts";
+import { TranslationError } from "../translations/llm.ts";
 
 /** API 오류 종류. 응답의 error.code 값 */
 export type ErrorCode =
@@ -11,6 +12,8 @@ export type ErrorCode =
   | "not_found"
   | "conflict"
   | "payload_too_large"
+  | "unprocessable"
+  | "rate_limited"
   | "internal"
   | "bad_gateway"
   | "unavailable";
@@ -26,7 +29,7 @@ export interface ErrorBody {
 }
 
 /** HTTP 상태 코드 (오류용) */
-export type ErrorStatus = 400 | 401 | 403 | 404 | 409 | 413 | 500 | 502 | 503;
+export type ErrorStatus = 400 | 401 | 403 | 404 | 409 | 413 | 422 | 429 | 500 | 502 | 503;
 
 const STATUS_BY_CODE: Record<ErrorCode, ErrorStatus> = {
   bad_request: 400,
@@ -36,6 +39,10 @@ const STATUS_BY_CODE: Record<ErrorCode, ErrorStatus> = {
   not_found: 404,
   conflict: 409,
   payload_too_large: 413,
+  /** 요청은 맞지만 처리할 수 없음 (예: 글이 너무 길어 번역이 잘림) */
+  unprocessable: 422,
+  /** 바깥 서비스가 요청 한도 초과라고 함 (예: 번역 제공자) */
+  rate_limited: 429,
   internal: 500,
   /** 바깥 서비스(GitHub 등)가 실패함 */
   bad_gateway: 502,
@@ -86,12 +93,25 @@ export function toErrorResponse(error: unknown): { status: ErrorStatus; body: Er
       ? { status: 413, body: errorBody("payload_too_large", error.message), expected: true }
       : { status: 400, body: errorBody("bad_request", error.message), expected: true };
   }
+  if (error instanceof TranslationError) {
+    const code = TRANSLATION_ERROR_CODES[error.kind];
+    return { status: STATUS_BY_CODE[code], body: errorBody(code, error.message), expected: true };
+  }
   if (error instanceof PostError) {
     // 새 종류의 글 오류가 생겼는데 여기 연결을 빠뜨린 경우: 일단 400으로, 로그는 남긴다
     return { status: 400, body: errorBody("bad_request", error.message), expected: false };
   }
   return { status: 500, body: errorBody("internal", INTERNAL_MESSAGE), expected: false };
 }
+
+/** 번역 실패 종류 → API 오류 종류 (설계 12-9) */
+const TRANSLATION_ERROR_CODES: Record<TranslationError["kind"], ErrorCode> = {
+  not_configured: "unavailable",
+  rate_limited: "rate_limited",
+  too_long: "unprocessable",
+  invalid_output: "bad_gateway",
+  provider_error: "bad_gateway",
+};
 
 function errorBody(code: ErrorCode, message: string, issues?: readonly FieldIssue[]): ErrorBody {
   return { error: issues ? { code, message, issues } : { code, message } };

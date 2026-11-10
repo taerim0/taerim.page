@@ -9,7 +9,7 @@
  * - 공개 사이트 반영은 글 목록의 [배포]
  */
 import { ApiError, getLimits, postsApi, translationsApi } from "./api.js";
-import { bindCodeCopy, loadHighlighterFor } from "./code-blocks.js";
+import { bindCodeCopy, loadHighlighterFor, loadMathFor } from "./code-blocks.js";
 import { bindImageUpload } from "./image-upload.js";
 import { charCount, renderMarkdown } from "./lib.js";
 import { clearNotice, formatDateTime, notify } from "./ui.js";
@@ -232,7 +232,9 @@ function renderPane() {
   clearTimeout(previewTimer);
   if (!isPreviewOpen()) return;
   // 코드 블록이 있으면 색칠기를 (한 번만) 불러와서 다시 그림
-  loadHighlighterFor(paneTab === "source" ? source.body : inputs.body.value, renderPane);
+  const shown = paneTab === "source" ? source.body : inputs.body.value;
+  loadHighlighterFor(shown, renderPane);
+  loadMathFor(shown, renderPane);
   if (paneTab === "source") {
     previewTitle.textContent = source.title;
     preview.innerHTML = renderMarkdown(source.body);

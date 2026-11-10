@@ -52,6 +52,14 @@ export interface Pagination {
 
 // ── 공통 틀 ─────────────────────────────────────────
 
+/** KaTeX CSS (빌드가 node_modules/katex/dist에서 복사, 글꼴은 같은 폴더의 fonts/) */
+export const KATEX_CSS = "/assets/katex/katex.min.css";
+
+/** 본문 HTML에 KaTeX 수식이 있는지 */
+function hasMath(bodyHtml: string): boolean {
+  return bodyHtml.includes('class="katex');
+}
+
 interface LayoutProps {
   site: SiteConfig;
   locale?: Locale;
@@ -66,6 +74,8 @@ interface LayoutProps {
   type?: "website" | "article";
   /** 검색 엔진에 넣지 않을 페이지 (404, 미번역 글 등) */
   noindex?: boolean;
+  /** 수식이 있는 페이지면 KaTeX CSS를 넣음 (설계 13-8, 수식 없는 페이지는 무게 그대로) */
+  math?: boolean;
   /** 검색 엔진에 "같은 페이지의 다른 언어"로 알릴 언어들 (hreflang). 생략하면 모든 언어. 둘 미만이면 넣지 않음 */
   alternates?: readonly Locale[];
   body: Html;
@@ -102,6 +112,7 @@ export function layout(props: LayoutProps): Html {
   <meta property="og:image" content="${image}">
   <link rel="alternate" type="application/rss+xml" title="${site.name}" href="${localizedPath(locale, "/rss.xml")}">
   <link rel="stylesheet" href="/assets/site.css">
+  ${props.math ? html`<link rel="stylesheet" href="${KATEX_CSS}">` : ""}
   <script>${raw(SITE_SCRIPT)}</script>
 </head>
 <body>
@@ -230,6 +241,7 @@ export function postPage({ site, locale = SOURCE_LOCALE, post, bodyHtml, toc, al
     image: post.thumbnail,
     type: "article",
     alternates,
+    math: hasMath(bodyHtml),
     body: article(locale, post, bodyHtml, toc),
   });
 }
@@ -291,7 +303,7 @@ export function untranslatedPostPage({ site, locale, post, bodyHtml }: Untransla
         </section>
       </div>
     </div>`;
-  return layout({ site, locale, title: post.title, path: postPath(post.id), image: post.thumbnail, noindex: true, body });
+  return layout({ site, locale, title: post.title, path: postPath(post.id), image: post.thumbnail, noindex: true, math: hasMath(bodyHtml), body });
 }
 
 // ── 태그 모음 ────────────────────────────────────────

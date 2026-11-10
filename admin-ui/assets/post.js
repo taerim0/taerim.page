@@ -10,7 +10,7 @@
  */
 import { ApiError, getLimits, postsApi, translationsApi } from "./api.js";
 import { blockIndexAt, charCount, createBlockPreview, isAllowedTag, normalizeTag, normalizeTags, renderMarkdown, TAG_CHARS_MESSAGE } from "./lib.js";
-import { bindCodeCopy, loadHighlighterFor } from "./code-blocks.js";
+import { bindCodeCopy, loadHighlighterFor, loadMathFor } from "./code-blocks.js";
 import { bindImageUpload } from "./image-upload.js";
 import { translationBadge } from "./translation-badge.js";
 import { bindTagInput, clearNotice, confirmDialog, el, flash, formatDateTime, notify } from "./ui.js";
@@ -350,10 +350,12 @@ function renderPreviewNow() {
   if (!isPreviewOpen()) return;
   preview.innerHTML = renderMarkdown(inputs.body.value);
   // 코드 블록이 있으면 색칠기를 (한 번만) 불러와서 다시 그림. 블록 기억도 새로 (기억해 둔 블록은 색이 없으므로)
-  loadHighlighterFor(inputs.body.value, () => {
+  const redraw = () => {
     blockPreview = createBlockPreview(renderMarkdown);
     renderPreviewNow();
-  });
+  };
+  loadHighlighterFor(inputs.body.value, redraw);
+  loadMathFor(inputs.body.value, redraw); // 수식도 같은 방식 (설계 13-8)
 }
 
 /** 편집 따라가기: 커서가 있는 블록이 미리보기 화면 밖이면 가운데로 (보이고 있으면 그대로) */

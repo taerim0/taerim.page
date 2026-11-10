@@ -28,6 +28,9 @@ import { D1PostRepository } from "../src/posts/d1-repository.ts";
 import type { Post } from "../src/posts/types.ts";
 import { setCodeHighlighter } from "../src/markdown/index.ts";
 import { createCodeHighlighter } from "../src/markdown/highlight.ts";
+import { createMathRenderer } from "../src/markdown/katex.ts";
+import { setMathRenderer } from "../src/markdown/index.ts";
+import { copyKatex } from "./copy-katex.ts";
 import { buildSite } from "../src/site/build.ts";
 import { SITE_CONFIG } from "../src/site/config.ts";
 import { fileNameFor } from "../src/site/files.ts";
@@ -134,6 +137,8 @@ async function main(): Promise<void> {
   const started = performance.now();
   // 코드 블록 색칠 (Shiki): 빌드는 항상 색을 HTML에 넣는다 (방문자 JS 없음)
   setCodeHighlighter(createCodeHighlighter());
+  // 수식(KaTeX)도 빌드 때 HTML로 (방문자 JS 없음). CSS·글꼴은 아래에서 assets/katex로 복사
+  setMathRenderer(createMathRenderer());
   const source = process.argv.includes("--remote") ? await openRemote() : await openLocal();
   try {
     const posts = await source.posts.listPublished();
@@ -147,6 +152,7 @@ async function main(): Promise<void> {
     // 지난 빌드의 파일(지운 글 등)이 남지 않게 통째로 비우고 다시 쓴다
     await rm(OUT_DIR, { recursive: true, force: true });
     await cp(STATIC_DIR, OUT_DIR, { recursive: true });
+    await copyKatex(join(OUT_DIR, "assets", "katex"));
     for (const [urlPath, content] of files) {
       const target = join(OUT_DIR, fileNameFor(urlPath));
       await mkdir(dirname(target), { recursive: true });

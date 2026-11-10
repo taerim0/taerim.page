@@ -8,7 +8,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "build:admin": "esbuild src/browser.ts --bundle --format=esm --target=es2022 --minify --legal-comments=eof --outfile=admin-ui/assets/lib.js && esbuild src/browser-highlight.ts --bundle --format=esm --target=es2022 --minify --legal-comments=eof --outfile=admin-ui/assets/highlight.js",
+    "build:admin": "esbuild src/browser.ts --bundle --format=esm --target=es2022 --minify --legal-comments=eof --outfile=admin-ui/assets/lib.js && esbuild src/browser-highlight.ts --bundle --format=esm --target=es2022 --minify --legal-comments=eof --outfile=admin-ui/assets/highlight.js && esbuild src/browser-math.ts --bundle --format=esm --target=es2022 --minify --legal-comments=eof --outfile=admin-ui/assets/math.js && node scripts/copy-katex.ts admin-ui/assets/katex",
     "build:site": "node scripts/build-site.ts",
     "dev:site": "npm run build:site && wrangler dev -c wrangler.site.jsonc --port 8789 --ip 127.0.0.1"
   },
@@ -25,6 +25,7 @@
   "dependencies": {
     "hono": "^4.13.17",
     "jose": "^6.2.15",
+    "katex": "^0.19.1",
     "markdown-it": "^15.0.3",
     "shiki": "^4.6.0"
   },

@@ -1,12 +1,12 @@
 // @ts-check
 /**
- * 관리자 미리보기의 코드 블록 (설계 13-6): 색칠 묶음 불러오기 + 복사 버튼
+ * 관리자 미리보기의 무거운 그리기 묶음과 코드 블록 (설계 13-6·13-8): 코드 색칠·수식 묶음 불러오기 + 복사 버튼
  *
  * - 색칠: Shiki(highlight.js, 약 2MB)는 무거워서 본문에 코드 블록이 처음 보일 때 한 번만 불러온다.
  *   불러오면 lib.js 렌더러에 꽂고 onReady로 미리보기를 다시 그리게 한다 (그 전까지는 색 없이)
  * - 복사: 공개 사이트 스크립트(i18n.ts SITE_SCRIPT)와 같은 규칙 — 줄마다 .code-text, 지운 줄(.line-del) 빼고
  */
-import { setCodeHighlighter } from "./lib.js";
+import { setCodeHighlighter, setMathRenderer } from "./lib.js";
 
 /** 코드 블록 여는 줄 (``` 또는 ~~~) */
 const FENCE = /(^|\n) {0,3}(`{3,}|~{3,})/;
@@ -30,6 +30,29 @@ export function loadHighlighterFor(markdown, onReady) {
     })
     .catch(() => {
       state = "none"; // 다음에 다시 시도 (색이 없을 뿐 미리보기는 그대로)
+    });
+}
+
+/** @type {"none" | "loading" | "ready"} */
+let mathState = "none";
+
+/**
+ * 본문에 $가 있으면 수식 그리개(math.js, KaTeX 약 260KB)를 (한 번만) 불러온다. 다 불러오면 onReady() (설계 13-8)
+ * 그 전까지 수식은 원문이 회색 코드 모양으로 보임
+ * @param {string} markdown
+ * @param {() => void} onReady
+ */
+export function loadMathFor(markdown, onReady) {
+  if (mathState !== "none" || !markdown.includes("$")) return;
+  mathState = "loading";
+  import("./math.js")
+    .then((/** @type {{ createMathRenderer: () => import("../../src/markdown/math.ts").MathRenderer }} */ module) => {
+      setMathRenderer(module.createMathRenderer());
+      mathState = "ready";
+      onReady();
+    })
+    .catch(() => {
+      mathState = "none";
     });
 }
 

@@ -17,9 +17,22 @@ export class PostError extends Error {
 /** 입력 칸 이름 */
 export type PostField = "title" | "body" | "summary" | "thumbnail" | "tags";
 
-/** 칸 하나의 문제 */
+/** 사이트 설정 칸 이름 (설계 15-3) */
+export type SettingsField =
+  | "name"
+  | "photo"
+  | "tagline"
+  | "taglineEn"
+  | "description"
+  | "descriptionEn"
+  | "github"
+  | "email"
+  | "linkedin"
+  | "solvedac";
+
+/** 칸 하나의 문제 (글 칸 또는 설정 칸) */
 export interface FieldIssue {
-  field: PostField;
+  field: PostField | SettingsField;
   message: string;
 }
 

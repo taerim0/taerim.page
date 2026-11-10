@@ -30,9 +30,12 @@ export type SettingsField =
   | "linkedin"
   | "solvedac";
 
-/** 칸 하나의 문제 (글 칸 또는 설정 칸) */
+/** 이슈 칸 이름 (설계 15-5) */
+export type IssueField = "date" | "title" | "body" | "titleEn" | "bodyEn";
+
+/** 칸 하나의 문제 (글·설정·이슈 칸) */
 export interface FieldIssue {
-  field: PostField | SettingsField;
+  field: PostField | SettingsField | IssueField;
   message: string;
 }
 

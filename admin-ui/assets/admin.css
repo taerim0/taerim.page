@@ -189,3 +189,11 @@ a.pill:hover { text-decoration: underline; }
 .preview .callout-warning .callout-title::before { content: "⚠"; }
 .preview .callout-caution { --callout: #cf222e; }
 .preview .callout-caution .callout-title::before { content: "⊘"; }
+
+/* 표 (설계 13-4): 넓으면 표만 가로 스크롤. 정렬은 칸의 style(text-align) */
+.preview .table-wrap { margin: 1em 0; overflow-x: auto; }
+.preview table { border-collapse: collapse; line-height: 1.5; }
+.preview th, .preview td { padding: 6px 12px; border: 1px solid #d0d7de; }
+/* 칸 안은 띄어쓰기에서만 줄을 바꿈 (한글이 한 글자씩 세로로 쪼개지지 않게) → 칸이 넓어지면 표만 가로 스크롤 */
+.preview th, .preview td { overflow-wrap: normal; word-break: keep-all; }
+.preview th { background: #f6f8fa; font-weight: 700; }

@@ -304,3 +304,15 @@ a.pill:hover { text-decoration: underline; }
 /* 태그 화면 트리: 깊이만큼 들여쓰기 */
 .tag-tree { list-style: none; margin: 0; padding: 0; }
 .tag-tree li { padding: 4px 0; }
+
+/* 임베드 카드 (설계 13-9): 카드 전체가 링크. 링크 카드는 오른쪽에 대표 그림, 좁으면 위로 */
+.preview .embed { margin: 1em 0; }
+.preview .embed-card { display: flex; gap: 12px; align-items: stretch; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; color: inherit; text-decoration: none; }
+.preview .embed-card:hover { border-color: var(--accent); }
+.preview .embed-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; }
+.preview .embed-title { font-weight: 700; overflow-wrap: anywhere; }
+.preview .embed-desc { color: var(--muted); font-size: .9em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.preview .embed-meta { margin-top: auto; color: var(--muted); font-size: .85em; }
+.preview .embed-repo .embed-meta::before { content: "◉ "; }
+.preview .embed-image { flex: 0 0 auto; width: 180px; max-width: 35%; object-fit: cover; background: var(--surface); }
+@media (max-width: 520px) { .preview .embed-card.has-image { flex-direction: column-reverse; } .preview .embed-image { width: 100%; max-width: none; aspect-ratio: 1200 / 630; } }

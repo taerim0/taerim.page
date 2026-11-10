@@ -9,7 +9,7 @@
  * - 공개 사이트 반영은 글 목록의 [배포]
  */
 import { ApiError, getLimits, postsApi, translationsApi } from "./api.js";
-import { bindCodeCopy, loadHighlighterFor, loadMathFor } from "./code-blocks.js";
+import { bindCodeCopy, loadEmbedsFor, loadHighlighterFor, loadMathFor } from "./code-blocks.js";
 import { bindImageUpload } from "./image-upload.js";
 import { charCount, renderMarkdown } from "./lib.js";
 import { clearNotice, formatDateTime, notify } from "./ui.js";
@@ -235,6 +235,7 @@ function renderPane() {
   const shown = paneTab === "source" ? source.body : inputs.body.value;
   loadHighlighterFor(shown, renderPane);
   loadMathFor(shown, renderPane);
+  loadEmbedsFor(shown, renderPane);
   if (paneTab === "source") {
     previewTitle.textContent = source.title;
     preview.innerHTML = renderMarkdown(source.body);

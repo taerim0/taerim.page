@@ -205,6 +205,12 @@ export const translationsApi = {
   unpublish: (id, lang) => request("POST", `/posts/${id}/translations/${lang}/unpublish`),
 };
 
+/** 임베드 카드 정보 (설계 13-9). 임베드 대상이 아니면 ApiError(not_found) */
+export const embedsApi = {
+  /** @param {string} url @returns {Promise<import("../../src/embeds/types.ts").EmbedInfo>} */
+  get: (url) => request("GET", `/embeds?url=${encodeURIComponent(url)}`),
+};
+
 /** 공개 사이트 배포 (GitHub Actions) */
 export const deployApi = {
   /** 배포 요청. 설정이 없으면 ApiError(code "unavailable") @returns {Promise<{ requested: true }>} */

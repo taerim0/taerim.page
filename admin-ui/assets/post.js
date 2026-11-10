@@ -11,7 +11,7 @@
 import { ApiError, getLimits, listTags, postsApi, setTagParent, translationsApi } from "./api.js";
 import { blockIndexAt, charCount, createBlockPreview, isAllowedTag, normalizeTag, normalizeTags, renderMarkdown, TAG_CHARS_MESSAGE, TagTree } from "./lib.js";
 import { openTagPopover } from "./tag-popover.js";
-import { bindCodeCopy, loadHighlighterFor, loadMathFor } from "./code-blocks.js";
+import { bindCodeCopy, loadEmbedsFor, loadHighlighterFor, loadMathFor } from "./code-blocks.js";
 import { bindImageUpload } from "./image-upload.js";
 import { translationBadge } from "./translation-badge.js";
 import { bindTagInput, clearNotice, confirmDialog, el, flash, formatDateTime, notify } from "./ui.js";
@@ -394,6 +394,7 @@ function renderPreviewNow() {
   };
   loadHighlighterFor(inputs.body.value, redraw);
   loadMathFor(inputs.body.value, redraw); // 수식도 같은 방식 (설계 13-8)
+  loadEmbedsFor(inputs.body.value, redraw); // 임베드 카드 정보 (설계 13-9)
 }
 
 /** 편집 따라가기: 커서가 있는 블록이 미리보기 화면 밖이면 가운데로 (보이고 있으면 그대로) */

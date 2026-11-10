@@ -6,7 +6,8 @@
  *   불러오면 lib.js 렌더러에 꽂고 onReady로 미리보기를 다시 그리게 한다 (그 전까지는 색 없이)
  * - 복사: 공개 사이트 스크립트(i18n.ts SITE_SCRIPT)와 같은 규칙 — 줄마다 .code-text, 지운 줄(.line-del) 빼고
  */
-import { setCodeHighlighter, setMathRenderer } from "./lib.js";
+import { embedsApi } from "./api.js";
+import { embedUrls, setCodeHighlighter, setEmbedResolver, setMathRenderer } from "./lib.js";
 
 /** 코드 블록 여는 줄 (``` 또는 ~~~) */
 const FENCE = /(^|\n) {0,3}(`{3,}|~{3,})/;
@@ -54,6 +55,36 @@ export function loadMathFor(markdown, onReady) {
     .catch(() => {
       mathState = "none";
     });
+}
+
+// ── 임베드 카드 정보 (설계 13-9) ────────────────────────
+// 미리보기에 나온 !embed 주소마다 관리자 API로 정보를 받아(서버가 저장·7일마다 갱신) 렌더러에 꽂는다.
+// 받기 전에는 주소만 있는 단순 카드
+
+/** @type {Map<string, import("../../src/markdown/embed.ts").EmbedView | null | "loading">} */
+const embedCache = new Map();
+setEmbedResolver((url) => {
+  const view = embedCache.get(url);
+  return view && view !== "loading" ? view : null;
+});
+
+/**
+ * 본문의 임베드 주소 중 아직 안 받은 것을 받아 온다. 하나라도 받으면 onReady()
+ * @param {string} markdown
+ * @param {() => void} onReady
+ */
+export function loadEmbedsFor(markdown, onReady) {
+  const urls = embedUrls(markdown).filter((url) => !embedCache.has(url));
+  if (urls.length === 0) return;
+  for (const url of urls) embedCache.set(url, "loading");
+  void Promise.all(
+    urls.map((url) =>
+      embedsApi
+        .get(url)
+        .then((info) => embedCache.set(url, { ...info, imageSrc: info.image ? `/embed-images/${info.image}` : null }))
+        .catch(() => embedCache.set(url, null)),
+    ),
+  ).then(onReady);
 }
 
 /**

@@ -26,6 +26,8 @@ import type { D1Database } from "../src/posts/d1.ts";
 import { createD1Http } from "../src/posts/d1-http.ts";
 import { D1PostRepository } from "../src/posts/d1-repository.ts";
 import type { Post } from "../src/posts/types.ts";
+import { setCodeHighlighter } from "../src/markdown/index.ts";
+import { createCodeHighlighter } from "../src/markdown/highlight.ts";
 import { buildSite } from "../src/site/build.ts";
 import { SITE_CONFIG } from "../src/site/config.ts";
 import { fileNameFor } from "../src/site/files.ts";
@@ -130,6 +132,8 @@ async function readImages(source: Source, posts: readonly ImageUser[]): Promise<
 
 async function main(): Promise<void> {
   const started = performance.now();
+  // 코드 블록 색칠 (Shiki): 빌드는 항상 색을 HTML에 넣는다 (방문자 JS 없음)
+  setCodeHighlighter(createCodeHighlighter());
   const source = process.argv.includes("--remote") ? await openRemote() : await openLocal();
   try {
     const posts = await source.posts.listPublished();

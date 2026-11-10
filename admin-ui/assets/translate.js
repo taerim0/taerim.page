@@ -9,6 +9,7 @@
  * - 공개 사이트 반영은 글 목록의 [배포]
  */
 import { ApiError, getLimits, postsApi, translationsApi } from "./api.js";
+import { bindCodeCopy, loadHighlighterFor } from "./code-blocks.js";
 import { bindImageUpload } from "./image-upload.js";
 import { charCount, renderMarkdown } from "./lib.js";
 import { clearNotice, formatDateTime, notify } from "./ui.js";
@@ -230,6 +231,8 @@ let previewTimer = 0;
 function renderPane() {
   clearTimeout(previewTimer);
   if (!isPreviewOpen()) return;
+  // 코드 블록이 있으면 색칠기를 (한 번만) 불러와서 다시 그림
+  loadHighlighterFor(paneTab === "source" ? source.body : inputs.body.value, renderPane);
   if (paneTab === "source") {
     previewTitle.textContent = source.title;
     preview.innerHTML = renderMarkdown(source.body);
@@ -424,6 +427,7 @@ inputs.summary.addEventListener("input", () => onEdit("summary"));
 // 이미지 올리기: 이미지는 언어와 무관 (한글 글과 같은 주소를 써도 되고, 여기서 새로 올려도 됨)
 bindImageUpload({ textarea: inputs.body, button: imageButton, fileInput: /** @type {HTMLInputElement} */ ($("image-file")) });
 
+bindCodeCopy(preview);
 tabs.preview.addEventListener("click", () => setTab("preview"));
 tabs.source.addEventListener("click", () => setTab("source"));
 previewToggle.addEventListener("click", () => setPreviewOpen(!isPreviewOpen(), { remember: true }));

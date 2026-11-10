@@ -18,5 +18,5 @@
   },
   "include": ["src", "test", "scripts", "admin-ui/assets"],
   // 번들 결과물(자동 생성, 압축됨)은 검사하지 않는다
-  "exclude": ["admin-ui/assets/lib.js"]
+  "exclude": ["admin-ui/assets/lib.js", "admin-ui/assets/highlight.js"]
 }

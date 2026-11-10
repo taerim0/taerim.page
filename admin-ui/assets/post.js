@@ -10,6 +10,7 @@
  */
 import { ApiError, getLimits, postsApi, translationsApi } from "./api.js";
 import { blockIndexAt, charCount, createBlockPreview, isAllowedTag, normalizeTag, normalizeTags, renderMarkdown, TAG_CHARS_MESSAGE } from "./lib.js";
+import { bindCodeCopy, loadHighlighterFor } from "./code-blocks.js";
 import { bindImageUpload } from "./image-upload.js";
 import { translationBadge } from "./translation-badge.js";
 import { bindTagInput, clearNotice, confirmDialog, el, flash, formatDateTime, notify } from "./ui.js";
@@ -309,7 +310,7 @@ function renderTags() {
 
 // ── 미리보기 (B + D) ─────────────────────────────────
 
-const blockPreview = createBlockPreview(renderMarkdown);
+let blockPreview = createBlockPreview(renderMarkdown);
 /** 입력이 이만큼 멈추면 전체를 한 번 렌더링 (블록 방식의 차이를 바로잡음) */
 const FULL_RENDER_DELAY = 1500;
 let fullRenderTimer = 0;
@@ -348,6 +349,11 @@ function renderPreviewNow() {
   clearTimeout(fullRenderTimer);
   if (!isPreviewOpen()) return;
   preview.innerHTML = renderMarkdown(inputs.body.value);
+  // 코드 블록이 있으면 색칠기를 (한 번만) 불러와서 다시 그림. 블록 기억도 새로 (기억해 둔 블록은 색이 없으므로)
+  loadHighlighterFor(inputs.body.value, () => {
+    blockPreview = createBlockPreview(renderMarkdown);
+    renderPreviewNow();
+  });
 }
 
 /** 편집 따라가기: 커서가 있는 블록이 미리보기 화면 밖이면 가운데로 (보이고 있으면 그대로) */
@@ -613,6 +619,7 @@ bindImageUpload({
   fileInput: /** @type {HTMLInputElement} */ ($("image-file")),
 });
 
+bindCodeCopy(preview);
 previewToggle.addEventListener("click", () => setPreviewOpen(!isPreviewOpen(), { remember: true }));
 previewClose.addEventListener("click", () => setPreviewOpen(false, { remember: true }));
 // 창 크기가 넓은↔좁은 경계를 넘으면 그 크기의 처음 상태로

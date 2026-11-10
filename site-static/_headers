@@ -3,3 +3,7 @@
 # (해시 이름이 아닌 기본 대표 이미지는 /assets/ 에 둔다)
 /images/*
   Cache-Control: public, max-age=31536000, immutable
+
+# 임베드 카드 그림도 이름이 내용 해시 → 1년 캐시 (설계 13-9)
+/embeds/*
+  Cache-Control: public, max-age=31536000, immutable

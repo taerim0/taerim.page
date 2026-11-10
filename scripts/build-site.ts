@@ -29,12 +29,15 @@ import type { Post } from "../src/posts/types.ts";
 import { setCodeHighlighter } from "../src/markdown/index.ts";
 import { createCodeHighlighter } from "../src/markdown/highlight.ts";
 import { createMathRenderer } from "../src/markdown/katex.ts";
-import { setMathRenderer } from "../src/markdown/index.ts";
+import { embedUrls, setEmbedResolver, setMathRenderer } from "../src/markdown/index.ts";
+import type { EmbedView } from "../src/markdown/index.ts";
 import { copyKatex } from "./copy-katex.ts";
 import { buildSite } from "../src/site/build.ts";
 import { SITE_CONFIG } from "../src/site/config.ts";
 import { fileNameFor } from "../src/site/files.ts";
 import { collectImageNames } from "../src/site/images.ts";
+import { D1EmbedRepository } from "../src/embeds/repository.ts";
+import type { EmbedRepository } from "../src/embeds/repository.ts";
 import { D1TranslationRepository } from "../src/translations/d1-repository.ts";
 import type { TranslationRepository } from "../src/translations/repository.ts";
 import { TRANSLATION_LANGS } from "../src/translations/types.ts";
@@ -43,6 +46,7 @@ import type { PublishedTranslation } from "../src/translations/types.ts";
 const OUT_DIR = "dist/site";
 const IMAGES_DIR = join(OUT_DIR, "images");
 const STATIC_DIR = "site-static";
+const EMBEDS_DIR = join(OUT_DIR, "embeds");
 const WRANGLER_CONFIG = "wrangler.jsonc";
 /** 이미지를 동시에 몇 개씩 받을지 */
 const DOWNLOAD_CONCURRENCY = 6;
@@ -52,6 +56,7 @@ interface Source {
   label: string;
   posts: D1PostRepository;
   translations: TranslationRepository;
+  embeds: EmbedRepository;
   images: ImageRepository;
   files: ImageStore;
   close(): Promise<void>;
@@ -78,6 +83,7 @@ async function openRemote(): Promise<Source> {
     label: "원격",
     posts: new D1PostRepository(db),
     translations: new D1TranslationRepository(db),
+    embeds: new D1EmbedRepository(db),
     images: new D1ImageRepository(db),
     files: new R2ImageStore(bucket),
     close: async () => {},
@@ -91,6 +97,7 @@ async function openLocal(): Promise<Source> {
     label: "로컬",
     posts: new D1PostRepository(proxy.env.DB),
     translations: new D1TranslationRepository(proxy.env.DB),
+    embeds: new D1EmbedRepository(proxy.env.DB),
     images: new D1ImageRepository(proxy.env.DB),
     files: new R2ImageStore(proxy.env.IMAGES),
     close: () => proxy.dispose(),
@@ -133,6 +140,30 @@ async function readImages(source: Source, posts: readonly ImageUser[]): Promise<
   return downloaded.sort((a, b) => (a.info.name < b.info.name ? -1 : 1));
 }
 
+/**
+ * 임베드 카드 (설계 13-9): 글에 쓰인 !embed 주소들의 저장된 정보(D1)를 읽어 렌더러에 꽂고, 카드 그림을 R2에서 받음.
+ * 빌드는 남의 사이트에 접속하지 않는다 → 저장된 게 없으면 단순 카드 (관리자 미리보기에서 한 번 보면 채워짐)
+ */
+async function readEmbeds(source: Source, bodies: readonly string[]): Promise<{ count: number; images: { name: string; bytes: Uint8Array }[] }> {
+  const urls = [...new Set(bodies.flatMap((body) => embedUrls(body)))];
+  const infos = await source.embeds.getMany(urls);
+  const images: { name: string; bytes: Uint8Array }[] = [];
+  for (const info of infos) {
+    if (!info.image) continue;
+    const file = await source.files.get(info.image).catch(() => null);
+    if (file) images.push({ name: info.image, bytes: new Uint8Array(await new Response(file.body).arrayBuffer()) });
+    else console.warn(`⚠ 없는 카드 그림: ${info.image} (${info.url}) → 그림 없이`);
+  }
+  const saved = new Set(images.map((image) => image.name));
+  const views = new Map<string, EmbedView>(
+    infos.map((info) => [info.url, { ...info, imageSrc: info.image && saved.has(info.image) ? `/embeds/${info.image}` : null }]),
+  );
+  setEmbedResolver((url) => views.get(url));
+  const missing = urls.filter((url) => !views.has(url));
+  if (missing.length > 0) console.warn(`⚠ 정보가 저장되지 않은 임베드 ${missing.length}개 → 단순 카드 (관리자 미리보기에서 한 번 열면 채워져요): ${missing.join(", ")}`);
+  return { count: infos.length, images };
+}
+
 async function main(): Promise<void> {
   const started = performance.now();
   // 코드 블록 색칠 (Shiki): 빌드는 항상 색을 HTML에 넣는다 (방문자 JS 없음)
@@ -149,6 +180,7 @@ async function main(): Promise<void> {
     const images = await readImages(source, imageUsers);
     // 태그 상하관계 (설계 14): 글의 태그에 상위 태그를 붙이고 태그 모음을 트리로
     const tagParents = await source.posts.listTagParents();
+    const embeds = await readEmbeds(source, [...posts.map((p) => p.body), ...translations.map((t) => t.body)]);
     const files = await buildSite({ site: SITE_CONFIG, posts, translations, tagParents, images: images.map((image) => image.info) });
 
     // 지난 빌드의 파일(지운 글 등)이 남지 않게 통째로 비우고 다시 쓴다
@@ -160,6 +192,9 @@ async function main(): Promise<void> {
       await mkdir(dirname(target), { recursive: true });
       await writeFile(target, content, "utf8");
     }
+    // 임베드 카드 그림 (설계 13-9): R2 → dist/site/embeds/
+    await mkdir(EMBEDS_DIR, { recursive: true });
+    for (const { name, bytes } of embeds.images) await writeFile(join(EMBEDS_DIR, name), bytes);
     await mkdir(IMAGES_DIR, { recursive: true });
     for (const { info, bytes } of images) await writeFile(join(IMAGES_DIR, info.name), bytes);
 

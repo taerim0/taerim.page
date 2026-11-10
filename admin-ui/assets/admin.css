@@ -334,27 +334,28 @@ a.pill:hover { text-decoration: underline; }
 .profile-links { margin: 8px 0 0; font-size: .9em; }
 .profile-links a { color: var(--accent); }
 
-/* ── 이슈 화면 (issues.html, 설계 15-5) ── */
-.issues-page { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 24px; align-items: start; }
-@media (max-width: 799px) { .issues-page { grid-template-columns: 1fr; } }
-.issue-side { position: sticky; top: 16px; }
-.issue-side-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.issue-side-head .settings-heading { margin: 0; }
-.issue-help { font-size: .85em; }
-.issue-list { list-style: none; margin: 0; padding: 0; max-height: 70vh; overflow-y: auto; }
-.issue-item { display: flex; gap: 8px; width: 100%; padding: 6px 8px; border: 0; border-radius: 6px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-.issue-item:hover { background: var(--hover, rgba(127, 127, 127, .12)); }
-.issue-item[aria-current="true"] { background: rgba(127, 127, 127, .2); font-weight: 600; }
-.issue-item-date { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.issue-item-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.issue-row { display: flex; flex-wrap: wrap; gap: 12px; }
-.issue-date { flex: 0 0 auto; }
-.issue-title { flex: 1 1 240px; }
-.issue-body-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.issue-body-input { width: 100%; min-height: 180px; font-family: ui-monospace, Consolas, monospace; resize: vertical; }
-.issue-preview { margin: 8px 0 16px; }
-.issue-preview-box { padding: 12px 16px; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; }
-.issue-preview-title { margin: 0 0 4px; font-weight: 700; }
-.issue-badge { display: inline-block; padding: 0 6px; border: 1px solid var(--accent); border-radius: 4px; color: var(--accent); font-size: .8em; font-weight: 600; }
-.issue-english { margin-bottom: 16px; }
-.issue-english summary { cursor: pointer; color: var(--muted); margin-bottom: 8px; }
+/* ── 활동 화면 (activities.html, 설계 15-5, 15-8) ── */
+.activities-page { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 799px) { .activities-page { grid-template-columns: 1fr; } }
+.activity-side { position: sticky; top: 16px; }
+.activity-side-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.activity-side-head .settings-heading { margin: 0; }
+.activity-help { font-size: .85em; }
+.activity-list { list-style: none; margin: 0; padding: 0; max-height: 70vh; overflow-y: auto; }
+.activity-item { display: flex; gap: 8px; width: 100%; padding: 6px 8px; border: 0; border-radius: 6px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.activity-item:hover { background: var(--hover, rgba(127, 127, 127, .12)); }
+.activity-item[aria-current="true"] { background: rgba(127, 127, 127, .2); font-weight: 600; }
+.activity-item-date { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.activity-item-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.activity-row { display: flex; flex-wrap: wrap; gap: 12px; }
+.activity-date { flex: 0 0 auto; }
+.activity-label { flex: 0 1 160px; }
+.activity-title { flex: 1 1 240px; }
+.activity-body-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.activity-body-input { width: 100%; min-height: 180px; font-family: ui-monospace, Consolas, monospace; resize: vertical; }
+.activity-preview { margin: 8px 0 16px; }
+.activity-preview-box { padding: 12px 16px; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; }
+.activity-preview-title { margin: 0 0 4px; font-weight: 700; }
+.activity-badge { display: inline-block; padding: 0 6px; border: 1px solid var(--accent); border-radius: 4px; color: var(--accent); font-size: .8em; font-weight: 600; }
+.activity-english { margin-bottom: 16px; }
+.activity-english summary { cursor: pointer; color: var(--muted); margin-bottom: 8px; }

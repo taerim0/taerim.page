@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
 import type { EmbedService } from "../embeds/service.ts";
-import type { IssueService } from "../issues/issues.ts";
+import type { ActivityService } from "../activities/activities.ts";
 import type { SettingsService } from "../settings/settings.ts";
 import type { ImageService } from "../images/service.ts";
 import { MAX_IMAGE_BYTES } from "../images/service.ts";
@@ -30,8 +30,8 @@ export interface ApiDeps {
   images?: ImageService;
   /** 사이트 설정 (설계 15-3). 없으면 설정 API는 503 */
   settings?: SettingsService;
-  /** 이슈 (설계 15-5). 없으면 이슈 API는 503 */
-  issues?: IssueService;
+  /** 활동 (설계 15-5). 없으면 활동 API는 503 */
+  activities?: ActivityService;
   /** 임베드 카드 정보 (설계 13-9). 없으면 임베드 API는 503 */
   embeds?: EmbedService;
   /** 번역 기능. 없으면 번역 API는 503 (제공자 설정이 없어도 이건 있음 — 그때는 번역 버튼만 503) */
@@ -46,7 +46,7 @@ export const MAX_BODY_BYTES = 1024 * 1024;
  * 여기서는 요청을 읽어 서비스에 넘기고 결과를 JSON으로 돌려주기만 한다.
  * 실패하면 오류를 던지고, 응답 변환은 app.ts의 오류 처리가 맡는다.
  */
-export function createApiRoutes({ service, render, deploy, images, translations, embeds, settings, issues }: ApiDeps): Hono<AdminEnv> {
+export function createApiRoutes({ service, render, deploy, images, translations, embeds, settings, activities }: ApiDeps): Hono<AdminEnv> {
   const api = new Hono<AdminEnv>();
 
   // ── 글 ─────────────────────────────────────────────
@@ -160,13 +160,13 @@ export function createApiRoutes({ service, render, deploy, images, translations,
   /** 통째로 저장 (칸별 오류는 400). 공개 사이트는 배포해야 바뀜 */
   api.put("/settings", async (c) => c.json(await requireSettings(settings).save(await readJson(c))));
 
-  // ── 이슈 (설계 15-5) ────────────────────────────────
-  api.get("/issues", async (c) => c.json(await requireIssues(issues).list()));
-  api.post("/issues", async (c) => c.json(await requireIssues(issues).create(await readJson(c)), 201));
-  api.get("/issues/:id", async (c) => c.json(await requireIssues(issues).get(issueIdParam(c))));
-  api.put("/issues/:id", async (c) => c.json(await requireIssues(issues).update(issueIdParam(c), await readJson(c))));
-  api.delete("/issues/:id", async (c) => {
-    await requireIssues(issues).delete(issueIdParam(c));
+  // ── 활동 (설계 15-5) ────────────────────────────────
+  api.get("/activities", async (c) => c.json(await requireActivities(activities).list()));
+  api.post("/activities", async (c) => c.json(await requireActivities(activities).create(await readJson(c)), 201));
+  api.get("/activities/:id", async (c) => c.json(await requireActivities(activities).get(activityIdParam(c))));
+  api.put("/activities/:id", async (c) => c.json(await requireActivities(activities).update(activityIdParam(c), await readJson(c))));
+  api.delete("/activities/:id", async (c) => {
+    await requireActivities(activities).delete(activityIdParam(c));
     return c.body(null, 204);
   });
 
@@ -192,15 +192,15 @@ export function createApiRoutes({ service, render, deploy, images, translations,
   return api;
 }
 
-function requireIssues(issues: IssueService | undefined): IssueService {
-  if (!issues) throw new HttpError("unavailable", "이슈 기능이 설정되지 않았어요");
-  return issues;
+function requireActivities(activities: ActivityService | undefined): ActivityService {
+  if (!activities) throw new HttpError("unavailable", "활동 기능이 설정되지 않았어요");
+  return activities;
 }
 
-/** 주소의 이슈 :id. 숫자가 아니면 404 */
-function issueIdParam(c: Context<AdminEnv>): number {
+/** 주소의 활동 :id. 숫자가 아니면 404 */
+function activityIdParam(c: Context<AdminEnv>): number {
   const raw = c.req.param("id") ?? "";
-  if (!/^[1-9]\d*$/.test(raw) || !Number.isSafeInteger(Number(raw))) throw new HttpError("not_found", "이슈를 찾을 수 없어요");
+  if (!/^[1-9]\d*$/.test(raw) || !Number.isSafeInteger(Number(raw))) throw new HttpError("not_found", "활동을 찾을 수 없어요");
   return Number(raw);
 }
 

@@ -215,19 +215,19 @@ export const settingsApi = {
   save: (settings) => request("PUT", "/settings", settings),
 };
 
-/** @typedef {import("../../src/issues/issues.ts").Issue} Issue */
-/** @typedef {import("../../src/issues/issues.ts").IssueInput} IssueInput */
+/** @typedef {import("../../src/activities/activities.ts").Activity} Activity */
+/** @typedef {import("../../src/activities/activities.ts").ActivityInput} ActivityInput */
 
-/** 이슈 (설계 15-5): 아카이브·홈에 보이는 짧은 기록 */
-export const issuesApi = {
-  /** 최신 순 @returns {Promise<Issue[]>} */
-  list: () => request("GET", "/issues"),
-  /** @param {IssueInput} input @returns {Promise<Issue>} */
-  create: (input) => request("POST", "/issues", input),
-  /** @param {number} id @param {IssueInput} input @returns {Promise<Issue>} */
-  update: (id, input) => request("PUT", `/issues/${id}`, input),
+/** 활동 (설계 15-5, 15-8): 아카이브·홈에 보이는 짧은 기록 */
+export const activitiesApi = {
+  /** 최신 순 @returns {Promise<Activity[]>} */
+  list: () => request("GET", "/activities"),
+  /** @param {ActivityInput} input @returns {Promise<Activity>} */
+  create: (input) => request("POST", "/activities", input),
+  /** @param {number} id @param {ActivityInput} input @returns {Promise<Activity>} */
+  update: (id, input) => request("PUT", `/activities/${id}`, input),
   /** @param {number} id @returns {Promise<void>} */
-  remove: (id) => request("DELETE", `/issues/${id}`),
+  remove: (id) => request("DELETE", `/activities/${id}`),
 };
 
 /** 임베드 카드 정보 (설계 13-9). 임베드 대상이 아니면 ApiError(not_found) */

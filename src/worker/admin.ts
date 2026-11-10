@@ -5,7 +5,7 @@
  * 저장소: D1 (env.DB), 이미지 파일은 R2 (env.IMAGES).
  * 로컬 개발(wrangler dev)에서는 내 PC의 로컬 D1·R2(.wrangler/)를 쓴다.
  */
-import { D1IssueRepository, IssueService } from "../issues/issues.ts";
+import { D1ActivityRepository, ActivityService } from "../activities/activities.ts";
 import type { Hono } from "hono";
 import { createAdminApp } from "../admin/app.ts";
 import { accessAuthenticator, denyAllAuthenticator, localDevAuthenticator } from "../admin/auth.ts";
@@ -93,7 +93,7 @@ function buildApp(env: AdminWorkerEnv): Hono<AdminEnv> {
     deploy: chooseDeploy(env),
     images: env.IMAGES ? new ImageService(new R2ImageStore(env.IMAGES), new D1ImageRepository(env.DB)) : undefined,
     settings: new SettingsService(new D1SettingsRepository(env.DB)),
-    issues: new IssueService(new D1IssueRepository(env.DB)),
+    activities: new ActivityService(new D1ActivityRepository(env.DB)),
     // 임베드 카드: 정보는 D1, 대표 그림은 R2(이미지와 같은 버킷), GitHub API는 배포 토큰이 있으면 같이 (요청 한도용)
     embeds: new EmbedService(new D1EmbedRepository(env.DB), { bucket: env.IMAGES, githubToken: env.GITHUB_DEPLOY_TOKEN }),
     translations: new TranslationService(posts, new D1TranslationRepository(env.DB), { llm: createLlmClient(env) }),

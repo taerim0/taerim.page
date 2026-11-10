@@ -290,3 +290,17 @@ a.pill:hover { text-decoration: underline; }
 .preview pre.math-src { margin: 0; padding: 8px 12px; border-radius: 6px; background: var(--surface); }
 /* 틀린 수식 원문: 한글 글꼴에서는 \ 가 ₩로 보여서 코드 글꼴로 */
 .preview .katex-error { font-family: ui-monospace, "D2Coding", Consolas, monospace; }
+
+/* ── 태그 상하관계 (설계 14) ── */
+/* 상위 태그라서 자동으로 붙는 칩: 흐리게, 누를 수 없음 */
+.chip.auto { border-style: dashed; background: transparent; color: var(--muted); border-color: var(--line); cursor: default; }
+/* 칩을 눌렀을 때 뜨는 작은 창 */
+.tag-popover { position: absolute; z-index: 20; width: min(320px, calc(100vw - 16px)); padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff; box-shadow: 0 6px 24px rgba(0, 0, 0, .15); }
+.tag-popover-title { margin: 0 0 8px; font-weight: 600; }
+.tag-popover-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.tag-popover-row input { flex: 1; min-width: 8em; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; font: inherit; }
+.tag-popover-row + .tag-popover-row { margin-top: 8px; }
+.tag-popover-note { margin: 6px 0 0; font-size: .85em; }
+/* 태그 화면 트리: 깊이만큼 들여쓰기 */
+.tag-tree { list-style: none; margin: 0; padding: 0; }
+.tag-tree li { padding: 4px 0; }

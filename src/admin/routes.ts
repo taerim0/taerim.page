@@ -88,6 +88,14 @@ export function createApiRoutes({ service, render, deploy, images, translations 
   // ── 그 밖 ──────────────────────────────────────────
   api.get("/tags", async (c) => c.json(await service.listTags()));
 
+  /** 태그의 부모 정하기 { parent: "개발" | null } → 전체 태그 목록 (설계 14). 이름은 주소 인코딩 */
+  api.put("/tags/:name/parent", async (c) => {
+    const data = await readJson(c);
+    const parent = typeof data === "object" && data !== null ? (data as { parent?: unknown }).parent : undefined;
+    if (parent !== null && typeof parent !== "string") throw new HttpError("bad_request", "parent(상위 태그)를 글자나 null로 보내 주세요");
+    return c.json(await service.setTagParent(c.req.param("name") ?? "", parent));
+  });
+
   /**
    * 입력 제한값. 관리자 화면이 "남은 글자 수"를 보여줄 때 쓴다. 번역 칸 제한은 translation 아래에.
    * 화면에 숫자를 따로 적지 않고 여기서 받아 가서, 서버 규칙과 화면 표시가 어긋나지 않게 한다.

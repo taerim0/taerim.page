@@ -1,8 +1,9 @@
-import { ConflictError, NotFoundError } from "./errors.ts";
+import { ConflictError, NotFoundError, ValidationError } from "./errors.ts";
 import { MAX_PAGE_SIZE } from "./repository.ts";
 import type { PostRepository } from "./repository.ts";
-import type { Page, Post, PostDraft, PostListFilter, PostSummary, TagCount } from "./types.ts";
-import { validatePostInput, validatePostPatch } from "./validation.ts";
+import { TagTree } from "./tag-tree.ts";
+import type { Page, Post, PostDraft, PostListFilter, PostSummary, TagNode } from "./types.ts";
+import { isAllowedTag, normalizeTag, TAG_CHARS_MESSAGE, validatePostInput, validatePostPatch } from "./validation.ts";
 
 /** 서비스 설정 */
 export interface PostServiceOptions {
@@ -51,14 +52,56 @@ export class PostService {
     return { post, draft };
   }
 
-  /** 글 목록 (기본 10개씩) */
-  list(filter?: PostListFilter): Promise<Page<PostSummary>> {
-    return this.#repo.list(filter);
+  /**
+   * 글 목록 (기본 10개씩). 설계 14:
+   * - 태그로 거르면 그 태그의 하위 태그가 붙은 글도 (상위 태그가 같이 붙은 것으로 보므로)
+   * - 글마다 태그에 상위 태그를 붙여서 (트리 순)
+   */
+  async list(filter: PostListFilter = {}): Promise<Page<PostSummary>> {
+    const tree = await this.#tree();
+    const tagGroups = filter.tagGroups ?? filter.tags?.map((tag) => [tag, ...tree.descendantsOf(tag)]);
+    const page = await this.#repo.list({ ...filter, tags: undefined, tagGroups });
+    return { ...page, items: page.items.map((item) => ({ ...item, tags: tree.withAncestors(item.tags) })) };
   }
 
-  /** 태그별 글 개수 */
-  listTags(): Promise<TagCount[]> {
-    return this.#repo.listTags();
+  /** 모든 태그와 부모·글 수 (트리 순, 안 쓰이는 태그 포함 — 화면이 total로 거름) */
+  async listTags(): Promise<TagNode[]> {
+    const [parents, usage] = await Promise.all([this.#repo.listTagParents(), this.#repo.listTagUsage()]);
+    const tree = new TagTree(parents);
+    const postsByTag = new Map<string, Set<number>>();
+    for (const { name, postId } of usage) {
+      const set = postsByTag.get(name) ?? new Set<number>();
+      set.add(postId);
+      postsByTag.set(name, set);
+    }
+    return tree.names().map((name) => {
+      const total = new Set<number>();
+      for (const tag of [name, ...tree.descendantsOf(name)]) for (const id of postsByTag.get(tag) ?? []) total.add(id);
+      return { name, parent: tree.parentOf(name), count: postsByTag.get(name)?.size ?? 0, total: total.size };
+    });
+  }
+
+  /**
+   * 태그의 부모를 정한다 (설계 14). 블로그 전체에 적용. 없는 태그는 새로 만든다.
+   * 이름은 글의 태그와 같은 규칙으로 정리·검사, 자기 자신·자기 하위를 부모로 하면 ConflictError
+   * @returns 바뀐 뒤의 전체 태그 목록
+   */
+  async setTagParent(rawName: string, rawParent: string | null): Promise<TagNode[]> {
+    const name = normalizeTag(rawName);
+    const parent = rawParent === null ? null : normalizeTag(rawParent);
+    for (const tag of [name, parent]) {
+      if (tag === null) continue;
+      if (tag === "" || !isAllowedTag(tag)) throw new ValidationError([{ field: "tags", message: `${TAG_CHARS_MESSAGE}: ${tag}` }]);
+    }
+    if (parent !== null && (await this.#tree()).wouldCycle(name, parent)) {
+      throw new ConflictError(`#${parent}은(는) #${name}의 하위 태그라서 상위로 둘 수 없어요`);
+    }
+    await this.#repo.setTagParent(name, parent);
+    return this.listTags();
+  }
+
+  async #tree(): Promise<TagTree> {
+    return new TagTree(await this.#repo.listTagParents());
   }
 
   // ── 쓰기 ─────────────────────────────────────────────

@@ -8,8 +8,9 @@
  * - 미리보기: 입력 중에는 바뀐 블록만, 입력이 멈추면 전체를 한 번 렌더링
  * - 글자 수는 서버와 같은 방식(charCount)으로 세고, 제한값은 서버(GET /api/limits)에서 받는다
  */
-import { ApiError, getLimits, postsApi, translationsApi } from "./api.js";
-import { blockIndexAt, charCount, createBlockPreview, isAllowedTag, normalizeTag, normalizeTags, renderMarkdown, TAG_CHARS_MESSAGE } from "./lib.js";
+import { ApiError, getLimits, listTags, postsApi, setTagParent, translationsApi } from "./api.js";
+import { blockIndexAt, charCount, createBlockPreview, isAllowedTag, normalizeTag, normalizeTags, renderMarkdown, TAG_CHARS_MESSAGE, TagTree } from "./lib.js";
+import { openTagPopover } from "./tag-popover.js";
 import { bindCodeCopy, loadHighlighterFor, loadMathFor } from "./code-blocks.js";
 import { bindImageUpload } from "./image-upload.js";
 import { translationBadge } from "./translation-badge.js";
@@ -81,6 +82,10 @@ let saved = emptyValues();
 let savedAt = /** @type {string | null} */ (null);
 /** 지금 태그 (띄어쓰기·엔터로 완성한 것만. 태그 칸에 치다 만 글자는 넣지 않는다) */
 let tags = /** @type {string[]} */ ([]);
+/** 태그 상하관계 (설계 14). 글에는 직접 고른 태그만, 상위 태그는 이 트리로 계산해 흐린 칩으로 보여 줌 */
+let tagTree = new TagTree([]);
+/** 블로그의 모든 태그 이름 (상위 태그 자동완성) */
+let allTagNames = /** @type {string[]} */ ([]);
 /** 요청 중이면 버튼을 잠근다 (두 번 누르기 방지) */
 let busy = false;
 /** 휴지통으로 보낸 뒤 목록으로 갈 때는 "떠날까요?" 경고를 하지 않는다 */
@@ -139,8 +144,9 @@ function idFromPath() {
 async function load() {
   const id = idFromPath();
   try {
-    const [limitValues, forEdit] = await Promise.all([getLimits(), id === null ? null : postsApi.get(id)]);
+    const [limitValues, forEdit, tagNodes] = await Promise.all([getLimits(), id === null ? null : postsApi.get(id), listTags()]);
     limits = limitValues;
+    useTagNodes(tagNodes);
     if (forEdit) {
       postId = forEdit.post.id;
       setFromServer(forEdit.post, forEdit.draft, { overwriteInputs: true });
@@ -282,30 +288,62 @@ function renderCounts(now) {
   return over;
 }
 
+/** 서버의 태그 목록으로 트리·자동완성 갱신 @param {import("./api.js").TagNode[]} nodes */
+function useTagNodes(nodes) {
+  tagTree = new TagTree(nodes);
+  allTagNames = nodes.map((node) => node.name);
+}
+
+/**
+ * 태그 칩: 직접 고른 태그(누르면 상위 태그 팝업) + 자동으로 붙는 상위 태그(흐린 칩), 트리 순 (설계 14)
+ */
 function renderTags() {
+  const direct = new Set(tags);
   tagChips.replaceChildren(
-    ...tags.map((tag) => {
+    ...tagTree.withAncestors(tags).map((tag) => {
+      if (!direct.has(tag)) {
+        const because = tags.filter((t) => tagTree.ancestorsOf(t).includes(tag)).map((t) => `#${t}`).join(", ");
+        return el("span", { class: "chip auto", title: `${because}의 상위 태그라서 자동으로 붙어요` }, `#${tag}`);
+      }
       const tooLong = charCount(tag) > limits.tagLength;
       const badChars = !isAllowedTag(tag);
-      return el(
+      const chip = el(
         "button",
         {
           type: "button",
           class: `chip${tooLong || badChars ? " over" : ""}`,
-          title: badChars
-            ? `${TAG_CHARS_MESSAGE} (눌러서 빼기)`
-            : tooLong
-              ? `태그는 ${limits.tagLength}자까지예요 (눌러서 빼기)`
-              : `${tag} 빼기`,
-          onClick: () => {
-            tags = tags.filter((t) => t !== tag);
-            onEdit("tags");
-          },
+          title: badChars ? TAG_CHARS_MESSAGE : tooLong ? `태그는 ${limits.tagLength}자까지예요` : "눌러서 상위 태그 정하기·빼기",
+          onClick: () =>
+            openTagPopover(chip, {
+              tag,
+              parent: tagTree.parentOf(tag),
+              suggestions: allTagNames,
+              onSetParent: (parent) => changeParent(tag, parent),
+              onRemove: () => {
+                tags = tags.filter((t) => t !== tag);
+                onEdit("tags");
+              },
+            }),
         },
-        `#${tag} ×`,
+        `#${tag}`,
       );
+      return chip;
     }),
   );
+}
+
+/**
+ * 태그의 상위 태그 바꾸기 (블로그 전체, 바로 저장). 실패하면 이유 글자, 성공하면 null
+ * @param {string} tag @param {string | null} parent
+ */
+async function changeParent(tag, parent) {
+  try {
+    useTagNodes(await setTagParent(tag, parent));
+    renderTags();
+    return null;
+  } catch (error) {
+    return error instanceof ApiError ? error.message : "상위 태그를 바꾸지 못했어요";
+  }
 }
 
 // ── 미리보기 (B + D) ─────────────────────────────────
@@ -593,18 +631,32 @@ inputs.body.addEventListener("input", () => onEdit("body"));
 inputs.summary.addEventListener("input", () => onEdit("summary"));
 inputs.thumbnail.addEventListener("input", () => onEdit("thumbnail"));
 
-/** 태그 하나 완성 @param {string} text */
-function addTag(text) {
-  const tag = normalizeTag(text);
-  if (tag && !tags.includes(tag)) {
+/**
+ * 태그 하나 완성. `개발/프론트엔드/react`처럼 쓰면 react를 붙이면서 상하관계도 정함 (설계 14, 블로그 전체에 바로 저장)
+ * @param {string} text
+ */
+async function addTag(text) {
+  const path = text.split("/").map(normalizeTag).filter(Boolean);
+  const tag = path[path.length - 1];
+  if (!tag) return;
+  for (let i = 1; i < path.length; i++) {
+    const problem = await changeParent(/** @type {string} */ (path[i]), /** @type {string} */ (path[i - 1]));
+    if (problem) {
+      notify(`상하관계를 정하지 못했어요: ${problem}`);
+      break;
+    }
+  }
+  if (!tags.includes(tag)) {
     tags = [...tags, tag];
     onEdit("tags");
+  } else if (path.length > 1) {
+    renderTags();
   }
 }
 
 // 태그 입력: 띄어쓰기·엔터로 완성, 빈 칸 백스페이스로 마지막 태그 빼기 (한글 조합 처리는 ui.js)
 bindTagInput(tagInput, {
-  onAdd: addTag,
+  onAdd: (text) => void addTag(text),
   onRemoveLast: () => {
     if (tags.length === 0) return;
     tags = tags.slice(0, -1);

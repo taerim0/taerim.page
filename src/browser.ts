@@ -18,3 +18,4 @@ export {
 export { blockIndexAt, createBlockPreview } from "./markdown/blocks.ts";
 export { renderMarkdown, setCodeHighlighter, setMathRenderer } from "./markdown/index.ts";
 export { charCount, isAllowedTag, normalizeTag, normalizeTags, TAG_CHARS_MESSAGE } from "./posts/validation.ts";
+export { TagTree } from "./posts/tag-tree.ts";

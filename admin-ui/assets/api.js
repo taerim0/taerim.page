@@ -9,6 +9,7 @@
 /** @typedef {import("../../src/posts/types.ts").PostDraft} PostDraft */
 /** @typedef {import("../../src/posts/types.ts").PostStatus} PostStatus */
 /** @typedef {import("../../src/posts/types.ts").TagCount} TagCount */
+/** @typedef {import("../../src/posts/types.ts").TagNode} TagNode */
 /** @typedef {import("../../src/posts/types.ts").Page<PostSummary>} PostPage */
 /** @typedef {import("../../src/posts/validation.ts").PostPatch} PostPatch */
 /** @typedef {import("../../src/posts/validation.ts").PostInput} PostInput */
@@ -57,7 +58,7 @@ export class ApiError extends Error {
 /**
  * API 한 번 부르기. 성공하면 결과 JSON(204면 null), 실패하면 ApiError를 던진다.
  * 같은 주소(admin.taerim.page)라서 로그인 정보·Origin은 브라우저가 알아서 붙인다.
- * @param {"GET" | "POST" | "PATCH" | "DELETE"} method
+ * @param {"GET" | "POST" | "PUT" | "PATCH" | "DELETE"} method
  * @param {string} path "/posts" 처럼 /api 뒤 경로
  * @param {unknown} [body] 보낼 JSON
  * @returns {Promise<any>}
@@ -156,8 +157,15 @@ export const trashApi = {
   empty: () => request("DELETE", "/trash"),
 };
 
-/** @returns {Promise<TagCount[]>} */
+/** 모든 태그와 부모·글 수 (트리 순, 안 쓰이는 태그 포함) @returns {Promise<TagNode[]>} */
 export const listTags = () => request("GET", "/tags");
+
+/**
+ * 태그의 부모 정하기 (블로그 전체에 적용, 설계 14). 순환이면 ApiError(conflict)
+ * @param {string} name @param {string | null} parent
+ * @returns {Promise<TagNode[]>} 바뀐 뒤 전체 태그
+ */
+export const setTagParent = (name, parent) => request("PUT", `/tags/${encodeURIComponent(name)}/parent`, { parent });
 
 /** @returns {Promise<Limits>} */
 export const getLimits = () => request("GET", "/limits");

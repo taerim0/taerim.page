@@ -8,6 +8,8 @@ import type {
   PostListFilter,
   PostSummary,
   TagCount,
+  TagParent,
+  TagUsage,
 } from "./types.ts";
 
 /** get() 옵션 */
@@ -105,4 +107,16 @@ export interface PostRepository {
 
   /** 태그별 글 개수. 휴지통 글은 세지 않고, 개수가 0인 태그는 빼고, 이름순 */
   listTags(): Promise<TagCount[]>;
+
+  /** 모든 태그(안 쓰이는 것 포함)와 그 부모, 이름순 (설계 14) */
+  listTagParents(): Promise<TagParent[]>;
+
+  /**
+   * 태그의 부모를 정한다. null이면 맨 위로. 두 태그 모두 없으면 새로 만든다.
+   * 순환 검사는 부르는 쪽(서비스)이 한다
+   */
+  setTagParent(name: string, parent: string | null): Promise<void>;
+
+  /** 태그-글 연결 전부 (휴지통 글 제외). 하위 태그까지 합친 글 수 계산용 */
+  listTagUsage(): Promise<TagUsage[]>;
 }

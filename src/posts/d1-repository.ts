@@ -12,6 +12,8 @@ import type {
   PostStatus,
   PostSummary,
   TagCount,
+  TagParent,
+  TagUsage,
 } from "./types.ts";
 
 /** posts 테이블 한 행 + 태그(JSON 글자) */
@@ -127,15 +129,16 @@ export class D1PostRepository implements PostRepository {
       conditions.push("p.status = ?");
       values.push(filter.status);
     }
-    const tags = [...new Set(filter.tags ?? [])];
-    if (tags.length > 0) {
-      // 넣은 태그를 모두 가진 글만 (AND): 이 글에 붙은 태그 중 찾는 태그의 개수 = 찾는 태그 수
-      // 태그 목록은 JSON 하나로 넘겨서(json_each) 개수와 상관없이 ? 자리가 늘지 않게 한다
-      conditions.push(`(
-        SELECT COUNT(*) FROM post_tags pt JOIN tags t ON t.id = pt.tag_id
+    // 묶음마다 "그중 하나라도 붙은 글", 묶음끼리는 AND (tags는 한 태그씩 묶음, 설계 14)
+    // 태그 목록은 JSON 하나로 넘겨서(json_each) 개수와 상관없이 ? 자리가 늘지 않게 한다
+    const groups = filter.tagGroups ?? [...new Set(filter.tags ?? [])].map((tag) => [tag]);
+    for (const group of groups) {
+      if (group.length === 0) continue;
+      conditions.push(`EXISTS (
+        SELECT 1 FROM post_tags pt JOIN tags t ON t.id = pt.tag_id
         WHERE pt.post_id = p.id AND t.name IN (SELECT value FROM json_each(?))
-      ) = ?`);
-      values.push(JSON.stringify(tags), tags.length);
+      )`);
+      values.push(JSON.stringify(group));
     }
     const where = conditions.join(" AND ");
     const sortColumn = filter.trash ? "p.deleted_at" : filter.status === "published" ? "p.published_at" : "p.updated_at";
@@ -299,6 +302,32 @@ export class D1PostRepository implements PostRepository {
     return results
       .map((row) => ({ name: row.name, count: Number(row.count) }))
       .sort((a, b) => compareTagNames(a.name, b.name));
+  }
+
+  async listTagParents(): Promise<TagParent[]> {
+    const { results } = await this.#db
+      .prepare("SELECT t.name AS name, parent.name AS parent FROM tags t LEFT JOIN tags parent ON parent.id = t.parent_id")
+      .all<{ name: string; parent: string | null }>();
+    return results.map((row) => ({ name: row.name, parent: row.parent })).sort((a, b) => compareTagNames(a.name, b.name));
+  }
+
+  async setTagParent(name: string, parent: string | null): Promise<void> {
+    const names = JSON.stringify(parent === null ? [name] : [name, parent]);
+    await this.#db.batch([
+      this.#db.prepare("INSERT OR IGNORE INTO tags (name) SELECT value FROM json_each(?)").bind(names),
+      this.#db.prepare("UPDATE tags SET parent_id = (SELECT id FROM tags WHERE name = ?) WHERE name = ?").bind(parent, name),
+    ]);
+  }
+
+  async listTagUsage(): Promise<TagUsage[]> {
+    const { results } = await this.#db
+      .prepare(
+        `SELECT t.name AS name, pt.post_id AS post_id FROM post_tags pt
+         JOIN tags t ON t.id = pt.tag_id
+         JOIN posts p ON p.id = pt.post_id AND p.deleted_at IS NULL`,
+      )
+      .all<{ name: string; post_id: number }>();
+    return results.map((row) => ({ name: row.name, postId: Number(row.post_id) }));
   }
 
   /**

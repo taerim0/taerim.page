@@ -10,6 +10,8 @@ import type {
   PostListFilter,
   PostSummary,
   TagCount,
+  TagParent,
+  TagUsage,
 } from "./types.ts";
 
 /**
@@ -22,6 +24,8 @@ import type {
 export class MemoryPostRepository implements PostRepository {
   readonly #posts = new Map<number, Post>();
   readonly #drafts = new Map<number, PostDraft>();
+  /** 태그 이름 → 부모 이름 (설계 14). 부모를 정한 적 없는 태그는 없음(= 맨 위) */
+  readonly #tagParents = new Map<string, string | null>();
   /** 다음에 붙일 id. 줄어들지 않으므로 지운 번호를 다시 쓰지 않는다. */
   #nextId = 1;
 
@@ -51,8 +55,9 @@ export class MemoryPostRepository implements PostRepository {
       const inTrash = post.deletedAt !== null;
       if (inTrash !== (filter.trash === true)) return false;
       if (filter.status !== undefined && post.status !== filter.status) return false;
-      // 넣은 태그를 모두 가진 글만 (AND)
-      if (filter.tags !== undefined && !filter.tags.every((tag) => post.tags.includes(tag))) return false;
+      // 묶음마다 하나라도 가진 글만, 묶음끼리는 AND (tags는 한 태그씩 묶음)
+      const groups = filter.tagGroups ?? (filter.tags ?? []).map((tag) => [tag]);
+      if (!groups.every((group) => group.length === 0 || group.some((tag) => post.tags.includes(tag)))) return false;
       return true;
     });
 
@@ -158,6 +163,27 @@ export class MemoryPostRepository implements PostRepository {
       .filter((post) => post.deletedAt === null && post.status === "published")
       .sort((a, b) => compareDesc(a.publishedAt ?? "", b.publishedAt ?? "") || b.id - a.id)
       .map((post) => structuredClone(post));
+  }
+
+  async listTagParents(): Promise<TagParent[]> {
+    const names = new Set(this.#tagParents.keys());
+    for (const post of this.#posts.values()) for (const tag of post.tags) names.add(tag);
+    for (const draft of this.#drafts.values()) for (const tag of draft.tags) names.add(tag);
+    return sortTagNames([...names]).map((name) => ({ name, parent: this.#tagParents.get(name) ?? null }));
+  }
+
+  async setTagParent(name: string, parent: string | null): Promise<void> {
+    if (parent !== null && !this.#tagParents.has(parent)) this.#tagParents.set(parent, null);
+    this.#tagParents.set(name, parent);
+  }
+
+  async listTagUsage(): Promise<TagUsage[]> {
+    const usage: TagUsage[] = [];
+    for (const post of this.#posts.values()) {
+      if (post.deletedAt !== null) continue;
+      for (const tag of post.tags) usage.push({ name: tag, postId: post.id });
+    }
+    return usage;
   }
 
   async listTags(): Promise<TagCount[]> {

@@ -62,6 +62,11 @@ export interface PostListFilter {
   trash?: boolean;
   /** 이 태그들이 **모두** 붙은 글만 (AND). 비어 있거나 생략하면 거르지 않음 */
   tags?: string[];
+  /**
+   * 묶음마다 "그중 하나라도" 붙은 글, 묶음끼리는 AND (설계 14: 상위 태그로 거르면 하위 태그 글도).
+   * 있으면 tags 대신 쓴다. 예) [["개발", "react"], ["블로그"]] = (개발 또는 react) 그리고 블로그
+   */
+  tagGroups?: string[][];
   /** 몇 번째 페이지인지. 1부터 시작. 생략하면 1 */
   page?: number;
   /** 한 페이지 글 개수. 생략하면 DEFAULT_PAGE_SIZE(10) */
@@ -84,4 +89,26 @@ export interface Page<T> {
 export interface TagCount {
   name: string;
   count: number;
+}
+
+/** 태그의 부모 (설계 14). 부모가 없으면 null (맨 위 태그) */
+export interface TagParent {
+  name: string;
+  parent: string | null;
+}
+
+/**
+ * 관리자 화면용 태그 하나 (설계 14): 부모와 글 수
+ * - count: 이 태그가 직접 붙은 글 수
+ * - total: 이 태그나 하위 태그가 붙은 글 수 (중복 없이) = 상위 태그로 거를 때 나오는 글 수
+ */
+export interface TagNode extends TagParent {
+  count: number;
+  total: number;
+}
+
+/** 태그가 붙은 글 하나 (휴지통 글 제외). 하위 태그까지 합친 글 수를 셀 때 쓴다 */
+export interface TagUsage {
+  name: string;
+  postId: number;
 }

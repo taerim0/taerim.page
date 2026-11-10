@@ -265,3 +265,13 @@ a { color: var(--accent); }
 .issue-lines { list-style: none; margin: 0; padding: 0; }
 .issue-lines li { padding: 3px 0; }
 .issue-lines time { min-width: 6.5em; }
+
+/* ── 이전·다음 글 (설계 15-6). 꾸미기는 UI/UX 단계 ── */
+.post-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 40px 0 8px; }
+@media (max-width: 520px) { .post-nav { grid-template-columns: 1fr; } .post-nav-empty { display: none; } }
+.post-nav a { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; color: inherit; text-decoration: none; }
+.post-nav a:hover { border-color: var(--accent); }
+.post-nav-next { grid-column: 2; text-align: right; }
+@media (max-width: 520px) { .post-nav-next { grid-column: 1; } }
+.post-nav-label { color: var(--muted); font-size: .85em; }
+.post-nav-title { font-weight: 600; }

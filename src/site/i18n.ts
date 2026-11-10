@@ -65,6 +65,10 @@ export interface Messages {
   issueBadge: string;
   recentIssues: string;
   viewArchive: string;
+  /** 이전·다음 글 (설계 15-6) */
+  postNavLabel: string;
+  prevPost: string;
+  nextPost: string;
 }
 
 export const MESSAGES: Record<Locale, Messages> = {
@@ -101,6 +105,9 @@ export const MESSAGES: Record<Locale, Messages> = {
     issueBadge: "이슈",
     recentIssues: "최근 이슈",
     viewArchive: "아카이브 보기 →",
+    postNavLabel: "이전·다음 글",
+    prevPost: "← 이전 글",
+    nextPost: "다음 글 →",
   },
   en: {
     languageName: "English",
@@ -136,6 +143,9 @@ export const MESSAGES: Record<Locale, Messages> = {
     issueBadge: "Issue",
     recentIssues: "Recent issues",
     viewArchive: "View archive →",
+    postNavLabel: "Previous and next posts",
+    prevPost: "← Previous",
+    nextPost: "Next →",
   },
 };
 

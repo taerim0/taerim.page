@@ -266,13 +266,15 @@ interface PostPageProps {
   toc: TocItem[];
   /** 이 글이 있는 언어들 (hreflang). 생략하면 모든 언어 */
   alternates?: readonly Locale[];
+  /** 이전(더 옛날)·다음(더 새) 글 (설계 15-6). 없으면 그쪽 칸은 비움 */
+  neighbors?: { prev?: PostCardData; next?: PostCardData };
 }
 
 /**
  * 글 페이지. 목차는 본문 앞에 두고, 넓은 화면에서는 CSS로 옆에 붙인다 (좁으면 제목 아래 그대로).
  * 제목이 하나뿐이거나 없으면 목차를 넣지 않는다.
  */
-export function postPage({ site, locale = SOURCE_LOCALE, post, bodyHtml, toc, alternates }: PostPageProps): Html {
+export function postPage({ site, locale = SOURCE_LOCALE, post, bodyHtml, toc, alternates, neighbors }: PostPageProps): Html {
   return layout({
     site,
     locale,
@@ -283,8 +285,29 @@ export function postPage({ site, locale = SOURCE_LOCALE, post, bodyHtml, toc, al
     type: "article",
     alternates,
     math: hasMath(bodyHtml),
-    body: article(locale, post, bodyHtml, toc),
+    body: html`${article(locale, post, bodyHtml, toc)}
+    ${postNav(locale, neighbors)}`,
   });
+}
+
+/**
+ * 이전·다음 글 두 칸 (설계 15-6). 다음 글은 항상 오른쪽 칸 (이전이 없으면 왼쪽은 빈 자리).
+ * 번역 언어의 미번역 글은 한글 제목(lang="ko") + KR (목록과 같은 표시)
+ */
+function postNav(locale: Locale, neighbors: PostPageProps["neighbors"]): Html | "" {
+  if (!neighbors || (!neighbors.prev && !neighbors.next)) return "";
+  const m = MESSAGES[locale];
+  const link = (post: PostCardData, rel: "prev" | "next", label: string) => {
+    const korean = post.untranslated === true && locale !== SOURCE_LOCALE;
+    return html`<a class="post-nav-${rel}" rel="${rel}" href="${localizedPath(locale, postPath(post.id))}">
+        <span class="post-nav-label">${label}</span>
+        <span class="post-nav-title"${korean ? html` lang="ko"` : ""}>${post.title}${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</span>
+      </a>`;
+  };
+  return html`<nav class="post-nav" aria-label="${m.postNavLabel}">
+      ${neighbors.prev ? link(neighbors.prev, "prev", m.prevPost) : html`<span class="post-nav-empty"></span>`}
+      ${neighbors.next ? link(neighbors.next, "next", m.nextPost) : ""}
+    </nav>`;
 }
 
 /** 글 본문 덩어리 (글 페이지와 미번역 페이지가 같이 씀) */

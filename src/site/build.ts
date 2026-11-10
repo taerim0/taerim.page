@@ -113,16 +113,18 @@ export async function buildSite({ site: baseSite, settings, issues = [], posts, 
     for (const [path, page] of listPages(site, locale, cardsOf(published), POSTS_PATH, imageSizes)) await add(path, page);
 
     // 글: 한국어 / 번역본 / 미번역(한글을 흐리게 + 안내)
-    for (const { post, translation } of localized) {
+    for (const [index, { post, translation }] of localized.entries()) {
       const path = localizedPath(locale, postPath(post.id));
+      // 이전 = 더 옛날 글(목록에서 다음 칸), 다음 = 더 새 글 (설계 15-6)
+      const neighbors = { prev: localized[index + 1] && cards.get(localized[index + 1]!.post.id), next: localized[index - 1] && cards.get(localized[index - 1]!.post.id) };
       if (locale === SOURCE_LOCALE) {
         const { html, toc } = renderDocument(post.body, { imageSizes });
-        await add(path, postPage({ site, post, bodyHtml: html, toc, alternates: localesOf(post.id) }));
+        await add(path, postPage({ site, post, bodyHtml: html, toc, alternates: localesOf(post.id), neighbors }));
         lastmod.set(path, post.updatedAt);
       } else if (translation) {
         const { html, toc } = renderDocument(translation.body, { imageSizes, locale });
         const translated = { ...post, title: translation.title, summary: translation.summary };
-        await add(path, postPage({ site, locale, post: translated, bodyHtml: html, toc, alternates: localesOf(post.id) }));
+        await add(path, postPage({ site, locale, post: translated, bodyHtml: html, toc, alternates: localesOf(post.id), neighbors }));
         lastmod.set(path, translation.updatedAt);
       } else {
         const { html } = renderDocument(post.body, { imageSizes });

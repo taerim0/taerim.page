@@ -238,9 +238,11 @@ function postCard(site: SiteConfig, locale: Locale, post: PostCardData, imageSiz
 }
 
 /** 공개 날짜 + 태그 링크 */
-function postMeta(locale: Locale, post: PostCardData): Html {
+/** 날짜 · (글 페이지만) 조회 수 · 태그 */
+function postMeta(locale: Locale, post: PostCardData, views?: number): Html {
   return html`<p class="post-meta">
         ${post.publishedAt ? html`<time datetime="${post.publishedAt}">${formatDate(post.publishedAt, locale)}</time>` : ""}
+        ${views ? html` <span class="post-views">${MESSAGES[locale].views(views)}</span>` : ""}
         ${post.tags.map((tag) => html` <a class="tag" href="${localizedPath(locale, tagPath(tag))}">#${tag}</a>`)}
       </p>`;
 }
@@ -274,13 +276,15 @@ interface PostPageProps {
   alternates?: readonly Locale[];
   /** 이전(더 옛날)·다음(더 새) 글 (설계 15-6). 없으면 그쪽 칸은 비움 */
   neighbors?: { prev?: PostCardData; next?: PostCardData };
+  /** 조회 수 (설계 2-2, 한·영 합계). 0이거나 없으면 안 보임 */
+  views?: number;
 }
 
 /**
  * 글 페이지. 목차는 본문 앞에 두고, 넓은 화면에서는 CSS로 옆에 붙인다 (좁으면 제목 아래 그대로).
  * 제목이 하나뿐이거나 없으면 목차를 넣지 않는다.
  */
-export function postPage({ site, locale = SOURCE_LOCALE, post, bodyHtml, toc, alternates, neighbors }: PostPageProps): Html {
+export function postPage({ site, locale = SOURCE_LOCALE, post, bodyHtml, toc, alternates, neighbors, views }: PostPageProps): Html {
   return layout({
     site,
     locale,
@@ -292,7 +296,7 @@ export function postPage({ site, locale = SOURCE_LOCALE, post, bodyHtml, toc, al
     alternates,
     math: hasMath(bodyHtml),
     moduleScript: site.giscus ? COMMENTS_SCRIPT : undefined,
-    body: html`${article(locale, post, bodyHtml, toc)}
+    body: html`${article(locale, post, bodyHtml, toc, views)}
     ${postNav(locale, neighbors)}
     ${site.giscus ? comments(locale, site.giscus, post.id) : ""}`,
   });
@@ -335,14 +339,14 @@ function postNav(locale: Locale, neighbors: PostPageProps["neighbors"]): Html | 
 }
 
 /** 글 본문 덩어리 (글 페이지와 미번역 페이지가 같이 씀) */
-function article(locale: Locale, post: Post, bodyHtml: string, toc: TocItem[]): Html {
+function article(locale: Locale, post: Post, bodyHtml: string, toc: TocItem[], views?: number): Html {
   const items = toc.filter((item) => item.level <= TOC_MAX_LEVEL);
   const minLevel = Math.min(...items.map((item) => item.level));
   return html`
     <article class="post">
       <header class="post-header">
         <h1 class="post-title">${post.title}</h1>
-        ${postMeta(locale, post)}
+        ${postMeta(locale, post, views)}
       </header>
       ${items.length < 2
         ? ""

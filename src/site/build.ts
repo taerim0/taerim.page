@@ -47,6 +47,8 @@ export interface BuildInput {
   images?: readonly ImageInfo[];
   /** 태그 상하관계 (설계 14). 글의 태그에 상위 태그를 붙여 보여 주고, 태그 모음·태그 페이지를 트리로 */
   tagParents?: readonly TagParent[];
+  /** 글 id → 조회 수 (설계 2-2, 한·영 합계). 없으면 숫자 없이 */
+  views?: ReadonlyMap<number, number>;
 }
 
 /** 언어 하나의 글: 글 + 그 언어 번역본(없으면 undefined) */
@@ -70,7 +72,7 @@ export function applySettings(site: SiteConfig, settings: SiteSettings | undefin
   };
 }
 
-export async function buildSite({ site: baseSite, settings, activities = [], posts, translations = [], images = [], tagParents = [] }: BuildInput): Promise<Map<string, string>> {
+export async function buildSite({ site: baseSite, settings, activities = [], posts, translations = [], images = [], tagParents = [], views }: BuildInput): Promise<Map<string, string>> {
   const site = applySettings(baseSite, settings);
   const imageSizes = imageSizeMap(images);
   const tree = new TagTree(tagParents);
@@ -124,13 +126,13 @@ export async function buildSite({ site: baseSite, settings, activities = [], pos
       if (locale === SOURCE_LOCALE) {
         const { html, toc } = renderDocument(post.body, { imageSizes });
         bodyHtmlOf.set(post.id, html);
-        await add(path, postPage({ site, post, bodyHtml: html, toc, alternates: localesOf(post.id), neighbors }));
+        await add(path, postPage({ site, post, bodyHtml: html, toc, alternates: localesOf(post.id), neighbors, views: views?.get(post.id) }));
         lastmod.set(path, post.updatedAt);
       } else if (translation) {
         const { html, toc } = renderDocument(translation.body, { imageSizes, locale });
         const translated = { ...post, title: translation.title, summary: translation.summary };
         bodyHtmlOf.set(post.id, html);
-        await add(path, postPage({ site, locale, post: translated, bodyHtml: html, toc, alternates: localesOf(post.id), neighbors }));
+        await add(path, postPage({ site, locale, post: translated, bodyHtml: html, toc, alternates: localesOf(post.id), neighbors, views: views?.get(post.id) }));
         lastmod.set(path, translation.updatedAt);
       } else {
         const { html } = renderDocument(post.body, { imageSizes });

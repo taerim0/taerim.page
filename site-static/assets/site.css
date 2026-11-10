@@ -270,6 +270,8 @@ a { color: var(--accent); }
 .activity-lines li { padding: 3px 0; }
 .activity-lines time { min-width: 6.5em; }
 
+.post-views { color: var(--muted); }
+
 /* ── 반응·댓글 giscus (설계 2-1). iframe 높이는 스크립트가 맞춤 ── */
 .comments { margin: 40px 0 8px; }
 .giscus { min-height: 150px; }

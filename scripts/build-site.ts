@@ -9,6 +9,7 @@
  *   ① 공개 글 + 언어별 공개 번역본 읽기 (listPublished)
  *   ② 글(본문·대표 이미지)과 번역본 본문이 쓰는 /images/… 이름 모으기
  *   ③ 그 이미지들의 정보(D1 images)와 파일(R2) 읽기. 없는 이미지는 경고만 하고 계속
+ *   ③-1 조회 수 합계 (D1 page_views_daily, 설계 2-2). 표가 없거나 못 읽으면 숫자 없이 계속
  *   ④ buildSite → { 주소: 내용 } (이미지 원래 크기로 <img width height>)
  *   ⑤ dist/site/ 를 비우고 → site-static/(CSS·기본 이미지·_headers) 복사 → 페이지·이미지 파일 쓰기
  */
@@ -35,6 +36,7 @@ import type { EmbedView } from "../src/markdown/index.ts";
 import { copyKatex } from "./copy-katex.ts";
 import { buildSite } from "../src/site/build.ts";
 import { D1ActivityRepository } from "../src/activities/activities.ts";
+import { D1ViewsRepository, viewsByPost } from "../src/stats/views.ts";
 import type { ActivityRepository } from "../src/activities/activities.ts";
 import { DEFAULT_SETTINGS, D1SettingsRepository } from "../src/settings/settings.ts";
 import type { SettingsRepository } from "../src/settings/settings.ts";
@@ -66,6 +68,7 @@ interface Source {
   images: ImageRepository;
   settings: SettingsRepository;
   activities: ActivityRepository;
+  views: D1ViewsRepository;
   files: ImageStore;
   close(): Promise<void>;
 }
@@ -95,6 +98,7 @@ async function openRemote(): Promise<Source> {
     images: new D1ImageRepository(db),
     settings: new D1SettingsRepository(db),
     activities: new D1ActivityRepository(db),
+    views: new D1ViewsRepository(db),
     files: new R2ImageStore(bucket),
     close: async () => {},
   };
@@ -111,9 +115,20 @@ async function openLocal(): Promise<Source> {
     images: new D1ImageRepository(proxy.env.DB),
     settings: new D1SettingsRepository(proxy.env.DB),
     activities: new D1ActivityRepository(proxy.env.DB),
+    views: new D1ViewsRepository(proxy.env.DB),
     files: new R2ImageStore(proxy.env.IMAGES),
     close: () => proxy.dispose(),
   };
+}
+
+/** 글별 조회 수. 조회수 표가 아직 없거나 못 읽어도 빌드는 계속 (숫자만 안 보임) */
+async function readViews(source: Source): Promise<Map<number, number>> {
+  try {
+    return viewsByPost(await source.views.totals());
+  } catch (error) {
+    console.warn(`⚠ 조회 수를 못 읽었어요 → 숫자 없이 빌드: ${error instanceof Error ? error.message : String(error)}`);
+    return new Map();
+  }
 }
 
 /** 내려받은 이미지 */
@@ -203,7 +218,8 @@ async function main(): Promise<void> {
     // 태그 상하관계 (설계 14): 글의 태그에 상위 태그를 붙이고 태그 모음을 트리로
     const tagParents = await source.posts.listTagParents();
     const embeds = await readEmbeds(source, [...posts.map((p) => p.body), ...translations.map((t) => t.body), ...activityBodies]);
-    const files = await buildSite({ site: SITE_CONFIG, settings, activities, posts, translations, tagParents, images: images.map((image) => image.info) });
+    const views = await readViews(source);
+    const files = await buildSite({ site: SITE_CONFIG, settings, activities, posts, translations, tagParents, views, images: images.map((image) => image.info) });
 
     // 지난 빌드의 파일(지운 글 등)이 남지 않게 통째로 비우고 다시 쓴다
     await rm(OUT_DIR, { recursive: true, force: true });
@@ -236,7 +252,7 @@ async function main(): Promise<void> {
     const seconds = ((performance.now() - started) / 1000).toFixed(1);
     const megabytes = (images.reduce((sum, image) => sum + image.bytes.byteLength, 0) / 1024 / 1024).toFixed(1);
     console.log(
-      `${source.label} D1·R2: 공개 글 ${posts.length}개 (번역 ${translations.length}개, 활동 ${activities.length}개) → 파일 ${files.size}개 + 이미지 ${images.length}개 (${megabytes}MB) (+ 정적 파일) → ${OUT_DIR}/ (${seconds}초)`,
+      `${source.label} D1·R2: 공개 글 ${posts.length}개 (번역 ${translations.length}개, 활동 ${activities.length}개, 조회 수 있는 글 ${views.size}개) → 파일 ${files.size}개 + 이미지 ${images.length}개 (${megabytes}MB) (+ 정적 파일) → ${OUT_DIR}/ (${seconds}초)`,
     );
   } finally {
     await source.close();

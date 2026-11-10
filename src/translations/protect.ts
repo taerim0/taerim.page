@@ -1,3 +1,5 @@
+import { inlineMathEnd } from "../markdown/math.ts";
+
 /**
  * 코드 블록 보호 (설계 12-8).
  * 번역 모델에 보내기 전에 ```·~~~ 코드 블록을 `[[CODE_1]]` 한 줄로 바꾸고, 받은 뒤 원래대로 되돌린다.
@@ -76,4 +78,107 @@ export function restoreCodeBlocks(text: string, blocks: readonly string[]): stri
 
 function escape(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// ── 수식 보호 (설계 13-8) ──────────────────────────────
+// 코드 블록을 먼저 자리표로 바꾼 글에 쓴다 (코드 안의 $는 이미 빠져 있음)
+
+/** 보호한 수식 하나 */
+export interface ProtectedMath {
+  /** 원래 글자 ($…$ 또는 $$…$$ 줄들) */
+  source: string;
+  /** 블록 수식이면 true (자리표가 한 줄에 혼자 있어야 함) */
+  block: boolean;
+}
+
+export function mathPlaceholder(index: number): string {
+  return `[[MATH_${index + 1}]]`;
+}
+
+/**
+ * 수식을 [[MATH_n]] 자리표로. 블록($$ 줄)은 한 줄로, 문장 안($…$)은 그 자리에.
+ * 인라인 코드(`…`) 안의 $는 건드리지 않는다. 찾는 규칙은 렌더러와 같음(inlineMathEnd)
+ */
+export function protectMath(text: string): { text: string; maths: ProtectedMath[] } {
+  const maths: ProtectedMath[] = [];
+  // 1) 블록: 줄 처음(들여쓰기 3칸까지) $$ … $$ 로 끝나는 줄까지
+  const lines = text.split("\n");
+  const out: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const open = /^( {0,3})\$\$(.*)$/.exec(lines[i]!);
+    if (!open) {
+      out.push(lines[i]!);
+      continue;
+    }
+    const rest = open[2]!.trimEnd();
+    let end = -1;
+    if (rest.length > 2 && rest.endsWith("$$")) end = i;
+    else for (let j = i + 1; j < lines.length; j++) if (lines[j]!.trimEnd().endsWith("$$")) { end = j; break; }
+    if (end === -1) {
+      out.push(lines[i]!); // 닫히지 않은 $$ 는 수식이 아님 (렌더러와 같음)
+      continue;
+    }
+    out.push(open[1]! + mathPlaceholder(maths.length));
+    maths.push({ source: lines.slice(i, end + 1).join("\n"), block: true });
+    i = end;
+  }
+  // 2) 문장 안: 인라인 코드 밖의 $…$
+  const joined = out.join("\n");
+  let result = "";
+  for (let i = 0; i < joined.length; i++) {
+    const ch = joined[i]!;
+    if (ch === "\\") {
+      result += joined.slice(i, i + 2); // \$ 등은 그대로
+      i++;
+      continue;
+    }
+    if (ch === "`") {
+      const ticks = /^`+/.exec(joined.slice(i))![0];
+      const close = joined.indexOf(ticks, i + ticks.length);
+      if (close !== -1) {
+        result += joined.slice(i, close + ticks.length); // 인라인 코드는 통째로
+        i = close + ticks.length - 1;
+        continue;
+      }
+    }
+    if (ch === "$") {
+      const end = inlineMathEnd(joined, i);
+      if (end !== -1) {
+        result += mathPlaceholder(maths.length);
+        maths.push({ source: joined.slice(i, end + 1), block: false });
+        i = end;
+        continue;
+      }
+    }
+    result += ch;
+  }
+  return { text: result, maths };
+}
+
+/** 수식 자리표 검사: 문제가 있으면 이유, 없으면 null */
+export function checkMathPlaceholders(text: string, maths: readonly ProtectedMath[]): string | null {
+  for (const [index, math] of maths.entries()) {
+    const mark = mathPlaceholder(index);
+    const occurrences = text.split(mark).length - 1;
+    if (occurrences === 0) return `수식 ${mark}이 빠졌어요`;
+    if (occurrences > 1) return `수식 ${mark}이 여러 번 나와요`;
+    if (math.block && !new RegExp(`^[ \\t]*${escape(mark)}[ \\t]*$`, "m").test(text)) return `블록 수식 ${mark}이 한 줄에 혼자 있지 않아요`;
+  }
+  const unknown = [...text.matchAll(/\[\[MATH_(\d+)\]\]/g)].some((match) => {
+    const n = Number(match[1]);
+    return n < 1 || n > maths.length;
+  });
+  return unknown ? "원문에 없는 수식 자리표가 생겼어요" : null;
+}
+
+/** 수식 자리표를 원래 수식으로 (검사를 통과한 글에만) */
+export function restoreMath(text: string, maths: readonly ProtectedMath[]): string {
+  let restored = text;
+  maths.forEach((math, index) => {
+    const mark = mathPlaceholder(index);
+    restored = math.block
+      ? restored.replace(new RegExp(`^[ \\t]*${escape(mark)}[ \\t]*$`, "m"), () => math.source)
+      : restored.split(mark).join(math.source);
+  });
+  return restored;
 }

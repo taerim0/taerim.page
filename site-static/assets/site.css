@@ -270,6 +270,11 @@ a { color: var(--accent); }
 .activity-lines li { padding: 3px 0; }
 .activity-lines time { min-width: 6.5em; }
 
+/* ── 반응·댓글 giscus (설계 2-1). iframe 높이는 스크립트가 맞춤 ── */
+.comments { margin: 40px 0 8px; }
+.giscus { min-height: 150px; }
+.giscus-frame { display: block; width: 100%; border: 0; color-scheme: normal; }
+
 /* ── 이전·다음 글 (설계 15-6). 꾸미기는 UI/UX 단계 ── */
 .post-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 40px 0 8px; }
 @media (max-width: 520px) { .post-nav { grid-template-columns: 1fr; } .post-nav-empty { display: none; } }

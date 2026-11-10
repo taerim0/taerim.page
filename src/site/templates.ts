@@ -8,6 +8,7 @@
  * - 언어(locale): 화면 글자는 i18n.ts 사전에서, 주소는 localizedPath로. 생략하면 한국어
  * - 꾸미기는 나중(UI/UX 단계). 지금은 구조와 의미만
  */
+import type { GiscusConfig } from "./comments.ts";
 import { html, raw } from "hono/html";
 import type { HtmlEscapedString } from "hono/utils/html";
 import type { TocItem } from "../markdown/index.ts";
@@ -40,6 +41,8 @@ export interface SiteConfig {
   defaultThumbnail: string;
   /** 관리자 사이트 설정 (설계 15-3): 홈 소개 카드·바닥글. 없으면 바닥글은 RSS와 사이트 이름만 */
   profile?: SiteSettings;
+  /** 반응·댓글 (설계 2-1). 없으면 글 페이지에 댓글 칸 없음 */
+  giscus?: GiscusConfig;
 }
 
 /**
@@ -288,9 +291,27 @@ export function postPage({ site, locale = SOURCE_LOCALE, post, bodyHtml, toc, al
     type: "article",
     alternates,
     math: hasMath(bodyHtml),
+    moduleScript: site.giscus ? COMMENTS_SCRIPT : undefined,
     body: html`${article(locale, post, bodyHtml, toc)}
-    ${postNav(locale, neighbors)}`,
+    ${postNav(locale, neighbors)}
+    ${site.giscus ? comments(locale, site.giscus, post.id) : ""}`,
   });
+}
+
+/** 반응·댓글 스크립트 주소 (빌드가 src/site/comments-client.ts를 묶어 씀) */
+export const COMMENTS_SCRIPT = "/assets/comments.js";
+
+/**
+ * 반응·댓글 칸 (설계 2-1): 스크립트가 .giscus 안에 giscus iframe을 넣는다.
+ * 토론은 글 id로 묶음(post-n) → 한·영 페이지가 같은 토론. JS가 없으면 Discussions 링크
+ */
+function comments(locale: Locale, giscus: GiscusConfig, postId: number): Html {
+  const m = MESSAGES[locale];
+  return html`<section class="comments" aria-labelledby="comments-heading">
+      <h2 class="section-heading" id="comments-heading">${m.commentsHeading}</h2>
+      <div class="giscus" data-repo="${giscus.repo}" data-repo-id="${giscus.repoId}" data-category="${giscus.category}" data-category-id="${giscus.categoryId}" data-post-id="${postId}" data-lang="${locale}" data-title="${m.commentsHeading}"></div>
+      <noscript><p class="empty">${m.commentsNeedJs} <a href="https://github.com/${giscus.repo}/discussions">GitHub Discussions</a></p></noscript>
+    </section>`;
 }
 
 /**

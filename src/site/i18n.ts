@@ -67,6 +67,9 @@ export interface Messages {
   viewArchive: string;
   /** 이전·다음 글 (설계 15-6) */
   postNavLabel: string;
+  /** 반응·댓글 (설계 2-1) */
+  commentsHeading: string;
+  commentsNeedJs: string;
   prevPost: string;
   nextPost: string;
   /** 검색 (설계 15-7) */
@@ -118,6 +121,8 @@ export const MESSAGES: Record<Locale, Messages> = {
     recentActivities: "최근 활동",
     viewArchive: "아카이브 보기 →",
     postNavLabel: "이전·다음 글",
+    commentsHeading: "반응·댓글",
+    commentsNeedJs: "반응·댓글은 JavaScript가 필요해요. 토론은 여기서 볼 수 있어요:",
     prevPost: "← 이전 글",
     nextPost: "다음 글 →",
     navSearch: "검색",
@@ -166,6 +171,8 @@ export const MESSAGES: Record<Locale, Messages> = {
     recentActivities: "Recent activity",
     viewArchive: "View archive →",
     postNavLabel: "Previous and next posts",
+    commentsHeading: "Reactions & comments",
+    commentsNeedJs: "Reactions and comments need JavaScript. You can read the discussions here:",
     prevPost: "← Previous",
     nextPost: "Next →",
     navSearch: "Search",

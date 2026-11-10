@@ -39,7 +39,7 @@ import type { ActivityRepository } from "../src/activities/activities.ts";
 import { DEFAULT_SETTINGS, D1SettingsRepository } from "../src/settings/settings.ts";
 import type { SettingsRepository } from "../src/settings/settings.ts";
 import { SITE_CONFIG } from "../src/site/config.ts";
-import { SEARCH_SCRIPT } from "../src/site/templates.ts";
+import { COMMENTS_SCRIPT, SEARCH_SCRIPT } from "../src/site/templates.ts";
 import { fileNameFor } from "../src/site/files.ts";
 import { collectImageNames } from "../src/site/images.ts";
 import { D1EmbedRepository } from "../src/embeds/repository.ts";
@@ -209,17 +209,19 @@ async function main(): Promise<void> {
     await rm(OUT_DIR, { recursive: true, force: true });
     await cp(STATIC_DIR, OUT_DIR, { recursive: true });
     await copyKatex(join(OUT_DIR, "assets", "katex"));
-    // 검색 스크립트 (설계 15-7): src/site/search-client.ts → assets/search.js (검색 페이지에만 붙음)
-    await build({
-      entryPoints: ["src/site/search-client.ts"],
-      bundle: true,
-      format: "esm",
-      target: "es2022",
-      minify: true,
-      legalComments: "none",
-      outfile: join(OUT_DIR, SEARCH_SCRIPT.replace(/^\//, "")),
-      logLevel: "warning",
-    });
+    // 방문자 스크립트: 검색 (설계 15-7, 검색 페이지에만) · 반응·댓글 (설계 2-1, 글 페이지에만)
+    for (const [entry, script] of [["src/site/search-client.ts", SEARCH_SCRIPT], ["src/site/comments-client.ts", COMMENTS_SCRIPT]] as const) {
+      await build({
+        entryPoints: [entry],
+        bundle: true,
+        format: "esm",
+        target: "es2022",
+        minify: true,
+        legalComments: "none",
+        outfile: join(OUT_DIR, script.replace(/^\//, "")),
+        logLevel: "warning",
+      });
+    }
     for (const [urlPath, content] of files) {
       const target = join(OUT_DIR, fileNameFor(urlPath));
       await mkdir(dirname(target), { recursive: true });

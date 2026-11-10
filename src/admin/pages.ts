@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
 import type { AdminEnv } from "./auth.ts";
+import { isTranslationLang } from "../translations/types.ts";
 import { HttpError } from "./http-errors.ts";
 
 /**
@@ -18,6 +19,7 @@ export interface AssetFetcher {
  *   /                 → index.html   글 목록
  *   /posts/new        → post.html    새 글
  *   /posts/edit/:id   → post.html    편집 (JS가 주소에서 id를 읽음)
+ *   /posts/translate/:id/:lang → translate.html  번역본 편집 (지원 언어만, 설계 12-10)
  *   /tags             → tags.html    태그
  *   /trash            → trash.html   휴지통
  *   /assets/…         → 그대로       CSS·JS
@@ -29,6 +31,10 @@ export function createPageRoutes(assets: AssetFetcher): Hono<AdminEnv> {
   pages.get("/", serve("/index.html"));
   pages.get("/posts/new", serve("/post.html"));
   pages.get("/posts/edit/:id{[1-9][0-9]*}", serve("/post.html")); // 글 번호가 아니면 404
+  pages.get("/posts/translate/:id{[1-9][0-9]*}/:lang", (c) => {
+    if (!isTranslationLang(c.req.param("lang"))) throw new HttpError("not_found", "없는 주소예요");
+    return serveFile(c, assets, "/translate.html");
+  });
   pages.get("/tags", serve("/tags.html"));
   pages.get("/trash", serve("/trash.html"));
   pages.get("/assets/*", (c) => serveFile(c, assets, c.req.path));

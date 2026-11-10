@@ -12,7 +12,14 @@
 /** @typedef {import("../../src/posts/types.ts").Page<PostSummary>} PostPage */
 /** @typedef {import("../../src/posts/validation.ts").PostPatch} PostPatch */
 /** @typedef {import("../../src/posts/validation.ts").PostInput} PostInput */
-/** @typedef {typeof import("../../src/posts/validation.ts").LIMITS} Limits */
+/**
+ * 입력 제한값 (GET /api/limits). 번역 칸 제한은 translation 아래에
+ * @typedef {typeof import("../../src/posts/validation.ts").LIMITS & { translation: typeof import("../../src/translations/service.ts").TRANSLATION_LIMITS }} Limits
+ */
+/** @typedef {import("../../src/translations/types.ts").TranslationLang} TranslationLang */
+/** @typedef {import("../../src/translations/types.ts").TranslationContent} TranslationContent */
+/** @typedef {import("../../src/translations/service.ts").TranslationView} TranslationView */
+/** @typedef {import("../../src/translations/service.ts").TranslationListItem} TranslationListItem */
 /** @typedef {import("../../src/posts/service.ts").PostForEdit} PostForEdit */
 /** @typedef {import("../../src/posts/service.ts").SaveResult} SaveResult */
 /** @typedef {import("../../src/admin/http-errors.ts").ErrorBody} ErrorBody */
@@ -170,6 +177,24 @@ export const imagesApi = {
       headers: { "Content-Type": file.type || "application/octet-stream", "X-File-Name": encodeURIComponent(fileName) },
       body: file,
     }),
+};
+
+/** 번역 (설계 12-9). 쓰는 동작은 모두 번역 화면 정보(TranslationView)를 돌려준다 */
+export const translationsApi = {
+  /** 번역이 있는 글들의 상태 (목록 표시용) @param {TranslationLang} lang @returns {Promise<TranslationListItem[]>} */
+  list: (lang) => request("GET", `/translations/${lang}`),
+  /** @param {number} id @param {TranslationLang} lang @returns {Promise<TranslationView>} */
+  get: (id, lang) => request("GET", `/posts/${id}/translations/${lang}`),
+  /** LLM 번역 → 초안 (오래 걸릴 수 있음) @param {number} id @param {TranslationLang} lang @returns {Promise<TranslationView>} */
+  generate: (id, lang) => request("POST", `/posts/${id}/translations/${lang}/generate`),
+  /** @param {number} id @param {TranslationLang} lang @param {TranslationContent} content @returns {Promise<TranslationView>} */
+  saveDraft: (id, lang, content) => request("PATCH", `/posts/${id}/translations/${lang}/draft`, content),
+  /** @param {number} id @param {TranslationLang} lang @returns {Promise<null>} */
+  deleteDraft: (id, lang) => request("DELETE", `/posts/${id}/translations/${lang}/draft`),
+  /** @param {number} id @param {TranslationLang} lang @returns {Promise<TranslationView>} */
+  publish: (id, lang) => request("POST", `/posts/${id}/translations/${lang}/publish`),
+  /** @param {number} id @param {TranslationLang} lang @returns {Promise<TranslationView>} */
+  unpublish: (id, lang) => request("POST", `/posts/${id}/translations/${lang}/unpublish`),
 };
 
 /** 공개 사이트 배포 (GitHub Actions) */

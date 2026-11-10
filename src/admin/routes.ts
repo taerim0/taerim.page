@@ -6,6 +6,7 @@ import type { RenderFn } from "../markdown/index.ts";
 import type { PostService } from "../posts/service.ts";
 import { LIMITS } from "../posts/validation.ts";
 import type { TranslationService } from "../translations/service.ts";
+import { TRANSLATION_LIMITS } from "../translations/service.ts";
 import { isTranslationLang } from "../translations/types.ts";
 import type { TranslationLang } from "../translations/types.ts";
 import type { AdminEnv } from "./auth.ts";
@@ -88,10 +89,10 @@ export function createApiRoutes({ service, render, deploy, images, translations 
   api.get("/tags", async (c) => c.json(await service.listTags()));
 
   /**
-   * 입력 제한값. 관리자 화면이 "남은 글자 수"를 보여줄 때 쓴다.
+   * 입력 제한값. 관리자 화면이 "남은 글자 수"를 보여줄 때 쓴다. 번역 칸 제한은 translation 아래에.
    * 화면에 숫자를 따로 적지 않고 여기서 받아 가서, 서버 규칙과 화면 표시가 어긋나지 않게 한다.
    */
-  api.get("/limits", (c) => c.json(LIMITS));
+  api.get("/limits", (c) => c.json({ ...LIMITS, translation: TRANSLATION_LIMITS }));
 
   /** 미리보기: { body } → { html }. 저장하지 않는다. */
   api.post("/preview", async (c) => {

@@ -8,9 +8,10 @@
  * - 미리보기: 입력 중에는 바뀐 블록만, 입력이 멈추면 전체를 한 번 렌더링
  * - 글자 수는 서버와 같은 방식(charCount)으로 세고, 제한값은 서버(GET /api/limits)에서 받는다
  */
-import { ApiError, getLimits, postsApi } from "./api.js";
+import { ApiError, getLimits, postsApi, translationsApi } from "./api.js";
 import { blockIndexAt, charCount, createBlockPreview, isAllowedTag, normalizeTag, normalizeTags, renderMarkdown, TAG_CHARS_MESSAGE } from "./lib.js";
 import { bindImageUpload } from "./image-upload.js";
+import { translationBadge } from "./translation-badge.js";
 import { bindTagInput, clearNotice, confirmDialog, el, flash, formatDateTime, notify } from "./ui.js";
 
 /** @typedef {import("./api.js").Post} Post */
@@ -159,6 +160,7 @@ async function load() {
   setPreviewOpen(initialPreviewState()); // 열려 있으면 전체 렌더링까지
   refresh();
   inputs.title.focus();
+  void loadTranslationBadge();
 }
 
 /**
@@ -211,6 +213,23 @@ function setMode(next) {
   buttons.apply.hidden = mode !== "editing";
   buttons.discard.hidden = mode !== "editing";
   buttons.trash.hidden = mode === "new";
+
+  // 번역 화면으로 (저장한 글만)
+  const link = /** @type {HTMLAnchorElement} */ ($("translation-link"));
+  link.hidden = postId === null;
+  if (postId !== null) link.href = `/posts/translate/${postId}/en`;
+}
+
+/** 번역 상태 표시 (실패해도 편집에는 상관없어서 조용히 넘어감) */
+async function loadTranslationBadge() {
+  if (postId === null) return;
+  const id = postId;
+  try {
+    const view = await translationsApi.get(id, "en");
+    $("translation-badge").replaceChildren(translationBadge(id, "en", view.status) ?? "");
+  } catch {
+    // 표시만 못 함
+  }
 }
 
 /** 입력할 때마다: 글자 수, 저장 안 됨 표시, 버튼 켜고 끄기, 미리보기 제목 */

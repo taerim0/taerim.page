@@ -23,9 +23,9 @@ export const POSTS_PATH = "/posts";
 /** 아카이브 주소 (설계 15-5) */
 export const ARCHIVE_PATH = "/archive";
 
-/** 아카이브 안 이슈 자리 (홈의 최근 이슈가 가리킴). 예) 3 → "#issue-3" */
-export function issueAnchor(id: number): string {
-  return `issue-${id}`;
+/** 아카이브 안 활동 자리 (홈의 최근 활동이 가리킴). 예) 3 → "#activity-3" */
+export function activityAnchor(id: number): string {
+  return `activity-${id}`;
 }
 
 /** 검색 페이지와 검색 파일 (설계 15-7) */

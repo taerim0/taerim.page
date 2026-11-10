@@ -34,8 +34,8 @@ import { embedUrls, setEmbedResolver, setMathRenderer } from "../src/markdown/in
 import type { EmbedView } from "../src/markdown/index.ts";
 import { copyKatex } from "./copy-katex.ts";
 import { buildSite } from "../src/site/build.ts";
-import { D1IssueRepository } from "../src/issues/issues.ts";
-import type { IssueRepository } from "../src/issues/issues.ts";
+import { D1ActivityRepository } from "../src/activities/activities.ts";
+import type { ActivityRepository } from "../src/activities/activities.ts";
 import { DEFAULT_SETTINGS, D1SettingsRepository } from "../src/settings/settings.ts";
 import type { SettingsRepository } from "../src/settings/settings.ts";
 import { SITE_CONFIG } from "../src/site/config.ts";
@@ -65,7 +65,7 @@ interface Source {
   embeds: EmbedRepository;
   images: ImageRepository;
   settings: SettingsRepository;
-  issues: IssueRepository;
+  activities: ActivityRepository;
   files: ImageStore;
   close(): Promise<void>;
 }
@@ -94,7 +94,7 @@ async function openRemote(): Promise<Source> {
     embeds: new D1EmbedRepository(db),
     images: new D1ImageRepository(db),
     settings: new D1SettingsRepository(db),
-    issues: new D1IssueRepository(db),
+    activities: new D1ActivityRepository(db),
     files: new R2ImageStore(bucket),
     close: async () => {},
   };
@@ -110,7 +110,7 @@ async function openLocal(): Promise<Source> {
     embeds: new D1EmbedRepository(proxy.env.DB),
     images: new D1ImageRepository(proxy.env.DB),
     settings: new D1SettingsRepository(proxy.env.DB),
-    issues: new D1IssueRepository(proxy.env.DB),
+    activities: new D1ActivityRepository(proxy.env.DB),
     files: new R2ImageStore(proxy.env.IMAGES),
     close: () => proxy.dispose(),
   };
@@ -147,7 +147,7 @@ async function readImages(source: Source, posts: readonly ImageUser[]): Promise<
 
   for (const name of [...missing].sort()) {
     const usedBy = [...new Set(posts.filter((post) => collectImageNames([post]).includes(name)).map((post) => post.id))];
-    console.warn(`⚠ 없는 이미지: /images/${name} (글 ${usedBy.map((id) => (id === 0 ? "설정·이슈" : id)).join(", ")}) → 이 이미지는 깨져 보여요`);
+    console.warn(`⚠ 없는 이미지: /images/${name} (글 ${usedBy.map((id) => (id === 0 ? "설정·활동" : id)).join(", ")}) → 이 이미지는 깨져 보여요`);
   }
   return downloaded.sort((a, b) => (a.info.name < b.info.name ? -1 : 1));
 }
@@ -190,20 +190,20 @@ async function main(): Promise<void> {
     for (const lang of TRANSLATION_LANGS) translations.push(...(await source.translations.listPublished(lang)));
     // 사이트 설정 (설계 15-3): 저장한 적 없으면 기본값. 프로필 사진도 이미지처럼 복사 (id 0 = 설정)
     const settings = (await source.settings.get())?.settings ?? DEFAULT_SETTINGS;
-    // 이슈 (설계 15-5): 내용의 이미지·임베드도 글처럼 (id 0 = 글이 아님)
-    const issues = await source.issues.list();
-    const issueBodies = issues.flatMap((issue) => [issue.body, issue.bodyEn ?? ""]);
+    // 활동 (설계 15-5): 내용의 이미지·임베드도 글처럼 (id 0 = 글이 아님)
+    const activities = await source.activities.list();
+    const activityBodies = activities.flatMap((activity) => [activity.body, activity.bodyEn ?? ""]);
     const imageUsers = [
       ...posts,
       ...translations.map((t) => ({ id: t.postId, body: t.body, thumbnail: null })),
       ...(settings.photo ? [{ id: 0, body: "", thumbnail: settings.photo }] : []),
-      ...issueBodies.map((body) => ({ id: 0, body, thumbnail: null })),
+      ...activityBodies.map((body) => ({ id: 0, body, thumbnail: null })),
     ];
     const images = await readImages(source, imageUsers);
     // 태그 상하관계 (설계 14): 글의 태그에 상위 태그를 붙이고 태그 모음을 트리로
     const tagParents = await source.posts.listTagParents();
-    const embeds = await readEmbeds(source, [...posts.map((p) => p.body), ...translations.map((t) => t.body), ...issueBodies]);
-    const files = await buildSite({ site: SITE_CONFIG, settings, issues, posts, translations, tagParents, images: images.map((image) => image.info) });
+    const embeds = await readEmbeds(source, [...posts.map((p) => p.body), ...translations.map((t) => t.body), ...activityBodies]);
+    const files = await buildSite({ site: SITE_CONFIG, settings, activities, posts, translations, tagParents, images: images.map((image) => image.info) });
 
     // 지난 빌드의 파일(지운 글 등)이 남지 않게 통째로 비우고 다시 쓴다
     await rm(OUT_DIR, { recursive: true, force: true });
@@ -234,7 +234,7 @@ async function main(): Promise<void> {
     const seconds = ((performance.now() - started) / 1000).toFixed(1);
     const megabytes = (images.reduce((sum, image) => sum + image.bytes.byteLength, 0) / 1024 / 1024).toFixed(1);
     console.log(
-      `${source.label} D1·R2: 공개 글 ${posts.length}개 (번역 ${translations.length}개, 이슈 ${issues.length}개) → 파일 ${files.size}개 + 이미지 ${images.length}개 (${megabytes}MB) (+ 정적 파일) → ${OUT_DIR}/ (${seconds}초)`,
+      `${source.label} D1·R2: 공개 글 ${posts.length}개 (번역 ${translations.length}개, 활동 ${activities.length}개) → 파일 ${files.size}개 + 이미지 ${images.length}개 (${megabytes}MB) (+ 정적 파일) → ${OUT_DIR}/ (${seconds}초)`,
     );
   } finally {
     await source.close();

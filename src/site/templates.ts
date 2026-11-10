@@ -15,11 +15,11 @@ import type { SiteSettings } from "../settings/settings.ts";
 import { DEFAULT_AVATAR } from "../settings/settings.ts";
 import type { TagTree } from "../posts/tag-tree.ts";
 import type { Post, TagCount } from "../posts/types.ts";
-import type { ArchiveIssue, ArchiveYear } from "./archive.ts";
+import type { ArchiveActivity, ArchiveYear } from "./archive.ts";
 import { formatDate, formatDay, SITE_SCRIPT, LOCALES, localizedPath, MESSAGES, SOURCE_LOCALE } from "./i18n.ts";
 import type { Locale } from "./i18n.ts";
 import type { ImageSize } from "./images.ts";
-import { ARCHIVE_PATH, issueAnchor, pagePath, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, tagPath, TAGS_PATH } from "./paths.ts";
+import { ARCHIVE_PATH, activityAnchor, pagePath, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, tagPath, TAGS_PATH } from "./paths.ts";
 
 export { formatDate } from "./i18n.ts";
 
@@ -417,18 +417,18 @@ interface HomePageProps {
   tags: TagCount[];
   tree?: TagTree;
   imageSizes?: ReadonlyMap<string, ImageSize>;
-  /** 최근 이슈 (설계 15-5, HOME_ISSUE_COUNT개까지). 없으면 그 부분을 안 보임 */
-  issues?: ArchiveIssue[];
+  /** 최근 활동 (설계 15-5, HOME_ACTIVITY_COUNT개까지). 없으면 그 부분을 안 보임 */
+  activities?: ArchiveActivity[];
 }
 
-/** 홈에 보일 최근 이슈 수 */
-export const HOME_ISSUE_COUNT = 10;
+/** 홈에 보일 최근 활동 수 */
+export const HOME_ACTIVITY_COUNT = 10;
 
 /**
  * 홈: 넓으면 왼쪽(소개 카드 + 태그 트리) · 오른쪽(최신 글 + 전체 글 보기), 좁으면 세로로 (CSS).
  * 태그 트리는 <details open> 하나 → 좁은 화면에서는 방문자 스크립트가 처음에 접음
  */
-export function homePage({ site, locale = SOURCE_LOCALE, profile, posts, tags, tree, imageSizes, issues = [] }: HomePageProps): Html {
+export function homePage({ site, locale = SOURCE_LOCALE, profile, posts, tags, tree, imageSizes, activities = [] }: HomePageProps): Html {
   const m = MESSAGES[locale];
   const body = html`
     <div class="home">
@@ -447,13 +447,13 @@ export function homePage({ site, locale = SOURCE_LOCALE, profile, posts, tags, t
           ? html`<p class="empty">${m.emptyPosts}</p>`
           : html`<ul class="post-list">${posts.map((post) => postCard(site, locale, post, imageSizes))}</ul>
         <p class="more"><a href="${localizedPath(locale, POSTS_PATH)}">${m.allPosts}</a></p>`}
-        ${issues.length === 0
+        ${activities.length === 0
           ? ""
-          : html`<section class="home-issues" aria-labelledby="home-issues">
-          <h2 class="section-heading" id="home-issues">${m.recentIssues}</h2>
-          <ul class="issue-lines">${issues.map(
-            (issue) =>
-              html`<li><time datetime="${issue.date}">${formatDay(issue.date, locale)}</time> <a href="${localizedPath(locale, ARCHIVE_PATH)}#${issueAnchor(issue.id)}"${issue.titleLang ? html` lang="${issue.titleLang}"` : ""}>${issue.title}</a></li>`,
+          : html`<section class="home-activities" aria-labelledby="home-activities">
+          <h2 class="section-heading" id="home-activities">${m.recentActivities}</h2>
+          <ul class="activity-lines">${activities.map(
+            (activity) =>
+              html`<li><time datetime="${activity.date}">${formatDay(activity.date, locale)}</time> ${activityBadge(locale, activity)} <a href="${localizedPath(locale, ARCHIVE_PATH)}#${activityAnchor(activity.id)}"${activity.titleLang ? html` lang="${activity.titleLang}"` : ""}>${activity.title}</a></li>`,
           )}</ul>
           <p class="more"><a href="${localizedPath(locale, ARCHIVE_PATH)}">${m.viewArchive}</a></p>
         </section>`}
@@ -484,41 +484,55 @@ function profileCard(locale: Locale, p: SiteSettings): Html {
 // ── 아카이브 (설계 15-5) ─────────────────────────────
 
 /**
- * 아카이브: 글과 이슈를 연 → 월로 (최신부터), 맨 위에 연도 바로 가기.
- * 글은 날짜 + 제목 링크 한 줄, 이슈는 꼬리표 + 제목 + 내용을 펼쳐서 (id="issue-n")
+ * 아카이브: 글과 활동을 연 → 월로 (최신부터), 맨 위에 연도 바로 가기.
+ * 글은 날짜 + 제목 링크 한 줄, 활동은 꼬리표 + 제목 (설계 15-8).
+ * 내용이 있는 활동은 <details>로 접어 둠 (모두 닫힌 채로 시작, 주소 조각 #activity-n으로 오면 방문자 스크립트가 그것만 펼침).
+ * 내용이 없으면 접기 없이 한 줄
  */
 export function archivePage({ site, locale = SOURCE_LOCALE, years }: { site: SiteConfig; locale?: Locale; years: ArchiveYear[] }): Html {
   const m = MESSAGES[locale];
-  const total = years.reduce((sum, y) => ({ posts: sum.posts + y.posts, issues: sum.issues + y.issues }), { posts: 0, issues: 0 });
-  const day = (date: string) => date.slice(5);
+  const total = years.reduce((sum, y) => ({ posts: sum.posts + y.posts, activities: sum.activities + y.activities }), { posts: 0, activities: 0 });
   const body = html`
     <h1 class="list-heading">${m.archiveHeading}</h1>
     ${years.length === 0
       ? html`<p class="empty">${m.emptyPosts}</p>`
-      : html`<p class="archive-total">${m.archiveCounts(total.posts, total.issues)}</p>
+      : html`<p class="archive-total">${m.archiveCounts(total.posts, total.activities)}</p>
     <nav class="archive-years" aria-label="${m.archiveYears}">${years.map(
       (y, i) => html`${i > 0 ? " · " : ""}<a href="#year-${y.year}">${y.year}</a>`,
     )}</nav>
     ${years.map(
       (y) => html`<section class="archive-year">
-      <h2 id="year-${y.year}">${y.year} <span class="count">${m.archiveCounts(y.posts, y.issues)}</span></h2>
+      <h2 id="year-${y.year}">${y.year} <span class="count">${m.archiveCounts(y.posts, y.activities)}</span></h2>
       ${y.months.map(
         (month) => html`<section class="archive-month">
-        <h3>${m.monthName(month.month)} <span class="count">${m.archiveCounts(month.posts, month.issues)}</span></h3>
+        <h3>${m.monthName(month.month)} <span class="count">${m.archiveCounts(month.posts, month.activities)}</span></h3>
         <ul class="archive-list">${month.entries.map((entry) =>
           entry.kind === "post"
             ? archivePostLine(locale, entry.date, entry.post)
-            : html`<li class="archive-issue" id="${issueAnchor(entry.issue.id)}">
-            <p class="archive-issue-head"><time datetime="${entry.date}">${day(entry.date)}</time> <span class="issue-badge">${m.issueBadge}</span> <span class="archive-issue-title"${entry.issue.titleLang ? html` lang="${entry.issue.titleLang}"` : ""}>${entry.issue.title}</span></p>
-            ${entry.issue.bodyHtml ? html`<div class="post-body archive-issue-body"${entry.issue.bodyLang ? html` lang="${entry.issue.bodyLang}"` : ""}>${raw(entry.issue.bodyHtml)}</div>` : ""}
-          </li>`,
+            : archiveActivityLine(locale, entry.activity),
         )}</ul>
       </section>`,
       )}
     </section>`,
     )}`}`;
-  const math = years.some((y) => y.months.some((mo) => mo.entries.some((e) => e.kind === "issue" && hasMath(e.issue.bodyHtml))));
+  const math = years.some((y) => y.months.some((mo) => mo.entries.some((e) => e.kind === "activity" && hasMath(e.activity.bodyHtml))));
   return layout({ site, locale, title: m.archiveHeading, path: ARCHIVE_PATH, math, body });
+}
+
+/** 활동 꼬리표 (비었으면 기본 "활동"/"Activity") */
+function activityBadge(locale: Locale, activity: Pick<ArchiveActivity, "label" | "labelLang">): Html {
+  return html`<span class="activity-badge"${activity.labelLang ? html` lang="${activity.labelLang}"` : ""}>${activity.label ?? MESSAGES[locale].activityBadge}</span>`;
+}
+
+/** 아카이브의 활동 한 줄: 내용이 있으면 <details>(닫힘) 안에, 없으면 한 줄 (설계 15-8) */
+function archiveActivityLine(locale: Locale, activity: ArchiveActivity): Html {
+  const head = html`<time datetime="${activity.date}">${activity.date.slice(5)}</time> ${activityBadge(locale, activity)} <span class="archive-activity-title"${activity.titleLang ? html` lang="${activity.titleLang}"` : ""}>${activity.title}</span>`;
+  const id = activityAnchor(activity.id);
+  if (!activity.bodyHtml) return html`<li class="archive-activity" id="${id}"><p class="archive-activity-head">${head}</p></li>`;
+  return html`<li class="archive-activity has-body" id="${id}"><details class="archive-activity-toggle">
+            <summary class="archive-activity-head">${head}</summary>
+            <div class="post-body archive-activity-body"${activity.bodyLang ? html` lang="${activity.bodyLang}"` : ""}>${raw(activity.bodyHtml)}</div>
+          </details></li>`;
 }
 
 /** 아카이브의 글 한 줄: 월-일 + 제목 (번역 언어의 미번역 글은 한글 제목 + KR) */
@@ -545,7 +559,7 @@ export function searchPage({ site, locale = SOURCE_LOCALE }: { site: SiteConfig;
       data-index="${localizedPath(locale, SEARCH_INDEX_PATH)}" data-body="${localizedPath(locale, SEARCH_BODY_PATH)}"
       data-msg-count="${m.searchCount}" data-msg-more="${m.searchMore}" data-msg-none="${m.searchNone}"
       data-msg-loading="${m.searchLoadingBody}" data-msg-failed="${m.searchFailed}"
-      data-badge-issue="${m.issueBadge}" data-badge-kr="${m.koreanOnly}" data-badge-kr-title="${m.koreanOnlyTitle}">
+      data-badge-activity="${m.activityBadge}" data-badge-kr="${m.koreanOnly}" data-badge-kr-title="${m.koreanOnlyTitle}">
       <label class="search-label" for="search-q">${m.searchLabel}</label>
       <input class="search-input" id="search-q" name="q" type="search" placeholder="${m.searchPlaceholder}" autocomplete="off" autofocus>
     </form>

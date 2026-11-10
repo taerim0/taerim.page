@@ -55,15 +55,15 @@ export interface Messages {
   allPosts: string;
   profileLabel: string;
   email: string;
-  /** 아카이브·이슈 (설계 15-5) */
+  /** 아카이브·활동 (설계 15-5, 15-8) */
   navArchive: string;
   archiveHeading: string;
   archiveYears: string;
-  /** "글 3 · 이슈 1" (0인 쪽은 뺌) */
-  archiveCounts: (posts: number, issues: number) => string;
+  /** "글 3 · 활동 1" (0인 쪽은 뺌) */
+  archiveCounts: (posts: number, activities: number) => string;
   monthName: (month: number) => string;
-  issueBadge: string;
-  recentIssues: string;
+  activityBadge: string;
+  recentActivities: string;
   viewArchive: string;
   /** 이전·다음 글 (설계 15-6) */
   postNavLabel: string;
@@ -112,10 +112,10 @@ export const MESSAGES: Record<Locale, Messages> = {
     navArchive: "아카이브",
     archiveHeading: "아카이브",
     archiveYears: "연도",
-    archiveCounts: (posts, issues) => [posts > 0 ? `글 ${posts}` : "", issues > 0 ? `이슈 ${issues}` : ""].filter(Boolean).join(" · "),
+    archiveCounts: (posts, activities) => [posts > 0 ? `글 ${posts}` : "", activities > 0 ? `활동 ${activities}` : ""].filter(Boolean).join(" · "),
     monthName: (month) => `${month}월`,
-    issueBadge: "이슈",
-    recentIssues: "최근 이슈",
+    activityBadge: "활동",
+    recentActivities: "최근 활동",
     viewArchive: "아카이브 보기 →",
     postNavLabel: "이전·다음 글",
     prevPost: "← 이전 글",
@@ -159,11 +159,11 @@ export const MESSAGES: Record<Locale, Messages> = {
     navArchive: "Archive",
     archiveHeading: "Archive",
     archiveYears: "Years",
-    archiveCounts: (posts, issues) =>
-      [posts > 0 ? `${posts} ${posts === 1 ? "post" : "posts"}` : "", issues > 0 ? `${issues} ${issues === 1 ? "issue" : "issues"}` : ""].filter(Boolean).join(" · "),
+    archiveCounts: (posts, activities) =>
+      [posts > 0 ? `${posts} ${posts === 1 ? "post" : "posts"}` : "", activities > 0 ? `${activities} ${activities === 1 ? "activity" : "activities"}` : ""].filter(Boolean).join(" · "),
     monthName: (month) => new Intl.DateTimeFormat("en-US", { month: "long", timeZone: "UTC" }).format(new Date(Date.UTC(2000, month - 1, 1))),
-    issueBadge: "Issue",
-    recentIssues: "Recent issues",
+    activityBadge: "Activity",
+    recentActivities: "Recent activity",
     viewArchive: "View archive →",
     postNavLabel: "Previous and next posts",
     prevPost: "← Previous",
@@ -219,5 +219,8 @@ export function formatDate(iso: string, locale: Locale = SOURCE_LOCALE): string 
  *
  * 홈 태그 트리 (설계 15-4)
  * - <details class="home-tags" open>을 좁은 화면(799px 이하)이면 처음에 접음. JS가 꺼지면 펼친 채
+ *
+ * 아카이브 활동 접기 (설계 15-8)
+ * - 주소 조각(#activity-n)이 가리키는 곳 안의 <details>를 펼침 (열 때 + 조각이 바뀔 때). 나머지는 닫힌 채
  */
-export const SITE_SCRIPT = `(function(){var K="lang",T="theme",d=document.documentElement;d.classList.add("js");try{var m=localStorage.getItem(T);if(m==="dark"||m==="light")d.setAttribute("data-theme",m)}catch(e){}function dark(){var v=d.getAttribute("data-theme");return v==="dark"||(v!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches)}function sync(){var g=document.querySelector("[data-theme-toggle]");if(g)g.setAttribute("aria-pressed",String(dark()))}document.addEventListener("DOMContentLoaded",function(){sync();var h=document.querySelector(".home-tags");if(h&&matchMedia("(max-width: 799px)").matches)h.removeAttribute("open")});try{var s=localStorage.getItem(K);if(s&&s!==d.lang&&!/[?&]lang=/.test(location.search)){var p=d.getAttribute("data-path-"+s);if(p){location.replace(p+location.hash);return}}}catch(e){}document.addEventListener("click",function(e){var t=e.target&&e.target.closest?e.target:null;if(!t)return;var a=t.closest("a[data-set-lang]");if(a)try{localStorage.setItem(K,a.getAttribute("data-set-lang"))}catch(x){}if(t.closest("[data-theme-toggle]")){var n=dark()?"light":"dark";d.setAttribute("data-theme",n);try{localStorage.setItem(T,n)}catch(x){}sync();return}var b=t.closest(".code-copy"),c=b&&b.closest(".code-block");if(!c||!navigator.clipboard)return;var l=[].slice.call(c.querySelectorAll(".line")).filter(function(n){return!n.classList.contains("line-del")}).map(function(n){var x=n.querySelector(".code-text");return x?x.textContent:""});navigator.clipboard.writeText(l.join("\\n")).then(function(){b.setAttribute("data-copied","true");setTimeout(function(){b.removeAttribute("data-copied")},1500)})})})();`;
+export const SITE_SCRIPT = `(function(){var K="lang",T="theme",d=document.documentElement;d.classList.add("js");try{var m=localStorage.getItem(T);if(m==="dark"||m==="light")d.setAttribute("data-theme",m)}catch(e){}function dark(){var v=d.getAttribute("data-theme");return v==="dark"||(v!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches)}function sync(){var g=document.querySelector("[data-theme-toggle]");if(g)g.setAttribute("aria-pressed",String(dark()))}function hash(){var i=location.hash.slice(1),e=i&&document.getElementById(i),t=e&&e.querySelector("details");if(t)t.open=true}addEventListener("hashchange",hash);document.addEventListener("DOMContentLoaded",function(){sync();hash();var h=document.querySelector(".home-tags");if(h&&matchMedia("(max-width: 799px)").matches)h.removeAttribute("open")});try{var s=localStorage.getItem(K);if(s&&s!==d.lang&&!/[?&]lang=/.test(location.search)){var p=d.getAttribute("data-path-"+s);if(p){location.replace(p+location.hash);return}}}catch(e){}document.addEventListener("click",function(e){var t=e.target&&e.target.closest?e.target:null;if(!t)return;var a=t.closest("a[data-set-lang]");if(a)try{localStorage.setItem(K,a.getAttribute("data-set-lang"))}catch(x){}if(t.closest("[data-theme-toggle]")){var n=dark()?"light":"dark";d.setAttribute("data-theme",n);try{localStorage.setItem(T,n)}catch(x){}sync();return}var b=t.closest(".code-copy"),c=b&&b.closest(".code-block");if(!c||!navigator.clipboard)return;var l=[].slice.call(c.querySelectorAll(".line")).filter(function(n){return!n.classList.contains("line-del")}).map(function(n){var x=n.querySelector(".code-text");return x?x.textContent:""});navigator.clipboard.writeText(l.join("\\n")).then(function(){b.setAttribute("data-copied","true");setTimeout(function(){b.removeAttribute("data-copied")},1500)})})})();`;

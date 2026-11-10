@@ -77,7 +77,7 @@ function start(form: HTMLFormElement, input: HTMLInputElement, status: HTMLEleme
     if (item.l) link.lang = item.l;
     const head = document.createElement("p");
     head.className = "search-result-head";
-    if (item.k === "issue") head.append(badge("issue-badge", msg("badgeIssue")), " ");
+    if (item.k === "activity") head.append(badge("activity-badge", item.b ?? msg("badgeActivity")), " ");
     head.append(link);
     if (item.kr) head.append(" ", badge("lang-badge", msg("badgeKr"), msg("badgeKrTitle")));
     const meta = document.createElement("p");

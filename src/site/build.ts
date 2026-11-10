@@ -6,8 +6,8 @@
  */
 import { DEFAULT_SETTINGS } from "../settings/settings.ts";
 import type { SiteSettings } from "../settings/settings.ts";
-import type { Issue } from "../issues/issues.ts";
-import { byNewestIssue } from "../issues/issues.ts";
+import type { Activity } from "../activities/activities.ts";
+import { byNewestActivity } from "../activities/activities.ts";
 import { renderDocument, renderMarkdown } from "../markdown/index.ts";
 import { compareTagNames } from "../posts/tag-order.ts";
 import { TagTree } from "../posts/tag-tree.ts";
@@ -21,9 +21,9 @@ import type { ImageSize } from "./images.ts";
 import { groupArchive, postDate } from "./archive.ts";
 import { htmlToText } from "./search.ts";
 import type { SearchBodies, SearchIndex, SearchItem } from "./search.ts";
-import type { ArchiveIssue } from "./archive.ts";
-import { ARCHIVE_PATH, issueAnchor, pagePath, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, tagPath, TAGS_PATH } from "./paths.ts";
-import { absoluteUrl, archivePage, searchPage, HOME_ISSUE_COUNT, HOME_POST_COUNT, homePage, listPage, notFoundPage, postPage, tagsPage, untranslatedPostPage } from "./templates.ts";
+import type { ArchiveActivity } from "./archive.ts";
+import { ARCHIVE_PATH, activityAnchor, pagePath, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, tagPath, TAGS_PATH } from "./paths.ts";
+import { absoluteUrl, archivePage, searchPage, HOME_ACTIVITY_COUNT, HOME_POST_COUNT, homePage, listPage, notFoundPage, postPage, tagsPage, untranslatedPostPage } from "./templates.ts";
 import type { Html, PostCardData, SiteConfig, TagNav } from "./templates.ts";
 
 /** 목록 한 페이지의 글 수 (관리자 목록과 같은 10개) */
@@ -37,8 +37,8 @@ export interface BuildInput {
   site: SiteConfig;
   /** 사이트 설정 (설계 15-3). 지금은 사이트 소개만 반영, 홈 소개 카드·바닥글은 2단계 */
   settings?: SiteSettings;
-  /** 이슈 (설계 15-5): 아카이브에 글과 섞이고 홈에 최근 몇 개 */
-  issues?: Issue[];
+  /** 활동 (설계 15-5): 아카이브에 글과 섞이고 홈에 최근 몇 개 */
+  activities?: Activity[];
   /** 공개 글들 (본문 포함). 초안·휴지통 글이 섞여 있어도 여기서 한 번 더 걸러낸다 */
   posts: Post[];
   /** 공개된 번역본들 (언어 섞여도 됨). 공개된 한글 글의 것만 쓴다 (설계 12-11) */
@@ -70,7 +70,7 @@ export function applySettings(site: SiteConfig, settings: SiteSettings | undefin
   };
 }
 
-export async function buildSite({ site: baseSite, settings, issues = [], posts, translations = [], images = [], tagParents = [] }: BuildInput): Promise<Map<string, string>> {
+export async function buildSite({ site: baseSite, settings, activities = [], posts, translations = [], images = [], tagParents = [] }: BuildInput): Promise<Map<string, string>> {
   const site = applySettings(baseSite, settings);
   const imageSizes = imageSizeMap(images);
   const tree = new TagTree(tagParents);
@@ -96,7 +96,7 @@ export async function buildSite({ site: baseSite, settings, issues = [], posts, 
   /** 이 글이 있는 언어들 (hreflang) */
   const localesOf = (id: number) => LOCALES.filter((l) => l === SOURCE_LOCALE || byLocale.get(l)?.has(id));
   const tags = countTags(published);
-  const sortedIssues = [...issues].sort(byNewestIssue);
+  const sortedActivities = [...activities].sort(byNewestActivity);
 
   for (const locale of LOCALES) {
     const localized: LocalizedPost[] = published.map((post) => ({ post, translation: byLocale.get(locale)?.get(post.id) }));
@@ -105,13 +105,13 @@ export async function buildSite({ site: baseSite, settings, issues = [], posts, 
 
     // 홈 (설계 15-4): 소개 카드 + 태그 트리 + 최신 글. 전체 목록은 /posts (10개씩)
     const profile = site.profile ?? { ...DEFAULT_SETTINGS, name: site.name };
-    const archiveIssues = sortedIssues.map((issue) => localizeIssue(issue, locale, imageSizes));
+    const archiveActivities = sortedActivities.map((activity) => localizeActivity(activity, locale, imageSizes));
     await add(
       localizedPath(locale, "/"),
-      homePage({ site, locale, profile, posts: cardsOf(published.slice(0, HOME_POST_COUNT)), tags, tree, imageSizes, issues: archiveIssues.slice(0, HOME_ISSUE_COUNT) }),
+      homePage({ site, locale, profile, posts: cardsOf(published.slice(0, HOME_POST_COUNT)), tags, tree, imageSizes, activities: archiveActivities.slice(0, HOME_ACTIVITY_COUNT) }),
     );
-    // 아카이브 (설계 15-5): 글 + 이슈를 연 → 월로
-    await add(localizedPath(locale, ARCHIVE_PATH), archivePage({ site, locale, years: groupArchive(cardsOf(published), archiveIssues) }));
+    // 아카이브 (설계 15-5): 글 + 활동을 연 → 월로
+    await add(localizedPath(locale, ARCHIVE_PATH), archivePage({ site, locale, years: groupArchive(cardsOf(published), archiveActivities) }));
     for (const [path, page] of listPages(site, locale, cardsOf(published), POSTS_PATH, imageSizes)) await add(path, page);
 
     // 글: 한국어 / 번역본 / 미번역(한글을 흐리게 + 안내)
@@ -151,7 +151,7 @@ export async function buildSite({ site: baseSite, settings, issues = [], posts, 
 
     // 검색 (설계 15-7): 페이지 + 검색 파일 둘 (제목·태그·요약 / 본문)
     await add(localizedPath(locale, SEARCH_PATH), searchPage({ site, locale }));
-    const search = searchFiles(locale, cardsOf(published), bodyHtmlOf, archiveIssues);
+    const search = searchFiles(locale, cardsOf(published), bodyHtmlOf, archiveActivities);
     files.set(localizedPath(locale, SEARCH_INDEX_PATH), JSON.stringify(search.index));
     files.set(localizedPath(locale, SEARCH_BODY_PATH), JSON.stringify(search.bodies));
 
@@ -166,8 +166,8 @@ export async function buildSite({ site: baseSite, settings, issues = [], posts, 
   return files;
 }
 
-/** 검색 파일 내용: 글(최신 순) 다음 이슈(최신 순). 본문은 HTML을 걷어낸 글자 */
-function searchFiles(locale: Locale, cards: PostCardData[], bodyHtmlOf: ReadonlyMap<number, string>, issues: ArchiveIssue[]): { index: SearchIndex; bodies: SearchBodies } {
+/** 검색 파일 내용: 글(최신 순) 다음 활동(최신 순). 본문은 HTML을 걷어낸 글자 */
+function searchFiles(locale: Locale, cards: PostCardData[], bodyHtmlOf: ReadonlyMap<number, string>, activities: ArchiveActivity[]): { index: SearchIndex; bodies: SearchBodies } {
   const korean = (untranslated: boolean) => (untranslated && locale !== SOURCE_LOCALE ? { l: SOURCE_LOCALE, kr: true as const } : {});
   const items: SearchItem[] = [];
   const bodies: string[] = [];
@@ -185,33 +185,37 @@ function searchFiles(locale: Locale, cards: PostCardData[], bodyHtmlOf: Readonly
     });
     bodies.push(htmlToText(bodyHtmlOf.get(card.id) ?? ""));
   }
-  for (const issue of issues) {
+  for (const activity of activities) {
     items.push({
-      k: "issue",
-      u: `${localizedPath(locale, ARCHIVE_PATH)}#${issueAnchor(issue.id)}`,
-      t: issue.title,
-      d: issue.date,
-      dt: formatDay(issue.date, locale),
+      k: "activity",
+      u: `${localizedPath(locale, ARCHIVE_PATH)}#${activityAnchor(activity.id)}`,
+      t: activity.title,
+      ...(activity.label ? { b: activity.label } : {}),
+      d: activity.date,
+      dt: formatDay(activity.date, locale),
       g: [],
       s: "",
-      ...(issue.titleLang ? { l: issue.titleLang } : {}),
+      ...(activity.titleLang ? { l: activity.titleLang } : {}),
     });
-    bodies.push(htmlToText(issue.bodyHtml));
+    bodies.push(htmlToText(activity.bodyHtml));
   }
   return { index: { items }, bodies: { b: bodies } };
 }
 
-/** 이슈를 그 언어로: 영어 제목이 없으면 한국어 그대로(lang=ko), 영어 내용이 없으면 한국어 내용 */
-function localizeIssue(issue: Issue, locale: Locale, imageSizes: ReadonlyMap<string, ImageSize>): ArchiveIssue {
+/** 활동을 그 언어로: 영어 꼬리표가 없으면 한국어 꼬리표(lang=ko) → 그것도 없으면 null(기본 글자). 영어 제목이 없으면 한국어 그대로(lang=ko), 영어 내용이 없으면 한국어 내용 */
+function localizeActivity(activity: Activity, locale: Locale, imageSizes: ReadonlyMap<string, ImageSize>): ArchiveActivity {
   const english = locale !== SOURCE_LOCALE;
-  const title = english && issue.titleEn ? issue.titleEn : issue.title;
-  const translatedBody = english && issue.bodyEn !== null;
-  const body = translatedBody ? issue.bodyEn! : issue.body;
+  const title = english && activity.titleEn ? activity.titleEn : activity.title;
+  const translatedBody = english && activity.bodyEn !== null;
+  const body = translatedBody ? activity.bodyEn! : activity.body;
+  const label = english ? (activity.labelEn ?? activity.label) : activity.label;
   return {
-    id: issue.id,
-    date: issue.date,
+    id: activity.id,
+    date: activity.date,
+    label,
+    labelLang: english && !activity.labelEn && activity.label ? SOURCE_LOCALE : null,
     title,
-    titleLang: english && !issue.titleEn ? SOURCE_LOCALE : null,
+    titleLang: english && !activity.titleEn ? SOURCE_LOCALE : null,
     bodyHtml: body.trim() === "" ? "" : renderMarkdown(body, { imageSizes, locale: translatedBody || !english ? locale : SOURCE_LOCALE }),
     bodyLang: english && !translatedBody ? SOURCE_LOCALE : null,
   };

@@ -7,10 +7,10 @@
  * - search-body.json: 본문 글자 (처음 입력할 때). items와 같은 순서
  */
 
-/** 검색 항목 하나 (글 또는 이슈) */
+/** 검색 항목 하나 (글 또는 활동) */
 export interface SearchItem {
-  /** 종류: 글 / 이슈 */
-  k: "post" | "issue";
+  /** 종류: 글 / 활동 */
+  k: "post" | "activity";
   /** 누르면 갈 주소 */
   u: string;
   /** 제목 */
@@ -19,8 +19,10 @@ export interface SearchItem {
   d: string;
   /** 화면에 보일 날짜 ("2026-11-10" / "Nov 10, 2026") */
   dt: string;
-  /** 태그 (이슈는 빈 배열) */
+  /** 태그 (활동은 빈 배열) */
   g: string[];
+  /** 활동 꼬리표 (기본 "활동"이면 없음) */
+  b?: string;
   /** 요약 (없으면 "") */
   s: string;
   /** 제목·내용의 언어가 페이지 언어와 다를 때 (영어 페이지의 한글 글) "ko" */

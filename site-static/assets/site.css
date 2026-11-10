@@ -244,7 +244,7 @@ a { color: var(--accent); }
 /* 바닥글 */
 .footer-links, .copyright { margin: 4px 0; }
 
-/* ── 아카이브·이슈 (설계 15-5). 꾸미기는 UI/UX 단계 ── */
+/* ── 아카이브·활동 (설계 15-5). 꾸미기는 UI/UX 단계 ── */
 .archive-total { margin: 0 0 4px; color: var(--muted); }
 .archive-years { margin: 0 0 16px; }
 .archive-year h2 { margin: 24px 0 4px; font-size: 1.4em; }
@@ -252,19 +252,23 @@ a { color: var(--accent); }
 .archive-year .count, .archive-month .count { color: var(--muted); font-size: .8em; font-weight: 400; }
 .archive-list { list-style: none; margin: 0; padding: 0; }
 .archive-list li { padding: 3px 0; }
-.archive-list time, .issue-lines time { display: inline-block; min-width: 3.2em; color: var(--muted); font-variant-numeric: tabular-nums; }
-.archive-issue { margin: 6px 0; padding: 8px 12px !important; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; scroll-margin-top: 16px; }
-.archive-issue:target { outline: 2px solid var(--accent); }
-.archive-issue-head { margin: 0; }
-.archive-issue-title { font-weight: 700; }
-.archive-issue-body { margin-top: 4px; }
-.archive-issue-body > :first-child { margin-top: 0; }
-.archive-issue-body > :last-child { margin-bottom: 0; }
-.issue-badge { display: inline-block; padding: 0 6px; border: 1px solid var(--accent); border-radius: 4px; color: var(--accent); font-size: .8em; font-weight: 600; line-height: 1.5; }
-.home-issues { margin-top: 28px; }
-.issue-lines { list-style: none; margin: 0; padding: 0; }
-.issue-lines li { padding: 3px 0; }
-.issue-lines time { min-width: 6.5em; }
+.archive-list time, .activity-lines time { display: inline-block; min-width: 3.2em; color: var(--muted); font-variant-numeric: tabular-nums; }
+.archive-activity { margin: 6px 0; padding: 8px 12px !important; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; scroll-margin-top: 16px; }
+.archive-activity:target { outline: 2px solid var(--accent); }
+.archive-activity-head { margin: 0; }
+.archive-activity-title { font-weight: 700; }
+.archive-activity-toggle > summary { cursor: pointer; list-style: none; }
+.archive-activity-toggle > summary::-webkit-details-marker { display: none; }
+.archive-activity-toggle > summary::after { content: "▸"; float: right; margin-left: 8px; color: var(--muted); }
+.archive-activity-toggle[open] > summary::after { content: "▾"; }
+.archive-activity-body { margin-top: 8px; }
+.archive-activity-body > :first-child { margin-top: 0; }
+.archive-activity-body > :last-child { margin-bottom: 0; }
+.activity-badge { display: inline-block; padding: 0 6px; border: 1px solid var(--accent); border-radius: 4px; color: var(--accent); font-size: .8em; font-weight: 600; line-height: 1.5; }
+.home-activities { margin-top: 28px; }
+.activity-lines { list-style: none; margin: 0; padding: 0; }
+.activity-lines li { padding: 3px 0; }
+.activity-lines time { min-width: 6.5em; }
 
 /* ── 이전·다음 글 (설계 15-6). 꾸미기는 UI/UX 단계 ── */
 .post-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 40px 0 8px; }

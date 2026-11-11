@@ -44,6 +44,8 @@ export interface Messages {
   /** 번역 언어 목록에서 아직 번역 안 된 글 표시 */
   koreanOnly: string;
   koreanOnlyTitle: string;
+  /** 아카이브에서 펼친 활동 내용이 한국어일 때 맨 위 한 줄 (설계 16-7, 번역 언어에만) */
+  activityUntranslated: string;
   /** 라이트/다크 바꾸기 버튼 (설계 13-7) */
   themeToggle: string;
   /** 번역 안 된 글 팝업 (번역 언어에만 쓰임) */
@@ -109,6 +111,7 @@ export const MESSAGES: Record<Locale, Messages> = {
     toc: "목차",
     koreanOnly: "KR",
     koreanOnlyTitle: "아직 번역되지 않은 글 (한국어)",
+    activityUntranslated: "아직 번역되지 않았어요 — 한국어로 보여요.",
     themeToggle: "다크 모드",
     untranslatedTitle: "아직 번역되지 않은 글입니다.",
     readInKorean: "한국어로 읽기",
@@ -160,6 +163,7 @@ export const MESSAGES: Record<Locale, Messages> = {
     toc: "Contents",
     koreanOnly: "KR",
     koreanOnlyTitle: "Not translated yet (Korean only)",
+    activityUntranslated: "Not translated yet — shown in Korean.",
     themeToggle: "Dark mode",
     untranslatedTitle: "This post hasn't been translated yet.",
     readInKorean: "Read in Korean",
@@ -234,9 +238,9 @@ export function formatDate(iso: string, locale: Locale = SOURCE_LOCALE): string 
  * - 버튼의 aria-pressed = 지금 다크인지
  *
  * 홈 태그 트리 (설계 15-4)
- * - 글 페이지 목차(<details class="toc" open>, 설계 16-3)를 좁은 화면(799px 이하)이면 처음에 접음. JS가 꺼지면 펼친 채 (홈 태그 카드는 접기 없음)
+ * - 글 페이지 목차(<details class="toc" open>, 설계 16-3)와 홈 태그 카드(<details class="home-tags" open>, 설계 16-7)를 좁은 화면(799px 이하)이면 처음에 접음. JS가 꺼지면 펼친 채. 넓은 화면은 CSS가 접기 단추를 숨김
  *
  * 아카이브 활동 접기 (설계 15-8)
  * - 주소 조각(#activity-n)이 가리키는 곳 안의 <details>를 펼침 (열 때 + 조각이 바뀔 때). 나머지는 닫힌 채
  */
-export const SITE_SCRIPT = `(function(){var K="lang",T="theme",d=document.documentElement;d.classList.add("js");try{var m=localStorage.getItem(T);if(m==="dark"||m==="light")d.setAttribute("data-theme",m)}catch(e){}function dark(){var v=d.getAttribute("data-theme");return v==="dark"||(v!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches)}function sync(){var g=document.querySelector("[data-theme-toggle]");if(g)g.setAttribute("aria-pressed",String(dark()))}function hash(){var i=location.hash.slice(1),e=i&&document.getElementById(i),t=e&&e.querySelector("details");if(t)t.open=true}addEventListener("hashchange",hash);document.addEventListener("DOMContentLoaded",function(){sync();hash();if(matchMedia("(max-width: 799px)").matches)[].forEach.call(document.querySelectorAll(".post-side .toc"),function(x){x.removeAttribute("open")})});try{var s=localStorage.getItem(K);if(s&&s!==d.lang&&!/[?&]lang=/.test(location.search)){var p=d.getAttribute("data-path-"+s);if(p){location.replace(p+location.hash);return}}}catch(e){}document.addEventListener("click",function(e){var t=e.target&&e.target.closest?e.target:null;if(!t)return;var a=t.closest("a[data-set-lang]");if(a)try{localStorage.setItem(K,a.getAttribute("data-set-lang"))}catch(x){}if(t.closest("[data-theme-toggle]")){var n=dark()?"light":"dark";d.setAttribute("data-theme",n);try{localStorage.setItem(T,n)}catch(x){}sync();return}var b=t.closest(".code-copy"),c=b&&b.closest(".code-block");if(!c||!navigator.clipboard)return;var l=[].slice.call(c.querySelectorAll(".line")).filter(function(n){return!n.classList.contains("line-del")}).map(function(n){var x=n.querySelector(".code-text");return x?x.textContent:""});navigator.clipboard.writeText(l.join("\\n")).then(function(){b.setAttribute("data-copied","true");setTimeout(function(){b.removeAttribute("data-copied")},1500)})})})();`;
+export const SITE_SCRIPT = `(function(){var K="lang",T="theme",d=document.documentElement;d.classList.add("js");try{var m=localStorage.getItem(T);if(m==="dark"||m==="light")d.setAttribute("data-theme",m)}catch(e){}function dark(){var v=d.getAttribute("data-theme");return v==="dark"||(v!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches)}function sync(){var g=document.querySelector("[data-theme-toggle]");if(g)g.setAttribute("aria-pressed",String(dark()))}function hash(){var i=location.hash.slice(1),e=i&&document.getElementById(i),t=e&&e.querySelector("details");if(t)t.open=true}addEventListener("hashchange",hash);document.addEventListener("DOMContentLoaded",function(){sync();hash();if(matchMedia("(max-width: 799px)").matches)[].forEach.call(document.querySelectorAll(".post-side .toc, .home-tags"),function(x){x.removeAttribute("open")})});try{var s=localStorage.getItem(K);if(s&&s!==d.lang&&!/[?&]lang=/.test(location.search)){var p=d.getAttribute("data-path-"+s);if(p){location.replace(p+location.hash);return}}}catch(e){}document.addEventListener("click",function(e){var t=e.target&&e.target.closest?e.target:null;if(!t)return;var a=t.closest("a[data-set-lang]");if(a)try{localStorage.setItem(K,a.getAttribute("data-set-lang"))}catch(x){}if(t.closest("[data-theme-toggle]")){var n=dark()?"light":"dark";d.setAttribute("data-theme",n);try{localStorage.setItem(T,n)}catch(x){}sync();return}var b=t.closest(".code-copy"),c=b&&b.closest(".code-block");if(!c||!navigator.clipboard)return;var l=[].slice.call(c.querySelectorAll(".line")).filter(function(n){return!n.classList.contains("line-del")}).map(function(n){var x=n.querySelector(".code-text");return x?x.textContent:""});navigator.clipboard.writeText(l.join("\\n")).then(function(){b.setAttribute("data-copied","true");setTimeout(function(){b.removeAttribute("data-copied")},1500)})})})();`;

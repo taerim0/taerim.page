@@ -198,6 +198,8 @@ function searchFiles(locale: Locale, cards: PostCardData[], bodyHtmlOf: Readonly
       g: [],
       s: "",
       ...(activity.titleLang ? { l: activity.titleLang } : {}),
+      // 영어 페이지에서 한국어로 보이는 활동 (설계 16-7)
+      ...(locale !== SOURCE_LOCALE && (activity.titleLang || activity.bodyLang) ? { kr: true as const } : {}),
     });
     bodies.push(htmlToText(activity.bodyHtml));
   }

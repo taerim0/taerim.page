@@ -501,10 +501,10 @@ export function homePage({ site, locale = SOURCE_LOCALE, profile, posts, tags, t
         ${profileCard(locale, profile)}
         ${tags.length === 0
           ? ""
-          : html`<section class="home-tags card" aria-labelledby="home-tags">
-          <h2 class="card-heading" id="home-tags">${m.tagsHeading}</h2>
+          : html`<details class="home-tags card" open>
+          <summary class="card-heading">${m.tagsHeading}</summary>
           ${tagList(locale, tags, tree)}
-        </section>`}
+        </details>`}
       </aside>
       <section class="home-main" aria-labelledby="home-latest">
         <h2 class="visually-hidden" id="home-latest">${m.latestPosts}</h2>
@@ -521,7 +521,7 @@ export function homePage({ site, locale = SOURCE_LOCALE, profile, posts, tags, t
           <h2 class="card-heading" id="home-activities">${m.recentActivities}</h2>
           <ul class="activity-lines">${activities.map(
             (activity) =>
-              html`<li><time datetime="${activity.date}">${formatDay(activity.date, locale)}</time> ${activityBadge(locale, activity)} <a href="${localizedPath(locale, ARCHIVE_PATH)}#${activityAnchor(activity.id)}"${activity.titleLang ? html` lang="${activity.titleLang}"` : ""}>${activity.title}</a></li>`,
+              html`<li><time datetime="${activity.date}">${formatDay(activity.date, locale)}</time> ${activityBadge(locale, activity)} <a href="${localizedPath(locale, ARCHIVE_PATH)}#${activityAnchor(activity.id)}"${activity.titleLang ? html` lang="${activity.titleLang}"` : ""}>${activity.title}</a>${activityKr(locale, activity)}</li>`,
           )}</ul>
           <p class="card-more"><a href="${localizedPath(locale, ARCHIVE_PATH)}">${m.viewArchive}</a></p>
         </section>`}
@@ -627,6 +627,13 @@ export function archivePage({ site, locale = SOURCE_LOCALE, years }: { site: Sit
   return layout({ site, locale, title: m.archiveHeading, path: ARCHIVE_PATH, math, section: "archive", bodyClass: "page-archive", body });
 }
 
+/** 번역 언어 페이지에서 한국어로 보이는 활동(영어 제목이나 내용이 없음)이면 KR 표시 (설계 16-7, 글과 같은 표시) */
+function activityKr(locale: Locale, activity: Pick<ArchiveActivity, "titleLang" | "bodyLang">): Html | "" {
+  if (locale === SOURCE_LOCALE || (!activity.titleLang && !activity.bodyLang)) return "";
+  const m = MESSAGES[locale];
+  return html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>`;
+}
+
 /** 활동 꼬리표 (비었으면 기본 "활동"/"Activity") */
 function activityBadge(locale: Locale, activity: Pick<ArchiveActivity, "label" | "labelLang">): Html {
   return html`<span class="activity-badge"${activity.labelLang ? html` lang="${activity.labelLang}"` : ""}>${activity.label ?? MESSAGES[locale].activityBadge}</span>`;
@@ -634,12 +641,12 @@ function activityBadge(locale: Locale, activity: Pick<ArchiveActivity, "label" |
 
 /** 아카이브의 활동 한 줄: 내용이 있으면 <details>(닫힘) 안에, 없으면 한 줄 (설계 15-8) */
 function archiveActivityLine(locale: Locale, activity: ArchiveActivity): Html {
-  const head = html`<time datetime="${activity.date}">${archiveDay(locale, activity.date)}</time> ${activityBadge(locale, activity)} <span class="archive-activity-title"${activity.titleLang ? html` lang="${activity.titleLang}"` : ""}>${activity.title}</span>`;
+  const head = html`<time datetime="${activity.date}">${archiveDay(locale, activity.date)}</time> ${activityBadge(locale, activity)} <span class="archive-activity-title"><span${activity.titleLang ? html` lang="${activity.titleLang}"` : ""}>${activity.title}</span>${activityKr(locale, activity)}</span>`;
   const id = activityAnchor(activity.id);
   if (!activity.bodyHtml) return html`<li class="archive-activity" id="${id}"><p class="archive-activity-head">${head}</p></li>`;
   return html`<li class="archive-activity has-body" id="${id}"><details class="archive-activity-toggle">
             <summary class="archive-activity-head">${head}</summary>
-            <div class="post-body archive-activity-body"${activity.bodyLang ? html` lang="${activity.bodyLang}"` : ""}>${raw(activity.bodyHtml)}</div>
+            <div class="post-body archive-activity-body"${activity.bodyLang ? html` lang="${activity.bodyLang}"` : ""}>${activity.bodyLang && locale !== SOURCE_LOCALE ? html`<p class="activity-untranslated" lang="${locale}">${MESSAGES[locale].activityUntranslated}</p>` : ""}${raw(activity.bodyHtml)}</div>
           </details></li>`;
 }
 

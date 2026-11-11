@@ -403,3 +403,16 @@ a { color: var(--accent); }
 .search-result .post-meta { margin: 2px 0; }
 .search-excerpt { margin: 4px 0 0; color: var(--muted); font-size: .92em; overflow-wrap: anywhere; }
 .search-excerpt mark { background: color-mix(in srgb, var(--accent) 25%, transparent); color: var(--text); border-radius: 2px; }
+
+/* ── 좁은 화면 태그 접기 · 미번역 활동 안내 (설계 16-7) ── */
+.home-tags > summary { cursor: pointer; list-style: none; }
+.home-tags > summary::-webkit-details-marker { display: none; }
+.home-tags > summary::after { content: "▾"; margin-left: 6px; color: var(--muted); font-size: .85em; }
+.home-tags:not([open]) > summary::after { content: "▸"; }
+.home-tags:not([open]) > summary { margin-bottom: 0; }
+/* 넓은 화면: 접기 단추 없음, 항상 펼침 (스크립트도 넓으면 안 접음) */
+@media (min-width: 800px) {
+  .home-tags > summary { cursor: default; pointer-events: none; }
+  .home-tags > summary::after { content: none; }
+}
+.archive-activity-body .activity-untranslated { margin: 0 0 8px; color: var(--muted); font-size: .88em; }

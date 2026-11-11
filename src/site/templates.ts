@@ -740,7 +740,7 @@ export function searchPage({ site, locale = SOURCE_LOCALE }: { site: SiteConfig;
       data-msg-count="${m.searchCount}" data-msg-more="${m.searchMore}" data-msg-none="${m.searchNone}"
       data-msg-loading="${m.searchLoadingBody}" data-msg-failed="${m.searchFailed}"
       data-badge-activity="${m.activityBadge}" data-badge-kr="${m.koreanOnly}" data-badge-kr-title="${m.koreanOnlyTitle}">
-      <label class="search-label" for="search-q">${m.searchLabel}</label>
+      <label class="visually-hidden" for="search-q">${m.searchLabel}</label>
       <input class="search-input" id="search-q" name="q" type="search" placeholder="${m.searchPlaceholder}" autocomplete="off" autofocus>
     </form>
     <p class="search-status" aria-live="polite"></p>

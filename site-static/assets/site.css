@@ -382,7 +382,6 @@ a { color: var(--accent); }
 
 /* ── 검색 (설계 15-7). 배치는 시안을 정할 때 다시 ── */
 .search-form { margin: 0 0 8px; }
-.search-label { display: block; margin-bottom: 4px; color: var(--muted); font-size: .9em; }
 .search-input { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--text); font: inherit; font-size: 1.05em; }
 .search-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 .search-status { min-height: 1.5em; color: var(--muted); font-size: .9em; }

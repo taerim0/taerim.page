@@ -55,5 +55,8 @@ jobs:
         run: node scripts/collect-views.ts --remote
       - name: 빌드 (원격 D1 → dist/site)
         run: npm run build:site -- --remote
+        env:
+          # 통계 잔디의 GitHub 기여 (설계 15-9). Actions가 원래 주는 토큰 — 새 비밀값 없음, 공개 기여만
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: 배포 (taerim.page)
         run: npx wrangler deploy -c wrangler.site.jsonc

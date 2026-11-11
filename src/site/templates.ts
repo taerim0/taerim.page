@@ -17,10 +17,11 @@ import { DEFAULT_AVATAR } from "../settings/settings.ts";
 import type { TagTree } from "../posts/tag-tree.ts";
 import type { Post, TagCount } from "../posts/types.ts";
 import type { ArchiveActivity, ArchiveYear } from "./archive.ts";
+import type { SiteStats } from "./stats.ts";
 import { formatDate, formatDay, SITE_SCRIPT, LOCALES, localizedPath, MESSAGES, SOURCE_LOCALE } from "./i18n.ts";
 import type { Locale } from "./i18n.ts";
 import type { ImageSize } from "./images.ts";
-import { ARCHIVE_PATH, activityAnchor, pagePath, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, tagPath, TAGS_PATH } from "./paths.ts";
+import { ARCHIVE_PATH, activityAnchor, pagePath, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, STATS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
 
 export { formatDate } from "./i18n.ts";
 
@@ -90,7 +91,7 @@ interface LayoutProps {
   /** <body> class (홈 page-home, 글 page-post, 나머지 page-basic = 흰 카드 한 장) */
   bodyClass?: string;
   /** 머리 메뉴에서 지금 표시할 칸 (설계 16-1: 초록 밑줄) */
-  section?: "posts" | "tags" | "archive" | "search";
+  section?: "posts" | "tags" | "archive" | "search" | "stats";
   /** 이 페이지에만 붙일 모듈 스크립트 (검색 페이지의 /assets/search.js) */
   moduleScript?: string;
   body: Html;
@@ -140,6 +141,7 @@ export function layout(props: LayoutProps): Html {
         ${navLink(localizedPath(locale, TAGS_PATH), m.navTags, props.section === "tags")}
         ${navLink(localizedPath(locale, ARCHIVE_PATH), m.navArchive, props.section === "archive")}
         ${navLink(localizedPath(locale, SEARCH_PATH), m.navSearch, props.section === "search")}
+        ${navLink(localizedPath(locale, STATS_PATH), m.navStats, props.section === "stats")}
         <span class="lang-switch" role="group" aria-label="${m.languageLabel}">${LOCALES.map(
           (l) => html`<a href="${localizedPath(l, props.path)}" hreflang="${l}" lang="${l}" data-set-lang="${l}"${l === locale ? html` aria-current="true"` : ""}>${MESSAGES[l].languageName}</a>`,
         )}</span>
@@ -687,6 +689,102 @@ export function searchPage({ site, locale = SOURCE_LOCALE }: { site: SiteConfig;
     <ul class="search-results"></ul>
     <noscript><p class="empty">${m.searchNeedsJs} <a href="${localizedPath(locale, ARCHIVE_PATH)}">${m.archiveHeading}</a></p></noscript>`;
   return layout({ site, locale, title: m.searchHeading, path: SEARCH_PATH, moduleScript: SEARCH_SCRIPT, section: "search", body });
+}
+
+// ── 통계 (설계 15-9) ─────────────────────────────────
+
+/**
+ * 통계: 왼쪽 숫자 카드·태그 순위, 오른쪽 잔디·달마다 막대·코드 언어 띠 (시안 S-2).
+ * 그래프는 모두 HTML·CSS (방문자 JS 없음). 잔디는 좁은 화면에서 가로로 밀어 보는 상자, 처음엔 최근(오른쪽 끝)
+ */
+export function statsPage({ site, locale = SOURCE_LOCALE, stats }: { site: SiteConfig; locale?: Locale; stats: SiteStats }): Html {
+  const m = MESSAGES[locale];
+  const n = (value: number) => value.toLocaleString(locale === SOURCE_LOCALE ? "ko-KR" : "en-US");
+  const row = (label: string, value: string, unit: string, sub?: string) =>
+    html`<div class="stat-row"><dt>${label}</dt><dd><span class="stat-value">${value}</span>${unit ? html`<span class="stat-unit">${unit}</span>` : ""}${sub ? html`<span class="stat-sub">${sub}</span>` : ""}</dd></div>`;
+  const maxMonth = Math.max(1, ...stats.months.map((bar) => bar.posts + bar.activities));
+  const pct = (value: number) => `${Math.round((value / maxMonth) * 1000) / 10}%`;
+  const body = html`
+    <div class="stats">
+      <aside class="stats-side">
+        <section class="card stats-numbers">
+          <h1 class="stats-title">${m.statsHeading}</h1>
+          <p class="stats-note">${m.statsNote}</p>
+          <dl class="stat-list">
+            ${row(m.statPosts, n(stats.posts), m.unitCount)}
+            ${row(m.statActivities, n(stats.activities), m.unitCount)}
+            ${row(m.statTags, n(stats.tags), m.unitCount)}
+            ${row(m.statTranslated, n(stats.translated), `/ ${n(stats.posts)}`)}
+            ${stats.days === null ? "" : row(m.statStarted, m.statsDays(stats.days), "", m.statsFirst(formatDay(stats.firstDate!, locale)))}
+            ${row(m.statChars, n(stats.chars), m.unitChars)}
+          </dl>
+        </section>
+        ${stats.topTags.length === 0
+          ? ""
+          : html`<section class="card stats-tags" aria-labelledby="stats-tags">
+          <h2 class="card-heading" id="stats-tags">${m.topTags}</h2>
+          <ol class="stats-tag-list">${stats.topTags.map(
+            (tag) => html`<li><a class="tag" href="${localizedPath(locale, tagPath(tag.name))}">#${tag.name}</a><span class="count">${n(tag.count)}</span></li>`,
+          )}</ol>
+        </section>`}
+      </aside>
+
+      <div class="stats-main">
+        <section class="card stats-grass" aria-labelledby="stats-grass">
+          <div class="stats-card-head">
+            <h2 class="card-heading" id="stats-grass">${m.grassHeading}</h2>
+            <p class="stats-card-sub">${m.grassSummary(stats.grass.blogDays, stats.grass.githubTotal)}</p>
+          </div>
+          <div class="grass-scroll">
+            <div class="grass" role="img" aria-label="${m.grassLabel}">
+              <div class="grass-months" aria-hidden="true">${stats.grass.monthStarts.map((month) => html`<span>${month === null ? "" : m.monthShort(month)}</span>`)}</div>
+              <div class="grass-weeks">${stats.grass.weeks.map(
+                (week) => html`<div class="grass-week">${week.map((day) =>
+                  day === null
+                    ? html`<span class="grass-day is-future"></span>`
+                    : html`<span class="grass-day lv-${day.level}" title="${m.grassTitle(formatDay(day.date, locale), day.posts, day.activities, day.github)}"></span>`,
+                )}</div>`,
+              )}</div>
+            </div>
+          </div>
+          <div class="grass-legend">
+            <span><span class="grass-day lv-blog-2"></span> ${m.grassLegendBlog}</span>
+            ${stats.grass.githubTotal === null ? "" : html`<span><span class="grass-day lv-gh-2"></span> ${m.grassLegendGithub}</span>`}
+            <span class="grass-scale">${m.less} <span class="grass-day lv-none"></span><span class="grass-day lv-blog-1"></span><span class="grass-day lv-blog-2"></span> ${m.more}</span>
+          </div>
+        </section>
+
+        <section class="card stats-months" aria-labelledby="stats-months">
+          <div class="stats-card-head">
+            <h2 class="card-heading" id="stats-months">${m.monthlyHeading}</h2>
+            <p class="stats-card-sub"><span class="key key-post"></span>${m.statPosts} <span class="key key-activity"></span>${m.statActivities}</p>
+          </div>
+          <ol class="month-bars">${stats.months.map(
+            (bar) => html`<li class="month-bar">
+              <span class="month-total">${bar.posts + bar.activities || ""}</span>
+              <span class="month-stack" title="${bar.year}-${String(bar.month).padStart(2, "0")} · ${m.statPosts} ${bar.posts} · ${m.statActivities} ${bar.activities}">
+                <span class="month-activity" style="height: ${pct(bar.activities)}"></span>
+                <span class="month-post" style="height: ${pct(bar.posts)}"></span>
+              </span>
+              <span class="month-label">${m.monthShort(bar.month)}</span>
+            </li>`,
+          )}</ol>
+        </section>
+
+        <section class="card stats-langs" aria-labelledby="stats-langs">
+          <h2 class="card-heading" id="stats-langs">${m.languagesHeading}</h2>
+          ${stats.languages.length === 0
+            ? html`<p class="empty">${m.languagesEmpty}</p>`
+            : html`<div class="lang-bar" aria-hidden="true">${stats.languages.map(
+                (lang, i) => html`<span class="lang-${lang.name === null ? "other" : i + 1}" style="width: ${lang.percent}%"></span>`,
+              )}</div>
+          <ul class="lang-list">${stats.languages.map(
+            (lang, i) => html`<li><span class="lang-dot lang-${lang.name === null ? "other" : i + 1}"></span>${lang.name ?? m.languagesOther} <span class="count">${lang.percent}%</span></li>`,
+          )}</ul>`}
+        </section>
+      </div>
+    </div>`;
+  return layout({ site, locale, title: m.statsHeading, path: STATS_PATH, section: "stats", bodyClass: "page-stats", body });
 }
 
 // ── 없는 주소 ────────────────────────────────────────

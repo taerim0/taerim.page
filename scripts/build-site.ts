@@ -41,6 +41,7 @@ import type { ActivityRepository } from "../src/activities/activities.ts";
 import { DEFAULT_SETTINGS, D1SettingsRepository } from "../src/settings/settings.ts";
 import type { SettingsRepository } from "../src/settings/settings.ts";
 import { SITE_CONFIG } from "../src/site/config.ts";
+import { fetchContributions, githubLogin } from "../src/site/github.ts";
 import { COMMENTS_SCRIPT, SEARCH_SCRIPT } from "../src/site/templates.ts";
 import { fileNameFor } from "../src/site/files.ts";
 import { collectImageNames } from "../src/site/images.ts";
@@ -191,6 +192,27 @@ async function readEmbeds(source: Source, bodies: readonly string[]): Promise<{ 
   return { count: infos.length, images };
 }
 
+/**
+ * 통계 잔디의 GitHub 기여 (설계 15-9). 아이디는 사이트 설정의 GitHub 주소, 토큰은 환경 변수 GITHUB_TOKEN
+ * (GitHub Actions 기본 토큰 — 공개 기여만). 둘 중 하나라도 없거나 실패하면 경고하고 GitHub 없이 (블로그 잔디는 그대로)
+ */
+async function readGithub(githubUrl: string | null): Promise<Map<string, number> | null> {
+  const login = githubLogin(githubUrl);
+  const token = process.env.GITHUB_TOKEN;
+  if (!login) return null;
+  if (!token) {
+    console.warn("ℹ GITHUB_TOKEN이 없어 통계 잔디에 GitHub 기여 없이 빌드해요 (GitHub Actions에서는 자동으로 있음)");
+    return null;
+  }
+  try {
+    const days = await fetchContributions(login, token);
+    return days;
+  } catch (error) {
+    console.warn(`⚠ GitHub 기여를 받지 못했어요 → 통계 잔디에 GitHub 없이: ${error instanceof Error ? error.message : String(error)}`);
+    return null;
+  }
+}
+
 async function main(): Promise<void> {
   const started = performance.now();
   // 코드 블록 색칠 (Shiki): 빌드는 항상 색을 HTML에 넣는다 (방문자 JS 없음)
@@ -219,7 +241,8 @@ async function main(): Promise<void> {
     const tagParents = await source.posts.listTagParents();
     const embeds = await readEmbeds(source, [...posts.map((p) => p.body), ...translations.map((t) => t.body), ...activityBodies]);
     const views = await readViews(source);
-    const files = await buildSite({ site: SITE_CONFIG, settings, activities, posts, translations, tagParents, views, images: images.map((image) => image.info) });
+    const github = await readGithub(settings.github);
+    const files = await buildSite({ site: SITE_CONFIG, settings, activities, posts, translations, tagParents, views, github, images: images.map((image) => image.info) });
 
     // 지난 빌드의 파일(지운 글 등)이 남지 않게 통째로 비우고 다시 쓴다
     await rm(OUT_DIR, { recursive: true, force: true });

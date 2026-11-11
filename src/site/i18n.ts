@@ -67,6 +67,36 @@ export interface Messages {
   monthName: (month: number) => string;
   /** 아카이브 줄의 날짜 (달은 따로 보이므로 일만, 설계 16-6) */
   dayOfMonth: (day: number) => string;
+  /** 통계 탭 (설계 15-9) */
+  navStats: string;
+  statsHeading: string;
+  statsNote: string;
+  statPosts: string;
+  statActivities: string;
+  statTags: string;
+  statTranslated: string;
+  statStarted: string;
+  statChars: string;
+  /** 숫자 뒤 단위 ("개" / "") */
+  unitCount: string;
+  unitChars: string;
+  statsDays: (days: number) => string;
+  statsFirst: (date: string) => string;
+  topTags: string;
+  grassHeading: string;
+  grassLabel: string;
+  grassLegendBlog: string;
+  grassLegendGithub: string;
+  grassSummary: (blogDays: number, github: number | null) => string;
+  /** 잔디 칸 설명 (마우스를 올리면) */
+  grassTitle: (date: string, posts: number, activities: number, github: number | null) => string;
+  less: string;
+  more: string;
+  monthlyHeading: string;
+  monthShort: (month: number) => string;
+  languagesHeading: string;
+  languagesOther: string;
+  languagesEmpty: string;
   activityBadge: string;
   recentActivities: string;
   viewArchive: string;
@@ -126,6 +156,33 @@ export const MESSAGES: Record<Locale, Messages> = {
     archiveCounts: (posts, activities) => [posts > 0 ? `글 ${posts}` : "", activities > 0 ? `활동 ${activities}` : ""].filter(Boolean).join(" · "),
     monthName: (month) => `${month}월`,
     dayOfMonth: (day) => `${day}일`,
+    navStats: "통계",
+    statsHeading: "통계",
+    statsNote: "글과 활동으로 셈 · 배포할 때마다 새로",
+    statPosts: "글",
+    statActivities: "활동",
+    statTags: "태그",
+    statTranslated: "번역된 글",
+    statStarted: "블로그 시작",
+    statChars: "쓴 글자",
+    unitCount: "개",
+    unitChars: "자",
+    statsDays: (days) => `${days.toLocaleString("ko-KR")}일째`,
+    statsFirst: (date) => `첫 글 ${date}`,
+    topTags: "태그 순위",
+    grassHeading: "잔디 · 최근 1년",
+    grassLabel: "최근 1년 동안 날마다 쓴 글·활동과 GitHub 기여",
+    grassLegendBlog: "글·활동 쓴 날",
+    grassLegendGithub: "GitHub 기여",
+    grassSummary: (days, github) => `글·활동 쓴 날 ${days}일${github === null ? "" : ` · GitHub 기여 ${github.toLocaleString("ko-KR")}`}`,
+    grassTitle: (date, posts, activities, github) => `${date} · 글 ${posts} · 활동 ${activities}${github === null ? "" : ` · GitHub ${github}`}`,
+    less: "적음",
+    more: "많음",
+    monthlyHeading: "달마다 · 최근 12달",
+    monthShort: (month) => `${month}월`,
+    languagesHeading: "코드 블록 언어",
+    languagesOther: "그 밖",
+    languagesEmpty: "아직 언어가 적힌 코드 블록이 없어요.",
     activityBadge: "활동",
     recentActivities: "최근 활동",
     viewArchive: "아카이브 전체 보기 →",
@@ -179,6 +236,33 @@ export const MESSAGES: Record<Locale, Messages> = {
       [posts > 0 ? `${posts} ${posts === 1 ? "post" : "posts"}` : "", activities > 0 ? `${activities} ${activities === 1 ? "activity" : "activities"}` : ""].filter(Boolean).join(" · "),
     monthName: (month) => new Intl.DateTimeFormat("en-US", { month: "long", timeZone: "UTC" }).format(new Date(Date.UTC(2000, month - 1, 1))),
     dayOfMonth: (day) => String(day),
+    navStats: "Stats",
+    statsHeading: "Stats",
+    statsNote: "Counted from posts and activities · updated on every deploy",
+    statPosts: "Posts",
+    statActivities: "Activities",
+    statTags: "Tags",
+    statTranslated: "Translated",
+    statStarted: "Blogging for",
+    statChars: "Characters written",
+    unitCount: "",
+    unitChars: "",
+    statsDays: (days) => `${days.toLocaleString("en-US")} ${days === 1 ? "day" : "days"}`,
+    statsFirst: (date) => `First post ${date}`,
+    topTags: "Top tags",
+    grassHeading: "Activity · last year",
+    grassLabel: "Posts, activities and GitHub contributions per day over the last year",
+    grassLegendBlog: "Days with posts or activities",
+    grassLegendGithub: "GitHub contributions",
+    grassSummary: (days, github) => `${days} ${days === 1 ? "day" : "days"} with posts or activities${github === null ? "" : ` · ${github.toLocaleString("en-US")} GitHub contributions`}`,
+    grassTitle: (date, posts, activities, github) => `${date} · ${posts} posts · ${activities} activities${github === null ? "" : ` · ${github} on GitHub`}`,
+    less: "Less",
+    more: "More",
+    monthlyHeading: "By month · last 12 months",
+    monthShort: (month) => new Intl.DateTimeFormat("en-US", { month: "short", timeZone: "UTC" }).format(new Date(Date.UTC(2000, month - 1, 1))),
+    languagesHeading: "Code block languages",
+    languagesOther: "Other",
+    languagesEmpty: "No code blocks with a language yet.",
     activityBadge: "Activity",
     recentActivities: "Recent activity",
     viewArchive: "View full archive →",

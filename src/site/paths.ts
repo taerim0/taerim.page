@@ -33,6 +33,9 @@ export const SEARCH_PATH = "/search";
 export const SEARCH_INDEX_PATH = "/search-index.json";
 export const SEARCH_BODY_PATH = "/search-body.json";
 
+/** 통계 주소 (설계 15-9) */
+export const STATS_PATH = "/stats";
+
 /** 태그 모음 주소 */
 export const TAGS_PATH = "/tags";
 

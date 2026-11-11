@@ -14,16 +14,18 @@ import { TagTree } from "../posts/tag-tree.ts";
 import type { Post, TagCount, TagParent } from "../posts/types.ts";
 import type { ImageInfo } from "../images/types.ts";
 import type { PublishedTranslation } from "../translations/types.ts";
-import { formatDay, LOCALES, localizedPath, SOURCE_LOCALE } from "./i18n.ts";
+import { formatDate, formatDay, LOCALES, localizedPath, SOURCE_LOCALE } from "./i18n.ts";
 import type { Locale } from "./i18n.ts";
 import { imageSizeMap } from "./images.ts";
 import type { ImageSize } from "./images.ts";
 import { groupArchive, postDate } from "./archive.ts";
 import { htmlToText } from "./search.ts";
+import { computeStats } from "./stats.ts";
+import type { SiteStats } from "./stats.ts";
 import type { SearchBodies, SearchIndex, SearchItem } from "./search.ts";
 import type { ArchiveActivity } from "./archive.ts";
-import { ARCHIVE_PATH, activityAnchor, pagePath, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, tagPath, TAGS_PATH } from "./paths.ts";
-import { absoluteUrl, archivePage, searchPage, HOME_ACTIVITY_COUNT, HOME_POST_COUNT, homePage, listPage, notFoundPage, postPage, tagsPage, untranslatedPostPage } from "./templates.ts";
+import { ARCHIVE_PATH, activityAnchor, pagePath, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, STATS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
+import { absoluteUrl, archivePage, searchPage, statsPage, HOME_ACTIVITY_COUNT, HOME_POST_COUNT, homePage, listPage, notFoundPage, postPage, tagsPage, untranslatedPostPage } from "./templates.ts";
 import type { Html, PostCardData, SiteConfig, TagNav } from "./templates.ts";
 
 /** 목록 한 페이지의 글 수 (관리자 목록과 같은 10개) */
@@ -49,6 +51,10 @@ export interface BuildInput {
   tagParents?: readonly TagParent[];
   /** 글 id → 조회 수 (설계 2-2, 한·영 합계). 없으면 숫자 없이 */
   views?: ReadonlyMap<number, number>;
+  /** 통계 잔디의 GitHub 날짜별 기여 수 (설계 15-9). 없으면(못 받음·설정 없음) GitHub 없이 */
+  github?: ReadonlyMap<string, number> | null;
+  /** 빌드한 날 (한국 날짜 YYYY-MM-DD, 통계의 "오늘"). 없으면 지금 */
+  today?: string;
 }
 
 /** 언어 하나의 글: 글 + 그 언어 번역본(없으면 undefined) */
@@ -72,7 +78,7 @@ export function applySettings(site: SiteConfig, settings: SiteSettings | undefin
   };
 }
 
-export async function buildSite({ site: baseSite, settings, activities = [], posts, translations = [], images = [], tagParents = [], views }: BuildInput): Promise<Map<string, string>> {
+export async function buildSite({ site: baseSite, settings, activities = [], posts, translations = [], images = [], tagParents = [], views, github = null, today = formatDate(new Date().toISOString(), SOURCE_LOCALE) }: BuildInput): Promise<Map<string, string>> {
   const site = applySettings(baseSite, settings);
   const imageSizes = imageSizeMap(images);
   const tree = new TagTree(tagParents);
@@ -98,6 +104,9 @@ export async function buildSite({ site: baseSite, settings, activities = [], pos
   /** 이 글이 있는 언어들 (hreflang) */
   const localesOf = (id: number) => LOCALES.filter((l) => l === SOURCE_LOCALE || byLocale.get(l)?.has(id));
   const tags = countTags(published);
+  /** 통계 (설계 15-9): 한국어 본문 글자는 한국어 차례에서 모으고, 수치는 언어와 상관없이 한 번만 셈 */
+  const koreanTexts = new Map<number, string>();
+  let stats: SiteStats | null = null;
   const sortedActivities = [...activities].sort(byNewestActivity);
 
   for (const locale of LOCALES) {
@@ -150,6 +159,19 @@ export async function buildSite({ site: baseSite, settings, activities = [], pos
       const nav = { ancestors: tree.ancestorsOf(name), children: tags.filter((tag) => tree.parentOf(tag.name) === name) };
       for (const [path, page] of listPages(site, locale, cardsOf(tagged), tagPath(name), imageSizes, name, nav)) await add(path, page);
     }
+
+    // 통계 (설계 15-9): 첫 차례(한국어)에서 본문 글자를 모은 뒤 셈
+    if (locale === SOURCE_LOCALE) for (const [id, bodyHtml] of bodyHtmlOf) koreanTexts.set(id, htmlToText(bodyHtml, Number.POSITIVE_INFINITY));
+    stats ??= computeStats({
+      posts: published,
+      activities,
+      translatedIds: new Set(translations.filter((t) => published.some((p) => p.id === t.postId)).map((t) => t.postId)),
+      bodyTexts: koreanTexts,
+      tags,
+      today,
+      github,
+    });
+    await add(localizedPath(locale, STATS_PATH), statsPage({ site, locale, stats }));
 
     // 검색 (설계 15-7): 페이지 + 검색 파일 둘 (제목·태그·요약 / 본문)
     await add(localizedPath(locale, SEARCH_PATH), searchPage({ site, locale }));

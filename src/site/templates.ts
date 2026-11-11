@@ -592,14 +592,12 @@ function profileCard(locale: Locale, p: SiteSettings): Html {
  */
 export function archivePage({ site, locale = SOURCE_LOCALE, years }: { site: SiteConfig; locale?: Locale; years: ArchiveYear[] }): Html {
   const m = MESSAGES[locale];
-  const total = years.reduce((sum, y) => ({ posts: sum.posts + y.posts, activities: sum.activities + y.activities }), { posts: 0, activities: 0 });
   // 설계 16-6 (시안 A-4): 위에 제목·개수와 연도 바로 가기, 해마다 큰 카드, 카드 안 왼쪽 칸에 달
   const body = html`
     <div class="archive">
       <div class="archive-top">
         <div>
           <h1 class="list-heading">${m.archiveHeading}</h1>
-          ${years.length === 0 ? "" : html`<p class="archive-total">${m.archiveCounts(total.posts, total.activities)}</p>`}
         </div>
         ${years.length === 0
           ? ""
@@ -611,10 +609,10 @@ export function archivePage({ site, locale = SOURCE_LOCALE, years }: { site: Sit
         ? html`<p class="empty card">${m.emptyPosts}</p>`
         : years.map(
             (y) => html`<section class="archive-year card" aria-labelledby="year-${y.year}">
-        <h2 class="archive-year-head" id="year-${y.year}">${y.year} <span class="count">${m.archiveCounts(y.posts, y.activities)}</span></h2>
+        <h2 class="archive-year-head" id="year-${y.year}">${y.year}</h2>
         ${y.months.map(
           (month) => html`<div class="archive-month">
-          <h3 class="archive-month-name">${m.monthName(month.month)} <span class="count">${m.archiveCounts(month.posts, month.activities)}</span></h3>
+          <h3 class="archive-month-name">${m.monthName(month.month)}</h3>
           <ul class="archive-list">${month.entries.map((entry) =>
             entry.kind === "post"
               ? archivePostLine(locale, entry.date, entry.post)

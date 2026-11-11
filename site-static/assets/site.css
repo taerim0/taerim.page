@@ -349,18 +349,15 @@ a { color: var(--accent); }
 .archive { display: grid; gap: 20px; }
 .archive-top { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; align-items: flex-end; padding: 0 4px; }
 .archive-top .list-heading { margin: 0; }
-.archive-total { margin: 4px 0 0; color: var(--muted); font-size: .95em; }
 .archive-years { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: .95em; }
 .archive-years a { color: var(--muted); text-decoration: none; }
 .archive-years a:hover { color: var(--accent); }
 .archive-years a.is-latest { color: var(--accent); font-weight: 700; }
 .archive-year { overflow: hidden; scroll-margin-top: 16px; }
 .archive-year-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 0; padding: 18px 28px; border-bottom: 1px solid var(--line); font-size: 1.5em; font-weight: 800; }
-.archive-year-head .count, .archive-month-name .count { color: var(--muted); font-size: .58em; font-weight: 400; }
 .archive-month { display: grid; grid-template-columns: 140px minmax(0, 1fr); border-bottom: 1px solid var(--line-soft); }
 .archive-month:last-child { border-bottom: 0; }
 .archive-month-name { margin: 0; padding: 18px 28px; color: var(--accent); font-size: 1em; font-weight: 700; }
-.archive-month-name .count { display: block; font-size: .78em; }
 .archive-list { list-style: none; margin: 0; padding: 8px 28px 8px 0; }
 .archive-list > li { padding: 10px 0; border-bottom: 1px solid var(--line-soft); }
 .archive-list > li:last-child { border-bottom: 0; }
@@ -372,7 +369,6 @@ a { color: var(--accent); }
   .archive-year-head { padding: 16px 20px; }
   .archive-month { grid-template-columns: 1fr; }
   .archive-month-name { padding: 14px 20px 0; }
-  .archive-month-name .count { display: inline; margin-left: 6px; }
   .archive-list { padding: 4px 20px 8px; }
 }
 /* 활동 줄: 꼬리표 + 굵은 제목, 내용이 있으면 ▸ 눌러 펼침 (테두리 상자) */

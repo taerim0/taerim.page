@@ -54,6 +54,16 @@ export class D1ImageRepository implements ImageRepository {
     // 메모리 저장소와 같은 순서(자바스크립트 문자열 비교)로 맞춘다
     return found.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   }
+
+  async list(): Promise<ImageInfo[]> {
+    const { results } = await this.#db.prepare(`SELECT ${COLUMNS} FROM images ORDER BY created_at, name`).all<ImageRow>();
+    return results.map(toImageInfo);
+  }
+
+  async delete(name: string): Promise<boolean> {
+    const result = await this.#db.prepare("DELETE FROM images WHERE name = ?").bind(name).run();
+    return result.meta.changes > 0;
+  }
 }
 
 function toImageInfo(row: ImageRow): ImageInfo {

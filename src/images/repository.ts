@@ -16,4 +16,8 @@ export interface ImageRepository {
    * 없는 이름은 빠진다. 순서는 이름순. 같은 이름을 여러 번 넣어도 한 번만
    */
   getMany(names: readonly string[]): Promise<ImageInfo[]>;
+  /** 모든 이미지 (정리 화면, 설계 11-16). 오래된 순, 같으면 이름순 */
+  list(): Promise<ImageInfo[]>;
+  /** 지우기. 지웠으면 true */
+  delete(name: string): Promise<boolean>;
 }

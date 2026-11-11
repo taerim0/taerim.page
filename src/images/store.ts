@@ -19,6 +19,8 @@ export interface ImageStore {
   put(name: string, bytes: Uint8Array, contentType: string): Promise<void>;
   /** 없으면 null */
   get(name: string): Promise<StoredImage | null>;
+  /** 지우기 (없어도 오류 아님) */
+  delete(name: string): Promise<void>;
 }
 
 /** 형식 정보가 없을 때 (정상이라면 생기지 않음) */
@@ -41,6 +43,10 @@ export class R2ImageStore implements ImageStore {
     if (!object) return null;
     return { body: object.body, contentType: object.httpMetadata?.contentType ?? UNKNOWN_TYPE, size: object.size };
   }
+
+  async delete(name: string): Promise<void> {
+    await this.#bucket.delete(name);
+  }
 }
 
 /** 테스트·개발용: 메모리. 넣을 때 복사해 두므로 밖에서 원래 배열을 고쳐도 영향 없음 */
@@ -56,5 +62,9 @@ export class MemoryImageStore implements ImageStore {
     if (!file) return null;
     const bytes = file.bytes.slice();
     return { body: new Blob([bytes]).stream(), contentType: file.contentType, size: bytes.byteLength };
+  }
+
+  async delete(name: string): Promise<void> {
+    this.#files.delete(name);
   }
 }

@@ -22,4 +22,6 @@ export interface R2Bucket {
   ): Promise<unknown>;
   /** 없으면 null */
   get(key: string): Promise<R2ObjectBody | null>;
+  /** 지우기 (없어도 오류 아님) */
+  delete(key: string): Promise<void>;
 }

@@ -49,5 +49,9 @@ export function createR2Http(options: R2HttpOptions): R2Bucket {
     async put() {
       throw new Error("R2 HTTP 어댑터는 읽기 전용이에요 (쓰기는 관리자 Worker에서)");
     },
+
+    async delete() {
+      throw new Error("R2 HTTP 어댑터는 읽기 전용이에요 (지우기는 관리자 Worker에서)");
+    },
   };
 }

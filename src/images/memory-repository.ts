@@ -22,4 +22,14 @@ export class MemoryImageRepository implements ImageRepository {
       return info ? [{ ...info }] : [];
     });
   }
+
+  async list(): Promise<ImageInfo[]> {
+    return [...this.#images.values()]
+      .map((info) => ({ ...info }))
+      .sort((a, b) => (a.createdAt === b.createdAt ? (a.name < b.name ? -1 : 1) : a.createdAt < b.createdAt ? -1 : 1));
+  }
+
+  async delete(name: string): Promise<boolean> {
+    return this.#images.delete(name);
+  }
 }

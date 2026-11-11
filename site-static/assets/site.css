@@ -507,7 +507,7 @@ a.pager-num:hover { border-color: var(--accent); color: var(--accent); }
 }
 
 /* ── 페이지 제목 통일 (설계 16-15): 글·아카이브·검색·통계·태그 모음·404 모두 카드 밖, 같은 크기 ── */
-.page-plain .site-main { flex: 0 0 auto; width: calc(100% - 32px); max-width: 792px; margin: 32px auto 48px; padding: 0; }
+.page-plain .site-main { flex: 1 0 auto; width: calc(100% - 32px); max-width: 792px; margin: 32px auto 48px; padding: 0; }
 .page-card { padding: 28px 32px; }
 .page-card > :first-child { margin-top: 0; }
 .page-card > :last-child { margin-bottom: 0; }

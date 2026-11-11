@@ -23,6 +23,10 @@ import type { MarkdownModule } from "./types.ts";
  * 글자 사이에 낀 이미지는 글자 흐름 그대로 둔다.
  *
  * 원래 가로·세로: 빌드가 env.imageSizes로 넘기면 width·height 속성을 붙인다 (관리자 미리보기는 없음)
+ *
+ * 설명 띠 (설계 16-2): `![대체 글자](주소 "설명")`의 따옴표 부분(Markdown 표준 title)을 이미지 아래 설명으로.
+ * `<span class="img-figure"><img><span class="img-caption">설명</span></span>` (문단 안이라 figure 대신 span).
+ * 폭 옵션(|400, |50%)은 감싼 쪽에 → 나란히 놓기 그대로. 설명이 없으면 지금처럼 <img>만
  */
 export const imageModule: MarkdownModule = {
   name: "image",
@@ -67,10 +71,17 @@ export const imageModule: MarkdownModule = {
         token.attrSet("height", String(known.height));
       }
       const { width } = optionsOf(token);
-      if (width) token.attrSet("style", `width:${width}`);
+      const caption = String(token.attrGet("title") ?? "").trim();
+      if (width && !caption) token.attrSet("style", `width:${width}`);
       token.attrSet("loading", "lazy");
       token.attrSet("decoding", "async");
-      return renderDefault(tokens, idx, opts, env, self);
+      if (!caption) return renderDefault(tokens, idx, opts, env, self);
+      // 설명은 아래 띠로 보이므로 title(마우스 올림 글자)은 뺀다 — 같은 글이 두 번 읽히지 않게
+      const attrs = (token.attrs ?? []).filter(([name]) => name !== "title");
+      token.attrs = attrs;
+      const img = renderDefault(tokens, idx, opts, env, self);
+      const style = width ? ` style="width:${width}"` : "";
+      return `<span class="img-figure"${style}>${img}<span class="img-caption">${md.utils.escapeHtml(caption)}</span></span>`;
     };
   },
 };

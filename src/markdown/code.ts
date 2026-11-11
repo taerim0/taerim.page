@@ -6,7 +6,7 @@ import type { MarkdownModule } from "./types.ts";
  *   ```ts|src/app.ts            제목
  *   ```ts|src/app.ts|toggle     + 접힌 채로 (제목 줄을 눌러 펼침)
  *   ```ts|diff                  줄 맨 앞 +/- → 초록/빨강 줄 (diff는 줄 번호도)
- *   ```ts|ln                    줄 번호
+ *   ```ts|ln                    줄 번호 (설계 16-2부터 줄 번호는 항상 → ln은 예전 글과의 호환으로만 받음)
  *   ```ts|{2,4-5}               2·4·5번째 줄 하이라이트
  *   ```ts|title=diff            제목이 정말 "diff"일 때
  *
@@ -146,7 +146,8 @@ function renderCodeBlock(content: string, options: FenceOptions, locale: string 
   });
 
   const colored = options.lang && highlighter ? highlighter(codeLines.join("\n"), options.lang) : null;
-  const showNumbers = options.lineNumbers || options.diff;
+  // 설계 16-2: 줄 번호는 항상 (diff가 아니어도)
+  const showNumbers = true;
 
   const lines = codeLines.map((line, i) => {
     const kind = kinds[i];
@@ -163,14 +164,20 @@ function renderCodeBlock(content: string, options: FenceOptions, locale: string 
   const blockClass = `code-block${showNumbers ? " has-ln" : ""}${options.diff ? " has-diff" : ""}`;
   const langClass = options.lang ? ` class="language-${escape(options.lang)}"` : "";
   const copy = `<button class="code-copy" type="button" aria-label="${labels.copy}" title="${labels.copy}"></button>`;
-  const body = `<div class="code-body">${copy}<pre class="code"><code${langClass}>${lines.join("\n")}</code></pre></div>`;
+  // 머리 띠 (설계 16-2): 언어 표시 + 파일 이름(있으면) + 복사 버튼, 항상
+  const langName = options.lang ?? (options.diff ? "diff" : null);
+  const langChip = langName ? `<span class="code-lang">${escape(langName)}</span>` : "";
+  const title = options.title ? `<span class="code-title">${escape(options.title)}</span>` : "";
 
   if (options.toggle) {
-    const head = escape(options.title ?? options.lang ?? labels.code);
-    return `<details class="${blockClass}">\n<summary class="code-head"><span class="code-title">${head}</span></summary>\n${body}\n</details>\n`;
+    // 접는 코드: 제목 줄(summary)을 누르면 접히므로 복사 버튼은 본문 안에 둔다
+    const body = `<div class="code-body">${copy}<pre class="code"><code${langClass}>${lines.join("\n")}</code></pre></div>`;
+    // 머리 줄에 아무것도 없으면 '코드' (언어 표시가 있으면 그것으로 충분)
+    const head = title || (langChip ? "" : `<span class="code-title">${escape(labels.code)}</span>`);
+    return `<details class="${blockClass}">\n<summary class="code-head">${langChip}${head}</summary>\n${body}\n</details>\n`;
   }
-  const head = options.title ? `<figcaption class="code-head"><span class="code-title">${escape(options.title)}</span></figcaption>\n` : "";
-  return `<figure class="${blockClass}">\n${head}${body}\n</figure>\n`;
+  const body = `<div class="code-body"><pre class="code"><code${langClass}>${lines.join("\n")}</code></pre></div>`;
+  return `<figure class="${blockClass}">\n<figcaption class="code-head">${langChip}${title}${copy}</figcaption>\n${body}\n</figure>\n`;
 }
 
 function renderToken(token: HighlightToken, escape: (text: string) => string): string {

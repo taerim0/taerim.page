@@ -282,6 +282,19 @@ a.pill:hover { text-decoration: underline; }
 .preview .code-copy[data-copied] { opacity: 1; }
 .preview .code-copy[data-copied]::before { content: "✓"; top: 5px; left: 9px; width: auto; height: auto; border: 0; color: var(--code-add-mark); font-size: 15px; line-height: 1; }
 .preview .code-copy[data-copied]::after { display: none; }
+/* 설계 16-2: 머리 띠 항상 (언어 · 파일 이름 · 복사), 줄 번호 항상 — 공개 사이트와 같은 렌더러 출력 */
+.preview .code-head { gap: 8px; min-height: 40px; padding: 6px 8px 6px 14px; }
+.preview .code-lang { padding: 0 6px; border: 1px solid #bbf7d0; border-radius: 4px; color: #15803d; font-size: .85em; font-weight: 700; text-transform: uppercase; }
+.preview .code-head .code-copy { position: relative; top: auto; right: auto; flex: none; margin-left: auto; width: 30px; height: 30px; }
+.preview .code-head .code-copy::before { top: 6px; left: 7px; }
+.preview .code-head .code-copy::after { top: 10px; left: 11px; }
+.preview .code-block .line { padding-left: 8px; padding-right: 20px; }
+.preview details.code-block .line { padding-right: 56px; }
+/* 이미지 설명 띠 (따옴표 제목) */
+.preview .img-figure { display: inline-flex; flex-direction: column; max-width: 100%; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; vertical-align: top; }
+.preview .img-figure img { display: block; width: 100%; }
+.preview .img-caption { padding: 8px 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: .85em; line-height: 1.5; }
+.preview .img-row > .img-figure { min-width: 0; }
 
 /* 수식 (설계 13-8): KaTeX가 그린 HTML. 블록 수식이 넓으면 그 블록만 가로 스크롤. 그리개가 없을 때(미리보기 첫 순간)는 원문을 회색 코드 모양으로 */
 .preview .math-block { margin: 1em 0; overflow-x: auto; overflow-y: hidden; }

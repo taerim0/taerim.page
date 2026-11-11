@@ -47,6 +47,8 @@
         <span id="outdated-pill" class="pill outdated" hidden title="이 번역을 만든 뒤 한글 원문이 바뀌었어요. 다시 번역하거나 고쳐 주세요">원문 바뀜</span>
         <span id="dirty-mark" class="dirty" hidden>저장 안 됨</span>
         <span id="saved-at" class="muted"></span>
+        <!-- 콜아웃 도움말 (설계 16-18): 오른쪽 끝 ? 동그라미 → 팝업 -->
+        <button id="callout-help-button" class="help-button" type="button" aria-haspopup="dialog" aria-label="콜아웃 도움말" title="콜아웃 도움말">?</button>
       </div>
       <p id="state-help" class="state-help" hidden></p>
 
@@ -121,6 +123,20 @@
             <button id="meta-apply" class="button primary" type="button">적용</button>
           </div>
         </form>
+      </dialog>
+
+      <!-- 콜아웃 도움말 팝업 (설계 16-18): 보기 전용. 줄은 callout-help.js가 렌더러로 그림 -->
+      <dialog id="callout-help" class="meta-dialog help-dialog" aria-labelledby="callout-help-title">
+        <div class="meta-form">
+          <div class="meta-head">
+            <h2 id="callout-help-title">콜아웃 도움말</h2>
+            <button class="meta-x" type="button" data-close aria-label="닫기">×</button>
+          </div>
+          <div class="meta-body">
+            <div id="callout-help-rows" class="help-rows"></div>
+            <p class="muted help-note">제목 바꾸기 <code>&gt; [!WARNING] 배포 전에</code> · 접힌 채 <code>[!NOTE]-</code> · 펼친 채 접기 <code>[!NOTE]+</code> · 둘째 줄부터 <code>&gt; 내용</code> · 종류는 대소문자 상관없음 · 기본 제목은 이 언어로</p>
+          </div>
+        </div>
       </dialog>
     </div>
   </main>

@@ -8,6 +8,7 @@
  * - 오른쪽 칸: 미리보기 / 한글 원문(공개된 한글, 읽기 전용) 전환
  * - 공개 사이트 반영은 글 목록의 [배포]
  */
+import { bindCalloutHelp } from "./callout-help.js";
 import { ApiError, getLimits, postsApi, translationsApi } from "./api.js";
 import { bindCodeCopy, loadEmbedsFor, loadHighlighterFor, loadMathFor } from "./code-blocks.js";
 import { bindImageUpload } from "./image-upload.js";
@@ -443,7 +444,7 @@ tabs.source.addEventListener("click", () => setTab("source"));
 previewToggle.addEventListener("click", () => setPreviewOpen(!isPreviewOpen(), { remember: true }));
 narrowScreen.addEventListener("change", () => setPreviewOpen(initialPreviewState()));
 window.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && narrowScreen.matches && isPreviewOpen() && !metaDialog.open) setPreviewOpen(false);
+  if (event.key === "Escape" && narrowScreen.matches && isPreviewOpen() && !document.querySelector("dialog[open]")) setPreviewOpen(false);
 });
 
 twoStep(buttons.generate, "덮어써요 — 한 번 더", hasContent, generate);
@@ -502,6 +503,9 @@ metaDialog.addEventListener("cancel", (event) => {
 metaDialog.addEventListener("click", (event) => {
   if (event.target === metaDialog) cancelMeta();
 });
+
+// 콜아웃 도움말 (설계 16-18)
+bindCalloutHelp(lang);
 
 clearNotice();
 void load();

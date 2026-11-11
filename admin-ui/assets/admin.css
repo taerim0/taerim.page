@@ -226,8 +226,8 @@ a.pill:hover { text-decoration: underline; }
 .pane-tabs button[aria-selected="true"] { background: var(--inverse-bg); color: var(--inverse-text); border-color: var(--inverse-bg); }
 
 
-/* ── 미리보기 칸 라이트/다크 (설계 13-7, 16-11): 공개 사이트와 같은 색. 기기 설정이 아니라 관리자 모드(theme.js)를 따름 ── */
-.preview-pane {
+/* ── 미리보기 칸 라이트/다크 (설계 13-7, 16-11): 공개 사이트와 같은 색. 기기 설정이 아니라 관리자 모드(theme.js)를 따름. 콜아웃 도움말 견본(.help-sample, 16-18)도 같은 색 ── */
+.preview-pane, .help-sample {
   --scheme: light;
   --bg: #ffffff;
   --text: #1f2328;
@@ -253,7 +253,7 @@ a.pill:hover { text-decoration: underline; }
   --code-mark: rgba(84, 174, 255, .2); --code-mark-bar: #0969da;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .preview-pane {
+  :root:not([data-theme="light"]) .preview-pane, :root:not([data-theme="light"]) .help-sample {
     --scheme: dark;
     --bg: #0d1117; --text: #e6edf3; --muted: #8b949e; --line: #30363d; --accent: #86efac;
     --surface: #161b22; --inline-code: #262c36; --thumb-bg: #161b22; --quote-line: #3d444d; --quote-text: #9198a1; --table-line: #3d444d;
@@ -266,7 +266,7 @@ a.pill:hover { text-decoration: underline; }
     --code-mark: rgba(56, 139, 253, .15); --code-mark-bar: #388bfd;
   }
 }
-:root[data-theme="dark"] .preview-pane {
+:root[data-theme="dark"] .preview-pane, :root[data-theme="dark"] .help-sample {
     --scheme: dark;
     --bg: #0d1117; --text: #e6edf3; --muted: #8b949e; --line: #30363d; --accent: #86efac;
     --surface: #161b22; --inline-code: #262c36; --thumb-bg: #161b22; --quote-line: #3d444d; --quote-text: #9198a1; --table-line: #3d444d;
@@ -603,3 +603,16 @@ span.tag-caret { cursor: default; }
 /* 번역 편집 (설계 16-14): [AI 번역] — 나중에 옵션 팝업을 띄울 자리 */
 .ai-button { border-color: var(--accent); color: var(--accent); font-weight: 600; }
 .with-card .preview-head { background: var(--bg); }
+
+/* ── 콜아웃 도움말 (설계 16-18): 상태 줄 오른쪽 끝 ? 동그라미 + 팝업 (문법 | 모양) ── */
+.help-button { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; margin-left: auto; padding: 0; border: 1px solid var(--accent-line); border-radius: 50%; background: var(--accent-soft); color: var(--accent); font: inherit; font-weight: 700; cursor: pointer; }
+.help-button:hover { border-color: var(--accent); }
+.help-dialog { width: min(640px, calc(100% - 32px)); }
+.help-rows { display: flex; flex-direction: column; }
+.help-row { display: grid; grid-template-columns: minmax(0, 200px) minmax(0, 1fr); gap: 16px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line-soft); }
+.help-row:first-child { border-top: 0; padding-top: 0; }
+.help-code { margin: 0; padding: 8px 10px; border-radius: 6px; background: var(--hover); font-family: ui-monospace, Consolas, monospace; font-size: .82em; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.help-sample .callout { margin: 0; }
+.help-note { margin: 0; font-size: .85em; line-height: 1.7; }
+.help-note code { padding: 1px 5px; border-radius: 4px; background: var(--hover); font-size: .95em; }
+@media (max-width: 599px) { .help-row { grid-template-columns: minmax(0, 1fr); gap: 6px; } }

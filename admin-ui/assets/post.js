@@ -12,6 +12,7 @@
  *   태그는 체크박스 트리 (하위를 고르면 상위는 자동), 찾기 칸에서 Enter = 새 태그, [+ 하위] = 그 아래 새 태그
  * - 미리보기 접기·펴기는 본문 도구 줄 오른쪽 끝 동그라미 눈 버튼 (설계 16-13)
  */
+import { bindCalloutHelp } from "./callout-help.js";
 import { ApiError, getLimits, listTags, postsApi, setTagParent, translationsApi } from "./api.js";
 import { blockIndexAt, charCount, createBlockPreview, isAllowedTag, normalizeTag, normalizeTags, renderMarkdown, TAG_CHARS_MESSAGE, TagTree } from "./lib.js";
 import { bindCodeCopy, loadEmbedsFor, loadHighlighterFor, loadMathFor } from "./code-blocks.js";
@@ -801,7 +802,7 @@ previewToggle.addEventListener("click", () => setPreviewOpen(!isPreviewOpen(), {
 narrowScreen.addEventListener("change", () => setPreviewOpen(initialPreviewState()));
 // 좁은 화면에서 덮고 있는 미리보기는 Esc로 닫기
 window.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && narrowScreen.matches && isPreviewOpen() && !metaDialog.open) setPreviewOpen(false);
+  if (event.key === "Escape" && narrowScreen.matches && isPreviewOpen() && !document.querySelector("dialog[open]")) setPreviewOpen(false);
 });
 
 buttons.save.addEventListener("click", () => void save());
@@ -975,6 +976,9 @@ tagSearch.addEventListener("keydown", (event) => {
   tagSearch.value = "";
   void addTag(text);
 });
+
+// 콜아웃 도움말 (설계 16-18)
+bindCalloutHelp("ko");
 
 clearNotice();
 void load();

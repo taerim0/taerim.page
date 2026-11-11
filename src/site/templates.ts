@@ -135,15 +135,23 @@ export function layout(props: LayoutProps): Html {
 <body class="${props.bodyClass ?? "page-basic"}">
   <header class="site-header">
     <div class="site-header-inner">
-      <a class="site-name" href="${localizedPath(locale, "/")}">${site.name}</a>
+      <!-- 홈 버튼 (설계 16-16): 직접 그린 집 아이콘 + 굵은 사이트 이름, 희미한 테두리 -->
+      <a class="site-name" href="${localizedPath(locale, "/")}"><svg class="home-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11 12 4l8.5 7"></path><path d="M5.5 9.5V20h13V9.5"></path><path d="M10 20v-5.5h4V20"></path></svg>${site.name}</a>
       <nav class="site-nav">
         ${navLink(localizedPath(locale, POSTS_PATH), m.navPosts, props.section === "posts")}
         ${navLink(localizedPath(locale, ARCHIVE_PATH), m.navArchive, props.section === "archive")}
         ${navLink(localizedPath(locale, SEARCH_PATH), m.navSearch, props.section === "search")}
         ${navLink(localizedPath(locale, STATS_PATH), m.navStats, props.section === "stats")}
-        <span class="lang-switch" role="group" aria-label="${m.languageLabel}">${LOCALES.map(
-          (l) => html`<a href="${localizedPath(l, props.path)}" hreflang="${l}" lang="${l}" data-set-lang="${l}"${l === locale ? html` aria-current="true"` : ""}>${MESSAGES[l].languageName}</a>`,
-        )}</span>
+        <!-- 언어 (설계 16-16, 시안 G-2): 지구본 + KO/EN 버튼 → 아래 목록. JS 없으면 버튼 없이 글자 링크 -->
+        <div class="lang-menu">
+          <button class="lang-button" type="button" aria-expanded="false" aria-label="Language" title="Language"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c2.6 2.6 3.8 5.6 3.8 9s-1.2 6.4-3.8 9M12 3C9.4 5.6 8.2 8.6 8.2 12s1.2 6.4 3.8 9"></path></svg><span class="lang-code">${locale.toUpperCase()}</span></button>
+          <div class="lang-switch" role="group" aria-label="${m.languageLabel}">
+            <p class="lang-list-label" aria-hidden="true">Language</p>
+            ${LOCALES.map(
+              (l) => html`<a href="${localizedPath(l, props.path)}" hreflang="${l}" lang="${l}" data-set-lang="${l}"${l === locale ? html` aria-current="true"` : ""}>${MESSAGES[l].languageName}</a>`,
+            )}
+          </div>
+        </div>
         <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="${m.themeToggle}" title="${m.themeToggle}"></button>
       </nav>
     </div>

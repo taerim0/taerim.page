@@ -120,6 +120,9 @@ a { color: inherit; }
 /* 쓰기 | 미리보기. 미리보기를 닫으면 쓰기가 전체 폭 */
 .editor-grid { position: relative; flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr); gap: 16px; }
 #editor[data-preview="closed"] .editor-grid { grid-template-columns: 1fr; }
+/* 글 편집: 쓰기 | 세로 띠 | 미리보기 (설계 16-12). 접으면 쓰기 | 띠(오른쪽 끝). 번역 화면은 아직 위 규칙 */
+.editor-grid.with-strip { grid-template-columns: minmax(0, 1fr) 26px minmax(0, 1fr); gap: 0 12px; }
+#editor[data-preview="closed"] .editor-grid.with-strip { grid-template-columns: minmax(0, 1fr) 26px; }
 #editor[data-preview="closed"] .preview-pane { display: none; }
 
 .write { min-height: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -143,9 +146,6 @@ a { color: inherit; }
 .count.warn { color: var(--warn); }
 .count.over { color: var(--danger); font-weight: 600; }
 
-.tag-editor { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; }
-.tag-editor #tag-chips { display: contents; }
-.tag-editor input { flex: 1; min-width: 10em; padding: 3px 4px; border: 0; background: transparent; font: inherit; outline: none; }
 .chip.over { border-color: var(--danger); background: var(--danger-soft); color: var(--danger); }
 
 /* 미리보기 사이드바: 넓은 화면은 오른쪽 칸 */
@@ -372,13 +372,6 @@ a.pill:hover { text-decoration: underline; }
 /* ── 태그 상하관계 (설계 14) ── */
 /* 상위 태그라서 자동으로 붙는 칩: 흐리게, 누를 수 없음 */
 .chip.auto { border-style: dashed; background: transparent; color: var(--muted); border-color: var(--line); cursor: default; }
-/* 칩을 눌렀을 때 뜨는 작은 창 */
-.tag-popover { position: absolute; z-index: 20; width: min(320px, calc(100vw - 16px)); padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); box-shadow: 0 6px 24px var(--shadow); }
-.tag-popover-title { margin: 0 0 8px; font-weight: 600; }
-.tag-popover-row { display: flex; gap: 6px; flex-wrap: wrap; }
-.tag-popover-row input { flex: 1; min-width: 8em; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; font: inherit; }
-.tag-popover-row + .tag-popover-row { margin-top: 8px; }
-.tag-popover-note { margin: 6px 0 0; font-size: .85em; }
 /* 태그 화면 트리: 깊이만큼 들여쓰기 */
 .tag-tree { list-style: none; margin: 0; padding: 0; }
 .tag-tree li { padding: 4px 0; }
@@ -529,3 +522,76 @@ a.pill:hover { text-decoration: underline; }
 .detail-tags { color: var(--accent); }
 .detail-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 16px 20px 20px; }
 .detail-actions .button { display: flex; align-items: center; justify-content: center; min-height: 36px; padding: 6px 8px; font-size: .9em; text-align: center; white-space: nowrap; }
+
+/* ── 편집 화면 (post.html, 설계 16-12 · 시안 E-2) ── */
+.editor-body { background: var(--card); }
+.with-strip .title-input { padding: 6px 2px; border: 0 !important; border-bottom: 1px solid var(--line) !important; border-radius: 0 !important; font-size: 1.5em; font-weight: 700; }
+.with-strip .title-input:focus { outline: none; border-bottom-color: var(--accent) !important; }
+.body-input { border-radius: 10px; }
+.with-strip .preview-pane { border-left: 0; border-radius: 10px; }
+.preview-label { margin: 10px 0 0; font-size: .8em; }
+/* 미리보기 접기·펴기 세로 띠 */
+.preview-strip { display: flex; align-items: center; justify-content: center; min-height: 0; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--hover); color: var(--muted); font: inherit; font-size: .78em; letter-spacing: 2px; cursor: pointer; }
+.preview-strip span { writing-mode: vertical-rl; white-space: nowrap; }
+.preview-strip:hover { border-color: var(--accent); color: var(--accent); }
+@media (max-width: 899px) {
+  .editor-grid.with-strip, #editor[data-preview="closed"] .editor-grid.with-strip { grid-template-columns: minmax(0, 1fr); }
+  .preview-strip { position: absolute; top: 50%; right: 0; z-index: 3; width: 26px; height: 120px; transform: translateY(-50%); border-right: 0; border-radius: 8px 0 0 8px; background: var(--card); }
+  #editor[data-preview="open"] .preview-strip { right: min(92%, 560px); }
+}
+/* 아래 줄: 왼쪽 · 가운데 [글 정보] · 오른쪽 */
+.actions:has(.meta-button) { display: grid; grid-template-columns: 1fr auto 1fr; }
+.actions-right { justify-content: flex-end; }
+.meta-button { position: relative; padding: 6px 16px; border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.meta-dot { position: absolute; top: -3px; right: -3px; width: 9px; height: 9px; border: 2px solid var(--card); border-radius: 50%; background: var(--warn); }
+@media (max-width: 599px) { .actions { grid-template-columns: 1fr; } .actions > * { justify-self: start; } }
+
+/* 글 정보 팝업 */
+.meta-dialog { width: min(600px, calc(100% - 32px)); max-height: calc(100vh - 48px); padding: 0; border: 0; border-radius: 14px; background: var(--card); color: var(--text); box-shadow: 0 20px 60px var(--shadow); }
+.meta-dialog::backdrop { background: rgba(17, 24, 39, .45); }
+.meta-form { display: flex; flex-direction: column; max-height: calc(100vh - 48px); }
+.meta-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid var(--line); }
+.meta-head h2 { margin: 0; font-size: 1.1em; }
+.meta-x { width: 32px; height: 32px; border: 0; border-radius: 8px; background: none; color: var(--muted); font-size: 20px; cursor: pointer; }
+.meta-x:hover { background: var(--hover); }
+.meta-body { display: flex; flex-direction: column; gap: 20px; padding: 16px 20px; overflow-y: auto; }
+.meta-section h3 { margin: 0 0 8px; font-size: .95em; }
+.meta-note { font-size: .8em; font-weight: 400; }
+.meta-input { width: 100%; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; font-size: .92em; }
+.meta-input:focus, .tag-child-input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.summary-input { resize: vertical; line-height: 1.6; }
+.meta-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--line); background: var(--hover); }
+.thumb-row { display: flex; gap: 12px; align-items: flex-start; }
+.thumb-preview { flex: none; display: flex; align-items: center; justify-content: center; width: 160px; aspect-ratio: 1200 / 630; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: var(--thumb-bg); font-size: .8em; }
+.thumb-preview img { width: 100%; height: 100%; object-fit: cover; }
+.thumb-tools { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.thumb-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+.thumb-buttons .button { font-size: .85em; }
+.link-danger { border-color: transparent; color: var(--danger); }
+.thumb-choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; list-style: none; margin: 10px 0 0; padding: 0; }
+.thumb-choice { display: block; width: 100%; aspect-ratio: 4 / 3; padding: 0; overflow: hidden; border: 2px solid transparent; border-radius: 8px; background: var(--thumb-bg); cursor: pointer; }
+.thumb-choice img { width: 100%; height: 100%; object-fit: cover; }
+.thumb-choice:hover, .thumb-choice.is-on { border-color: var(--accent); }
+@media (max-width: 499px) { .thumb-row { flex-direction: column; } .thumb-preview { width: 100%; } }
+/* 태그: 고른 칩 + 체크박스 트리 */
+.tag-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.tag-chips:empty { display: none; }
+.chip.auto { border-style: dashed; }
+.tag-pick-tree { max-height: 260px; margin: 8px 0 0; padding: 4px 0; overflow-y: auto; border: 1px solid var(--line-soft); border-radius: 10px; list-style: none; font-size: .92em; }
+.tag-pick-tree ul { margin: 0; padding: 0 0 0 20px; list-style: none; }
+.tag-pick-row { display: flex; align-items: center; gap: 4px; padding: 3px 10px 3px 6px; border-radius: 6px; }
+.tag-pick-row:hover { background: var(--hover); }
+.tag-pick-row.is-on .tag-pick-label { color: var(--accent); font-weight: 600; }
+.tag-caret { flex: none; width: 18px; height: 22px; padding: 0; border: 0; background: none; color: var(--muted); font-size: 11px; cursor: pointer; }
+span.tag-caret { cursor: default; }
+.tag-pick-label { flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0; cursor: pointer; }
+.tag-pick-label input { accent-color: var(--accent); }
+.tag-pick-label .count { margin-left: 2px; color: var(--muted); font-size: .8em; font-weight: 400; }
+.tag-auto { color: var(--muted); font-size: .75em; font-weight: 400; }
+.tag-add-child { visibility: hidden; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--muted); font: inherit; font-size: .78em; cursor: pointer; }
+.tag-pick-row:hover .tag-add-child, .tag-add-child:focus-visible { visibility: visible; }
+.tag-add-child:hover { border-color: var(--accent); color: var(--accent); }
+.tag-child { padding: 3px 10px 3px 28px; }
+.tag-child-input { width: 100%; padding: 4px 8px; border: 1px solid var(--accent); border-radius: 6px; font: inherit; font-size: .92em; }
+.tag-pick-empty { padding: 8px 12px; }
+@media (hover: none) { .tag-add-child { visibility: visible; } }

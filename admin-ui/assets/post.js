@@ -7,14 +7,17 @@
  * - 저장 안 한 변경이 있을 때 공개하기·수정본 반영 → 먼저 저장하고 이어서 실행
  * - 미리보기: 입력 중에는 바뀐 블록만, 입력이 멈추면 전체를 한 번 렌더링
  * - 글자 수는 서버와 같은 방식(charCount)으로 세고, 제한값은 서버(GET /api/limits)에서 받는다
+ * - 설계 16-12: 메인은 제목·본문·미리보기. 대표 이미지·소개글·태그는 [글 정보] 팝업(<dialog>)
+ *   팝업의 칸이 곧 편집 화면 값 — 열 때 기억해 두고 [취소]·Esc면 되돌림, [적용]은 닫기만. 저장은 아래 [저장]
+ *   태그는 체크박스 트리 (하위를 고르면 상위는 자동), 찾기 칸에서 Enter = 새 태그, [+ 하위] = 그 아래 새 태그
+ * - 미리보기 접기·펴기는 쓰기와 미리보기 사이 세로 띠 (접히면 오른쪽 끝)
  */
 import { ApiError, getLimits, listTags, postsApi, setTagParent, translationsApi } from "./api.js";
 import { blockIndexAt, charCount, createBlockPreview, isAllowedTag, normalizeTag, normalizeTags, renderMarkdown, TAG_CHARS_MESSAGE, TagTree } from "./lib.js";
-import { openTagPopover } from "./tag-popover.js";
 import { bindCodeCopy, loadEmbedsFor, loadHighlighterFor, loadMathFor } from "./code-blocks.js";
-import { bindImageUpload } from "./image-upload.js";
+import { bindImageUpload, uploadImageFile } from "./image-upload.js";
 import { translationBadge } from "./translation-badge.js";
-import { bindTagInput, clearNotice, confirmDialog, el, flash, formatDateTime, notify } from "./ui.js";
+import { clearNotice, confirmDialog, el, flash, formatDateTime, notify } from "./ui.js";
 
 /** @typedef {import("./api.js").Post} Post */
 /** @typedef {import("./api.js").PostDraft} PostDraft */
@@ -49,17 +52,19 @@ const $ = (id) => /** @type {HTMLElement} */ (document.getElementById(id));
 const inputs = {
   title: /** @type {HTMLInputElement} */ ($("title")),
   body: /** @type {HTMLTextAreaElement} */ ($("body")),
-  summary: /** @type {HTMLInputElement} */ ($("summary")),
+  summary: /** @type {HTMLTextAreaElement} */ ($("summary")),
   thumbnail: /** @type {HTMLInputElement} */ ($("thumbnail")),
 };
-const tagInput = /** @type {HTMLInputElement} */ ($("tag-input"));
 const tagChips = $("tag-chips");
+const tagTreeList = $("tag-tree");
+const tagSearch = /** @type {HTMLInputElement} */ ($("tag-search"));
+const metaDialog = /** @type {HTMLDialogElement} */ ($("meta-dialog"));
+const metaDot = $("meta-dot");
 const editor = $("editor");
 const preview = $("preview");
 const previewPane = $("preview-pane");
 const previewTitle = $("preview-title");
-const previewToggle = /** @type {HTMLButtonElement} */ ($("preview-toggle"));
-const previewClose = /** @type {HTMLButtonElement} */ ($("preview-close"));
+const previewStrip = /** @type {HTMLButtonElement} */ ($("preview-strip"));
 const buttons = {
   save: /** @type {HTMLButtonElement} */ ($("save")),
   publish: /** @type {HTMLButtonElement} */ ($("publish")),
@@ -84,8 +89,8 @@ let savedAt = /** @type {string | null} */ (null);
 let tags = /** @type {string[]} */ ([]);
 /** 태그 상하관계 (설계 14). 글에는 직접 고른 태그만, 상위 태그는 이 트리로 계산해 흐린 칩으로 보여 줌 */
 let tagTree = new TagTree([]);
-/** 블로그의 모든 태그 이름 (상위 태그 자동완성) */
-let allTagNames = /** @type {string[]} */ ([]);
+/** 태그 이름 → 글 수 (하위 태그 포함, 트리 옆 숫자) */
+let tagTotals = /** @type {Map<string, number>} */ (new Map());
 /** 요청 중이면 버튼을 잠근다 (두 번 누르기 방지) */
 let busy = false;
 /** 휴지통으로 보낸 뒤 목록으로 갈 때는 "떠날까요?" 경고를 하지 않는다 */
@@ -246,6 +251,9 @@ function refresh() {
   const dirty = isDirty();
 
   $("dirty-mark").hidden = !dirty;
+  // [글 정보] 단추의 점: 팝업 칸(대표 이미지·소개글·태그)에 저장 안 한 변경이 있음
+  const changed = changedFields();
+  metaDot.hidden = !(changed.includes("summary") || changed.includes("thumbnail") || changed.includes("tags"));
   $("saved-at").textContent = savedAt ? `저장 ${formatDateTime(savedAt)}` : "";
   previewTitle.textContent = now.title;
   document.title = `${now.title || "새 글"} · taerim.page 관리자`;
@@ -291,11 +299,11 @@ function renderCounts(now) {
 /** 서버의 태그 목록으로 트리·자동완성 갱신 @param {import("./api.js").TagNode[]} nodes */
 function useTagNodes(nodes) {
   tagTree = new TagTree(nodes);
-  allTagNames = nodes.map((node) => node.name);
+  tagTotals = new Map(nodes.map((node) => [node.name, node.total]));
 }
 
 /**
- * 태그 칩: 직접 고른 태그(누르면 상위 태그 팝업) + 자동으로 붙는 상위 태그(흐린 칩), 트리 순 (설계 14)
+ * 글 정보 팝업의 태그 (설계 16-12): 위에 고른 칩(× 빼기, 상위 태그는 점선 "자동"), 아래 체크박스 트리
  */
 function renderTags() {
   const direct = new Set(tags);
@@ -303,33 +311,144 @@ function renderTags() {
     ...tagTree.withAncestors(tags).map((tag) => {
       if (!direct.has(tag)) {
         const because = tags.filter((t) => tagTree.ancestorsOf(t).includes(tag)).map((t) => `#${t}`).join(", ");
-        return el("span", { class: "chip auto", title: `${because}의 상위 태그라서 자동으로 붙어요` }, `#${tag}`);
+        return el("span", { class: "chip auto", title: `${because}의 상위 태그라서 자동으로 붙어요` }, `#${tag} 자동`);
       }
       const tooLong = charCount(tag) > limits.tagLength;
       const badChars = !isAllowedTag(tag);
-      const chip = el(
+      return el(
         "button",
         {
           type: "button",
           class: `chip${tooLong || badChars ? " over" : ""}`,
-          title: badChars ? TAG_CHARS_MESSAGE : tooLong ? `태그는 ${limits.tagLength}자까지예요` : "눌러서 상위 태그 정하기·빼기",
-          onClick: () =>
-            openTagPopover(chip, {
-              tag,
-              parent: tagTree.parentOf(tag),
-              suggestions: allTagNames,
-              onSetParent: (parent) => changeParent(tag, parent),
-              onRemove: () => {
-                tags = tags.filter((t) => t !== tag);
-                onEdit("tags");
-              },
-            }),
+          title: badChars ? TAG_CHARS_MESSAGE : tooLong ? `태그는 ${limits.tagLength}자까지예요` : "누르면 빼기",
+          onClick: () => removeTag(tag),
         },
-        `#${tag}`,
+        `#${tag} ×`,
       );
-      return chip;
     }),
   );
+  renderTagTree();
+}
+
+/** 열어 둔 [+ 하위] 칸의 부모 태그 (없으면 null) */
+let addingUnder = /** @type {string | null} */ (null);
+/** 접어 둔 태그 */
+const collapsedTags = new Set();
+
+/** 체크박스 트리. 찾기 칸에 글자가 있으면 맞는 태그와 그 상위만 (모두 펼침) */
+function renderTagTree() {
+  const query = tagSearch.value.trim().toLowerCase().replace(/^#/, "");
+  const direct = new Set(tags);
+  const auto = new Set(tagTree.withAncestors(tags).filter((tag) => !direct.has(tag)));
+  const known = new Set(tagTree.names());
+  // 아직 저장 안 한 새 태그도 맨 위 단계에 보이게
+  const fresh = tags.filter((tag) => !known.has(tag));
+  let visible = /** @type {Set<string> | null} */ (null);
+  if (query) {
+    visible = new Set();
+    for (const name of [...known, ...fresh]) {
+      if (!name.toLowerCase().includes(query)) continue;
+      visible.add(name);
+      for (const ancestor of tagTree.ancestorsOf(name)) visible.add(ancestor);
+    }
+  }
+  /** @param {string} name @returns {HTMLLIElement | null} */
+  const node = (name) => {
+    if (visible && !visible.has(name)) return null;
+    const kids = known.has(name) ? tagTree.childrenOf(name) : [];
+    const open = Boolean(query) || !collapsedTags.has(name);
+    const isAuto = auto.has(name);
+    const box = el("input", {
+      type: "checkbox",
+      checked: direct.has(name) || isAuto,
+      disabled: isAuto,
+      title: isAuto ? "하위 태그를 골라서 자동으로 붙어요" : undefined,
+      onChange: (/** @type {Event} */ event) => {
+        const checked = /** @type {HTMLInputElement} */ (event.target).checked;
+        if (checked) void addTag(name);
+        else removeTag(name);
+      },
+    });
+    const row = el(
+      "div",
+      { class: `tag-pick-row${direct.has(name) ? " is-on" : ""}` },
+      kids.length > 0
+        ? el(
+            "button",
+            {
+              type: "button",
+              class: "tag-caret",
+              "aria-expanded": String(open),
+              "aria-label": `${name} ${open ? "접기" : "펴기"}`,
+              onClick: () => {
+                if (collapsedTags.has(name)) collapsedTags.delete(name);
+                else collapsedTags.add(name);
+                renderTagTree();
+              },
+            },
+            open ? "▾" : "▸",
+          )
+        : el("span", { class: "tag-caret" }),
+      el("label", { class: "tag-pick-label" }, box, ` #${name}`, el("span", { class: "count" }, known.has(name) ? String(tagTotals.get(name) ?? 0) : "새 태그"), isAuto ? el("span", { class: "tag-auto" }, "자동") : ""),
+      el(
+        "button",
+        {
+          type: "button",
+          class: "tag-add-child",
+          title: `#${name} 아래에 새 태그`,
+          onClick: () => {
+            addingUnder = addingUnder === name ? null : name;
+            collapsedTags.delete(name);
+            renderTagTree();
+            /** @type {HTMLInputElement | null} */ (tagTreeList.querySelector(".tag-child-input"))?.focus();
+          },
+        },
+        "+ 하위",
+      ),
+    );
+    const children = kids.map(node).filter((child) => child !== null);
+    if (addingUnder === name) children.unshift(childInputRow(name));
+    return el("li", {}, row, open && children.length > 0 ? el("ul", {}, ...children) : "");
+  };
+  const roots = [...tagTree.childrenOf(null), ...fresh].map(node).filter((item) => item !== null);
+  tagTreeList.replaceChildren(
+    ...(roots.length > 0
+      ? roots
+      : [el("li", { class: "tag-pick-empty muted" }, query ? `"${tagSearch.value.trim()}" 태그가 없어요. Enter로 새로 만들어요` : "아직 태그가 없어요. 위 칸에 이름을 쓰고 Enter")]),
+  );
+}
+
+/** [+ 하위] 줄: 이름을 쓰고 Enter = 부모 아래 새 태그 (상하관계는 바로 저장, 글에 붙는 건 [저장] 때) @param {string} parent */
+function childInputRow(parent) {
+  const input = el("input", {
+    type: "text",
+    class: "tag-child-input",
+    placeholder: `#${parent} 아래 새 태그 이름 · Enter`,
+    "aria-label": `#${parent} 아래 새 태그`,
+    onKeydown: (/** @type {KeyboardEvent} */ event) => {
+      if (event.isComposing) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        addingUnder = null;
+        renderTagTree();
+      } else if (event.key === "Enter") {
+        event.preventDefault();
+        const name = normalizeTag(/** @type {HTMLInputElement} */ (event.target).value);
+        if (!name) return;
+        addingUnder = null;
+        void addTag(`${parent}/${name}`);
+      }
+    },
+  });
+  return el("li", { class: "tag-child" }, input);
+}
+
+/** 태그 빼기 @param {string} tag */
+function removeTag(tag) {
+  if (!tags.includes(tag)) return;
+  tags = tags.filter((t) => t !== tag);
+  onEdit("tags");
 }
 
 /**
@@ -438,8 +557,9 @@ function widePreference() {
 /** @param {boolean} open @param {{ remember?: boolean }} [options] remember: 사용자가 버튼으로 바꾼 것 */
 function setPreviewOpen(open, { remember = false } = {}) {
   editor.dataset.preview = open ? "open" : "closed";
-  previewToggle.setAttribute("aria-expanded", String(open));
-  previewToggle.textContent = open ? "미리보기 숨기기" : "미리보기 보기";
+  previewStrip.setAttribute("aria-expanded", String(open));
+  previewStrip.title = open ? "미리보기 접기" : "미리보기 펴기";
+  $("preview-strip-label").textContent = open ? "미리보기 ›" : "‹ 미리보기";
   if (remember && !narrowScreen.matches) {
     try {
       localStorage.setItem(PREVIEW_PREF_KEY, open ? "open" : "closed");
@@ -468,6 +588,8 @@ function showError(error) {
     const target = document.querySelector(`[data-error-for="${issue.field}"]`);
     if (target) target.textContent = target.textContent ? `${target.textContent} · ${issue.message}` : issue.message;
   }
+  // 대표 이미지·소개글·태그 오류는 팝업 안 칸 아래에 있으니 팝업을 열어 보여 줌
+  if (fieldIssues.some((issue) => issue.field === "summary" || issue.field === "thumbnail" || issue.field === "tags") && !metaDialog.open) openMeta({ keepErrors: true });
   // 칸에 붙일 수 없는 오류, 또는 입력 오류가 아닌 것(상태 충돌·연결 실패 등)은 위쪽에
   if (fieldIssues.length === 0) notify(error.message);
   else notify("입력을 확인해 주세요");
@@ -630,7 +752,10 @@ function onEdit(field) {
 inputs.title.addEventListener("input", () => onEdit("title"));
 inputs.body.addEventListener("input", () => onEdit("body"));
 inputs.summary.addEventListener("input", () => onEdit("summary"));
-inputs.thumbnail.addEventListener("input", () => onEdit("thumbnail"));
+inputs.thumbnail.addEventListener("input", () => {
+  onEdit("thumbnail");
+  renderThumb();
+});
 
 /**
  * 태그 하나 완성. `개발/프론트엔드/react`처럼 쓰면 react를 붙이면서 상하관계도 정함 (설계 14, 블로그 전체에 바로 저장)
@@ -648,22 +773,18 @@ async function addTag(text) {
     }
   }
   if (!tags.includes(tag)) {
+    if (limits && tags.length >= limits.tagCount) {
+      const target = document.querySelector('[data-error-for="tags"]');
+      if (target) target.textContent = `태그는 ${limits.tagCount}개까지예요`;
+      renderTags();
+      return;
+    }
     tags = [...tags, tag];
     onEdit("tags");
-  } else if (path.length > 1) {
+  } else {
     renderTags();
   }
 }
-
-// 태그 입력: 띄어쓰기·엔터로 완성, 빈 칸 백스페이스로 마지막 태그 빼기 (한글 조합 처리는 ui.js)
-bindTagInput(tagInput, {
-  onAdd: (text) => void addTag(text),
-  onRemoveLast: () => {
-    if (tags.length === 0) return;
-    tags = tags.slice(0, -1);
-    onEdit("tags");
-  },
-});
 
 inputs.body.addEventListener("scroll", syncScroll);
 
@@ -675,13 +796,12 @@ bindImageUpload({
 });
 
 bindCodeCopy(preview);
-previewToggle.addEventListener("click", () => setPreviewOpen(!isPreviewOpen(), { remember: true }));
-previewClose.addEventListener("click", () => setPreviewOpen(false, { remember: true }));
+previewStrip.addEventListener("click", () => setPreviewOpen(!isPreviewOpen(), { remember: true }));
 // 창 크기가 넓은↔좁은 경계를 넘으면 그 크기의 처음 상태로
 narrowScreen.addEventListener("change", () => setPreviewOpen(initialPreviewState()));
 // 좁은 화면에서 덮고 있는 미리보기는 Esc로 닫기
 window.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && narrowScreen.matches && isPreviewOpen()) setPreviewOpen(false);
+  if (event.key === "Escape" && narrowScreen.matches && isPreviewOpen() && !metaDialog.open) setPreviewOpen(false);
 });
 
 buttons.save.addEventListener("click", () => void save());
@@ -712,6 +832,148 @@ window.addEventListener("beforeunload", (event) => {
   if (leaving || !limits || !isDirty()) return;
   event.preventDefault();
   event.returnValue = ""; // 옛 브라우저용
+});
+
+// ── 글 정보 팝업 (설계 16-12) ───────────────────────────
+
+/** 팝업을 열 때의 값 ([취소]·Esc면 이 값으로 되돌림) */
+let metaSnapshot = /** @type {{ summary: string, thumbnail: string, tags: string[] } | null} */ (null);
+
+/** @param {{ keepErrors?: boolean }} [options] */
+function openMeta(options = {}) {
+  if (metaDialog.open) return;
+  metaSnapshot = { summary: inputs.summary.value, thumbnail: inputs.thumbnail.value, tags: [...tags] };
+  if (!options.keepErrors) {
+    for (const field of /** @type {const} */ (["summary", "thumbnail", "tags"])) clearErrors(field);
+  }
+  tagSearch.value = "";
+  addingUnder = null;
+  renderThumb();
+  renderTags();
+  metaDialog.showModal();
+  inputs.summary.focus();
+}
+
+/** [취소]·Esc·× : 팝업에서 고친 것을 버림 */
+function cancelMeta() {
+  if (metaSnapshot) {
+    inputs.summary.value = metaSnapshot.summary;
+    inputs.thumbnail.value = metaSnapshot.thumbnail;
+    tags = metaSnapshot.tags;
+    metaSnapshot = null;
+    renderThumb();
+    renderTags();
+    refresh();
+  }
+  metaDialog.close();
+}
+
+/** [적용]: 값은 이미 편집 화면에 들어가 있으므로 닫기만 */
+function applyMeta() {
+  metaSnapshot = null;
+  metaDialog.close();
+  $("meta-button").focus();
+}
+
+/** 대표 이미지 미리보기 칸 */
+function renderThumb() {
+  const value = inputs.thumbnail.value.trim();
+  const box = $("thumb-preview");
+  box.replaceChildren(value ? el("img", { src: value, alt: "" }) : el("span", { class: "muted" }, "기본 이미지"));
+}
+
+/** 본문에 쓴 /images/… (대표 이미지로 고를 후보) */
+function bodyImages() {
+  return [...new Set(inputs.body.value.match(/\/images\/[0-9a-f]{12}\.(?:webp|gif)/g) ?? [])];
+}
+
+function toggleThumbChoices() {
+  const list = $("thumb-choices");
+  const button = $("thumb-pick");
+  if (!list.hidden) {
+    list.hidden = true;
+    button.setAttribute("aria-expanded", "false");
+    return;
+  }
+  const images = bodyImages();
+  list.replaceChildren(
+    ...(images.length > 0
+      ? images.map((src) =>
+          el(
+            "li",
+            {},
+            el(
+              "button",
+              {
+                type: "button",
+                class: `thumb-choice${src === inputs.thumbnail.value.trim() ? " is-on" : ""}`,
+                title: src,
+                onClick: () => {
+                  inputs.thumbnail.value = src;
+                  onEdit("thumbnail");
+                  renderThumb();
+                  list.hidden = true;
+                  button.setAttribute("aria-expanded", "false");
+                },
+              },
+              el("img", { src, alt: "" }),
+            ),
+          ),
+        )
+      : [el("li", { class: "muted" }, "본문에 올린 이미지가 없어요")]),
+  );
+  list.hidden = false;
+  button.setAttribute("aria-expanded", "true");
+}
+
+$("meta-button").addEventListener("click", () => openMeta());
+$("meta-close").addEventListener("click", cancelMeta);
+$("meta-cancel").addEventListener("click", cancelMeta);
+$("meta-apply").addEventListener("click", applyMeta);
+// Esc: 브라우저가 닫기 전에 되돌리기
+metaDialog.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  cancelMeta();
+});
+// 팝업 바깥(어두운 곳)을 누르면 취소
+metaDialog.addEventListener("click", (event) => {
+  if (event.target === metaDialog) cancelMeta();
+});
+$("thumb-pick").addEventListener("click", toggleThumbChoices);
+$("thumb-clear").addEventListener("click", () => {
+  inputs.thumbnail.value = "";
+  onEdit("thumbnail");
+  renderThumb();
+});
+const thumbFile = /** @type {HTMLInputElement} */ ($("thumb-file"));
+const thumbUpload = /** @type {HTMLButtonElement} */ ($("thumb-upload"));
+thumbUpload.addEventListener("click", () => thumbFile.click());
+thumbFile.addEventListener("change", async () => {
+  const file = thumbFile.files?.[0];
+  thumbFile.value = "";
+  if (!file) return;
+  thumbUpload.disabled = true;
+  thumbUpload.textContent = "올리는 중…";
+  try {
+    inputs.thumbnail.value = await uploadImageFile(file);
+    onEdit("thumbnail");
+    renderThumb();
+  } catch (error) {
+    notify(`이미지를 올리지 못했어요${error instanceof Error && error.message ? `: ${error.message}` : ""}`);
+  } finally {
+    thumbUpload.disabled = false;
+    thumbUpload.textContent = "이미지 올리기";
+  }
+});
+// 태그 찾기: 글자마다 트리 거르기, Enter = 있는 태그면 고르기, 없으면 새 태그 (a/b처럼 쓰면 상하관계도)
+tagSearch.addEventListener("input", () => renderTagTree());
+tagSearch.addEventListener("keydown", (event) => {
+  if (event.isComposing || event.key !== "Enter") return;
+  event.preventDefault();
+  const text = tagSearch.value.trim().replace(/^#/, "");
+  if (!text) return;
+  tagSearch.value = "";
+  void addTag(text);
 });
 
 clearNotice();

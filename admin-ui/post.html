@@ -40,7 +40,7 @@
     <p id="loading" class="muted">불러오는 중…</p>
 
     <div id="editor" hidden>
-      <!-- 지금 상태: 초안 / 공개 / 공개 · 수정 중, 저장 안 됨 표시, 상태별 안내 -->
+      <!-- 편집 화면 (설계 16-12, 시안 E-2): 메인은 제목·본문·미리보기. 대표 이미지·소개글·태그는 아래 [글 정보] 팝업 -->
       <div class="editor-status">
         <span id="status-pill" class="pill"></span>
         <span id="dirty-mark" class="dirty" hidden>저장 안 됨</span>
@@ -48,11 +48,10 @@
         <!-- 번역: 번역 화면으로 가는 버튼 + 상태 (저장한 글에만) -->
         <a id="translation-link" class="button" hidden>English</a>
         <span id="translation-badge"></span>
-        <button id="preview-toggle" class="button preview-toggle" type="button" aria-controls="preview-pane" aria-expanded="true">미리보기</button>
       </div>
       <p id="state-help" class="state-help" hidden></p>
 
-      <div class="editor-grid">
+      <div class="editor-grid with-strip">
         <!-- 왼쪽: 쓰기 -->
         <section class="write" aria-label="쓰기">
           <div class="field">
@@ -60,17 +59,6 @@
             <div class="field-foot">
               <p class="field-error" data-error-for="title"></p>
               <span class="count" data-count-for="title"></span>
-            </div>
-          </div>
-
-          <div class="field">
-            <div class="tag-editor">
-              <span id="tag-chips"></span>
-              <input id="tag-input" type="text" placeholder="태그 입력 후 띄어쓰기·엔터" aria-label="태그 추가" autocomplete="off">
-            </div>
-            <div class="field-foot">
-              <p class="field-error" data-error-for="tags"></p>
-              <span class="count" data-count-for="tags"></span>
             </div>
           </div>
 
@@ -88,38 +76,18 @@
           </div>
         </section>
 
+        <!-- 미리보기 접기·펴기: 쓰기와 미리보기 사이 세로 띠 (접히면 오른쪽 끝) -->
+        <button id="preview-strip" class="preview-strip" type="button" aria-controls="preview-pane" aria-expanded="true"><span id="preview-strip-label">미리보기 ›</span></button>
+
         <!--
-          오른쪽: 미리보기 사이드바 (렌더러가 안전하게 만든 HTML만 들어감)
+          오른쪽: 미리보기 (렌더러가 안전하게 만든 HTML만 들어감)
           넓은 화면은 나란히, 좁은 화면은 쓰기 칸 위를 덮는다. 열고 닫기는 #editor의 data-preview 값
         -->
         <section id="preview-pane" class="preview-pane" aria-label="미리보기">
-          <div class="preview-head">
-            <span class="muted">미리보기</span>
-            <button id="preview-close" class="button" type="button" aria-label="미리보기 닫기">×</button>
-          </div>
+          <p class="preview-label muted">미리보기</p>
           <h1 id="preview-title" class="preview-title"></h1>
           <article id="preview" class="preview"></article>
         </section>
-      </div>
-
-      <!-- 아래: 소개글·대표 이미지 -->
-      <div class="meta-fields">
-        <div class="field">
-          <label for="summary">소개글</label>
-          <input id="summary" type="text" placeholder="목록에 보일 짧은 소개 (선택)" autocomplete="off">
-          <div class="field-foot">
-            <p class="field-error" data-error-for="summary"></p>
-            <span class="count" data-count-for="summary"></span>
-          </div>
-        </div>
-        <div class="field">
-          <label for="thumbnail">대표 이미지 주소</label>
-          <input id="thumbnail" type="text" placeholder="/images/… 또는 https://… (비우면 기본 이미지)" autocomplete="off">
-          <div class="field-foot">
-            <p class="field-error" data-error-for="thumbnail"></p>
-            <span class="count" data-count-for="thumbnail"></span>
-          </div>
-        </div>
       </div>
 
       <!-- 버튼 줄: 상태에 따라 post.js가 보이거나 숨긴다 -->
@@ -128,6 +96,7 @@
           <a class="button" href="/">← 목록</a>
           <button id="trash" class="button danger" type="button" hidden>휴지통</button>
         </div>
+        <button id="meta-button" class="button meta-button" type="button" aria-haspopup="dialog">글 정보<span id="meta-dot" class="meta-dot" hidden title="저장 안 한 변경이 있어요"></span></button>
         <div class="actions-right">
           <button id="discard" class="button danger" type="button" hidden>수정본 버리기</button>
           <button id="unpublish" class="button" type="button" hidden>비공개로</button>
@@ -136,6 +105,65 @@
           <button id="apply" class="button primary" type="button" hidden>수정본 반영</button>
         </div>
       </div>
+
+      <!--
+        글 정보 팝업 (설계 16-12): 대표 이미지 · 소개글 · 태그를 한 팝업에 세로로.
+        칸은 편집 화면 값 그대로 (열 때 지금 값을 기억 → [취소]·Esc면 되돌림, [적용]은 닫기). 실제 저장은 아래 [저장]
+      -->
+      <dialog id="meta-dialog" class="meta-dialog" aria-labelledby="meta-title">
+        <form method="dialog" class="meta-form">
+          <div class="meta-head">
+            <h2 id="meta-title">글 정보</h2>
+            <button id="meta-close" class="meta-x" type="button" aria-label="닫기 (고친 것 버림)">×</button>
+          </div>
+          <div class="meta-body">
+            <section class="meta-section" aria-labelledby="meta-thumb-title">
+              <h3 id="meta-thumb-title">대표 이미지</h3>
+              <div class="thumb-row">
+                <div id="thumb-preview" class="thumb-preview"><span class="muted">기본 이미지</span></div>
+                <div class="thumb-tools">
+                  <div class="thumb-buttons">
+                    <button id="thumb-upload" class="button" type="button">이미지 올리기</button>
+                    <button id="thumb-pick" class="button" type="button" aria-expanded="false" aria-controls="thumb-choices">본문 이미지에서 고르기</button>
+                    <button id="thumb-clear" class="button link-danger" type="button">빼기</button>
+                    <input id="thumb-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+                  </div>
+                  <input id="thumbnail" class="meta-input" type="text" placeholder="/images/… 또는 https://… (비우면 기본 이미지)" aria-label="대표 이미지 주소" autocomplete="off">
+                  <div class="field-foot">
+                    <p class="field-error" data-error-for="thumbnail"></p>
+                    <span class="count" data-count-for="thumbnail"></span>
+                  </div>
+                </div>
+              </div>
+              <ul id="thumb-choices" class="thumb-choices" hidden></ul>
+            </section>
+
+            <section class="meta-section" aria-labelledby="meta-summary-title">
+              <h3 id="meta-summary-title">소개글 <span class="muted meta-note">목록·검색엔진에 보여요</span></h3>
+              <textarea id="summary" class="meta-input summary-input" rows="3" placeholder="목록에 보일 짧은 소개 (선택)" aria-labelledby="meta-summary-title"></textarea>
+              <div class="field-foot">
+                <p class="field-error" data-error-for="summary"></p>
+                <span class="count" data-count-for="summary"></span>
+              </div>
+            </section>
+
+            <section class="meta-section" aria-labelledby="meta-tags-title">
+              <h3 id="meta-tags-title">태그</h3>
+              <div id="tag-chips" class="tag-chips"></div>
+              <input id="tag-search" class="meta-input" type="search" placeholder="찾기 · 없는 이름이면 Enter로 새 태그" aria-label="태그 찾기 또는 새 태그" autocomplete="off">
+              <ul id="tag-tree" class="tag-pick-tree" aria-label="태그 고르기"></ul>
+              <div class="field-foot">
+                <p class="field-error" data-error-for="tags"></p>
+                <span class="count" data-count-for="tags"></span>
+              </div>
+            </section>
+          </div>
+          <div class="meta-actions">
+            <button id="meta-cancel" class="button" type="button">취소</button>
+            <button id="meta-apply" class="button primary" type="button">적용</button>
+          </div>
+        </form>
+      </dialog>
     </div>
   </main>
 </body>

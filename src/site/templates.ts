@@ -210,28 +210,52 @@ interface ListPageProps {
   tagNav?: TagNav;
   /** 이미지 주소 → 원래 크기 (대표 이미지에 width·height). 없으면 크기 없이 */
   imageSizes?: ReadonlyMap<string, ImageSize>;
+  /** 왼쪽 "태그로 보기"·"해마다" (설계 16-9). 없으면 왼쪽 카드 없이 */
+  browse?: ListBrowse;
 }
 
-export function listPage({ site, locale = SOURCE_LOCALE, posts, pagination, tag, tagNav, imageSizes }: ListPageProps): Html {
+/** 목록 왼쪽 카드에 쓰는 것 (설계 16-9) */
+export interface ListBrowse {
+  /** 공개 글 전체 수 ("전체 n") */
+  total: number;
+  /** 태그별 글 수 (태그 페이지와 같은 셈) */
+  tags: TagCount[];
+  /** 글이 있는 해 (최신부터) */
+  years: number[];
+}
+
+/** 태그로 보기에 보일 태그 수 */
+export const BROWSE_TAG_COUNT = 10;
+
+export function listPage({ site, locale = SOURCE_LOCALE, posts, pagination, tag, tagNav, imageSizes, browse }: ListPageProps): Html {
   const m = MESSAGES[locale];
   const heading = tag === undefined ? null : `#${tag}`;
   const pageSuffix = pagination.page > 1 ? m.pageSuffix(pagination.page) : "";
   const body = html`
-    ${tagNav && tagNav.ancestors.length > 0
-      ? html`<nav class="tag-path" aria-label="${m.tagsHeading}">${tagNav.ancestors.map(
-          (name) => html`<a class="tag" href="${localizedPath(locale, tagPath(name))}">#${name}</a> › `,
-        )}</nav>`
-      : ""}
-    ${heading === null ? "" : html`<h1 class="list-heading">${heading}</h1>`}
-    ${tagNav && tagNav.children.length > 0
-      ? html`<ul class="tag-children">${tagNav.children.map(
-          (child) => html`<li><a class="tag" href="${localizedPath(locale, tagPath(child.name))}">#${child.name} <span class="count">${child.count}</span></a></li>`,
-        )}</ul>`
-      : ""}
-    ${posts.length === 0
-      ? html`<p class="empty">${m.emptyPosts}</p>`
-      : html`<ul class="post-list">${posts.map((post) => postCard(site, locale, post, imageSizes))}</ul>`}
-    ${pager(locale, pagination)}`;
+    <div class="list-layout">
+      <aside class="list-side">
+        <div class="list-head">
+          ${tagNav && tagNav.ancestors.length > 0
+            ? html`<nav class="tag-path" aria-label="${m.tagsHeading}">${tagNav.ancestors.map(
+                (name) => html`<a class="tag" href="${localizedPath(locale, tagPath(name))}">#${name}</a> › `,
+              )}</nav>`
+            : ""}
+          <h1 class="list-heading">${heading ?? m.navPosts}</h1>
+          ${tagNav && tagNav.children.length > 0
+            ? html`<ul class="tag-children">${tagNav.children.map(
+                (child) => html`<li><a class="tag" href="${localizedPath(locale, tagPath(child.name))}">#${child.name} <span class="count">${child.count}</span></a></li>`,
+              )}</ul>`
+            : ""}
+        </div>
+        ${browse ? browseCards(locale, browse, tag) : ""}
+      </aside>
+      <div class="list-main">
+        ${posts.length === 0
+          ? html`<p class="empty card">${m.emptyPosts}</p>`
+          : html`<div class="card list-card"><ul class="post-rows">${posts.map((post) => postRow(locale, post, imageSizes))}</ul></div>`}
+        ${pager(locale, pagination)}
+      </div>
+    </div>`;
   return layout({
     site,
     locale,
@@ -239,24 +263,39 @@ export function listPage({ site, locale = SOURCE_LOCALE, posts, pagination, tag,
     description: heading === null ? undefined : m.tagDescription(heading),
     path: pagePath(pagination.listPath, pagination.page),
     section: heading === null ? "posts" : "tags",
+    bodyClass: "page-list",
     body,
   });
 }
 
-/** 목록의 글 하나. 번역 언어 목록의 미번역 글은 한글 제목(lang="ko") + KR 표시 */
-function postCard(site: SiteConfig, locale: Locale, post: PostCardData, imageSizes?: ReadonlyMap<string, ImageSize>): Html {
+/**
+ * 목록 왼쪽: 태그로 보기(전체 + 글 많은 순 10개, 지금 보는 곳 강조, 넘치면 모든 태그 →) · 해마다(아카이브의 그 해로) (설계 16-9)
+ * 지금 태그가 10개 밖이면 목록 끝에 더한다
+ */
+function browseCards(locale: Locale, browse: ListBrowse, current: string | undefined): Html {
   const m = MESSAGES[locale];
-  const src = post.thumbnail || site.defaultThumbnail;
-  const size = imageSizes?.get(src);
-  const korean = post.untranslated === true && locale !== SOURCE_LOCALE;
-  return html`<li class="post-card">
-      <a class="post-card-link" href="${localizedPath(locale, postPath(post.id))}">
-        <img class="thumbnail" src="${src}" alt=""${size ? html` width="${size.width}" height="${size.height}"` : ""} loading="lazy">
-        <h2 class="post-title"${korean ? html` lang="ko"` : ""}>${post.title}${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</h2>
-        ${post.summary ? html`<p class="summary"${korean ? html` lang="ko"` : ""}>${post.summary}</p>` : ""}
-      </a>
-      ${postMeta(locale, post)}
-    </li>`;
+  const sorted = [...browse.tags].sort((a, b) => b.count - a.count || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  const shown = sorted.slice(0, BROWSE_TAG_COUNT);
+  if (current !== undefined && !shown.some((t) => t.name === current)) {
+    const extra = sorted.find((t) => t.name === current);
+    if (extra) shown.push(extra);
+  }
+  const link = (href: string, label: string, count: number, isCurrent: boolean) =>
+    html`<li><a class="browse-link${isCurrent ? " is-current" : ""}" href="${href}"${isCurrent ? html` aria-current="page"` : ""}><span>${label}</span><span class="count">${count}</span></a></li>`;
+  return html`<section class="card browse-card" aria-labelledby="browse-tags">
+          <h2 class="card-heading" id="browse-tags">${m.browseByTag}</h2>
+          <ul class="browse-list">
+            ${link(localizedPath(locale, POSTS_PATH), m.allShort, browse.total, current === undefined)}
+            ${shown.map((t) => link(localizedPath(locale, tagPath(t.name)), `#${t.name}`, t.count, t.name === current))}
+          </ul>
+          ${sorted.length > shown.length ? html`<p class="browse-more"><a href="${localizedPath(locale, TAGS_PATH)}">${m.allTags}</a></p>` : ""}
+        </section>
+        ${browse.years.length === 0
+          ? ""
+          : html`<section class="card browse-card" aria-labelledby="browse-years">
+          <h2 class="card-heading" id="browse-years">${m.byYear}</h2>
+          <ul class="browse-years">${browse.years.map((year) => html`<li><a href="${localizedPath(locale, ARCHIVE_PATH)}#year-${year}">${year}</a></li>`)}</ul>
+        </section>`}`;
 }
 
 /** 공개 날짜 + 태그 링크 */
@@ -275,10 +314,31 @@ function pager(locale: Locale, { page, totalPages, listPath }: Pagination): Html
   const m = MESSAGES[locale];
   const at = (n: number) => localizedPath(locale, pagePath(listPath, n));
   return html`<nav class="pager" aria-label="${m.pagerLabel}">
-      ${page > 1 ? html`<a rel="prev" href="${at(page - 1)}">${m.prev}</a>` : ""}
-      <span>${page} / ${totalPages}</span>
-      ${page < totalPages ? html`<a rel="next" href="${at(page + 1)}">${m.next}</a>` : ""}
+      ${page > 1 ? html`<a class="pager-step" rel="prev" href="${at(page - 1)}">${m.prev}</a>` : html`<span class="pager-step is-disabled">${m.prev}</span>`}
+      ${pageNumbers(page, totalPages).map((n) =>
+        n === null
+          ? html`<span class="pager-gap">…</span>`
+          : n === page
+            ? html`<span class="pager-num is-current" aria-current="page">${n}</span>`
+            : html`<a class="pager-num" href="${at(n)}">${n}</a>`,
+      )}
+      ${page < totalPages ? html`<a class="pager-step" rel="next" href="${at(page + 1)}">${m.next}</a>` : html`<span class="pager-step is-disabled">${m.next}</span>`}
     </nav>`;
+}
+
+/** 번호 페이지에 보일 쪽 (설계 16-9): 7쪽까지는 전부, 넘으면 처음·끝·지금 앞뒤 + 사이는 null(…) */
+export function pageNumbers(page: number, total: number): (number | null)[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const wanted = new Set([1, total, page - 1, page, page + 1]);
+  if (page <= 3) [2, 3, 4].forEach((n) => wanted.add(n));
+  if (page >= total - 2) [total - 3, total - 2, total - 1].forEach((n) => wanted.add(n));
+  const pages = [...wanted].filter((n) => n >= 1 && n <= total).sort((a, b) => a - b);
+  const out: (number | null)[] = [];
+  pages.forEach((n, i) => {
+    if (i > 0 && n - pages[i - 1]! > 1) out.push(null);
+    out.push(n);
+  });
+  return out;
 }
 
 // ── 글 ──────────────────────────────────────────────

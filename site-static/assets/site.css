@@ -109,17 +109,11 @@ a { color: var(--accent); }
 .empty { color: var(--muted); }
 .empty.card { margin: 0; padding: 24px; }
 
-/* 목록(/posts, 태그) */
-.post-list { list-style: none; margin: 0; padding: 0; }
-.post-card { padding: 18px 0; border-bottom: 1px solid var(--line-soft); }
-.post-card-link { color: inherit; text-decoration: none; display: block; }
-.post-card .thumbnail { width: 100%; aspect-ratio: 1200 / 630; object-fit: cover; border-radius: 8px; background: var(--thumb-bg); }
-.post-card .post-title { margin: 8px 0 4px; font-size: 1.25em; }
+/* 글 공통 */
 .summary { margin: 0; color: var(--muted); }
 .post-meta { display: flex; flex-wrap: wrap; gap: 2px 10px; margin: 6px 0 0; color: var(--muted); font-size: .85em; }
 .post-meta .tag { text-decoration: none; }
 .post-meta .tag:hover { text-decoration: underline; }
-.pager { display: flex; gap: 16px; justify-content: center; margin: 24px 0 0; }
 
 /* ── 홈 (설계 16-1): 왼쪽 280px(소개·태그) + 오른쪽(큰 카드 → 목록 카드 → 활동 카드) ── */
 .home { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 32px; align-items: start; }
@@ -476,3 +470,40 @@ a { color: var(--accent); }
 .lang-dot { width: 10px; height: 10px; border-radius: 50%; }
 .lang-1 { background: #15803d; } .lang-2 { background: #22c55e; } .lang-3 { background: #86efac; } .lang-4 { background: #0f766e; } .lang-5 { background: #5eead4; } .lang-other { background: var(--muted); }
 @media (max-width: 520px) { .month-bars { gap: 3px; } .month-label { font-size: .62em; letter-spacing: -.02em; } }
+
+/* ── 글 목록·태그 페이지 (설계 16-9, 시안 L-3): 왼쪽 240px(제목·태그로 보기·해마다) + 오른쪽 줄 목록 + 번호 페이지 ── */
+.page-list .site-main { max-width: 1112px; }
+.list-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 20px; align-items: start; }
+.list-side, .list-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.list-head .list-heading { margin: 0; }
+.list-head .tag-children { margin: 8px 0 0; }
+.list-head .tag-path .tag, .list-head .tag-children .tag { color: var(--muted); text-decoration: none; }
+.list-head .tag-children .tag:hover, .list-head .tag-path .tag:hover { color: var(--accent); }
+.browse-card { padding: 18px 20px; font-size: .92em; }
+.browse-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.browse-link { display: flex; justify-content: space-between; gap: 8px; margin: 0 -8px; padding: 4px 8px; border-radius: 6px; color: var(--text); text-decoration: none; }
+.browse-link:hover { color: var(--accent); }
+.browse-link .count { color: var(--muted); font-variant-numeric: tabular-nums; }
+.browse-link.is-current { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.browse-link.is-current .count { color: var(--accent); }
+.browse-more { margin: 8px 0 0; padding-top: 8px; border-top: 1px solid var(--line-soft); font-size: .92em; }
+.browse-more a { color: var(--accent); text-decoration: none; }
+.browse-years { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.browse-years a { display: inline-block; padding: 2px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--text); text-decoration: none; }
+.browse-years a:hover { border-color: var(--accent); color: var(--accent); }
+.pager { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; margin: 0; font-size: .92em; }
+.pager-step { padding: 6px 10px; color: var(--accent); text-decoration: none; }
+.pager-step.is-disabled { color: var(--muted); opacity: .6; }
+.pager-num { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 34px; padding: 0 6px; box-sizing: border-box; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--text); text-decoration: none; }
+a.pager-num:hover { border-color: var(--accent); color: var(--accent); }
+.pager-num.is-current { border-color: var(--accent); background: var(--accent); color: var(--card); font-weight: 700; }
+.pager-gap { color: var(--muted); padding: 0 2px; }
+/* 좁은 화면: 왼쪽이 위로, 태그·해는 칩이 줄바꿈되는 한 덩어리 */
+@media (max-width: 899px) {
+  .list-layout { grid-template-columns: minmax(0, 1fr); }
+  .browse-list { flex-direction: row; flex-wrap: wrap; gap: 6px; }
+  .browse-link { margin: 0; padding: 2px 10px; border: 1px solid var(--line); border-radius: 999px; }
+  .browse-link.is-current { border-color: var(--accent-line); }
+  .browse-link .count { margin-left: 2px; }
+  .browse-more { border-top: 0; padding-top: 0; }
+}

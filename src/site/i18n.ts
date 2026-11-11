@@ -40,6 +40,11 @@ export interface Messages {
   prev: string;
   next: string;
   pagerLabel: string;
+  /** 글 목록 왼쪽 카드 (설계 16-9) */
+  browseByTag: string;
+  byYear: string;
+  allShort: string;
+  allTags: string;
   toc: string;
   /** 번역 언어 목록에서 아직 번역 안 된 글 표시 */
   koreanOnly: string;
@@ -135,6 +140,10 @@ export const MESSAGES: Record<Locale, Messages> = {
     prev: "‹ 이전",
     next: "다음 ›",
     pagerLabel: "페이지",
+    browseByTag: "태그로 보기",
+    byYear: "해마다",
+    allShort: "전체",
+    allTags: "모든 태그 →",
     toc: "목차",
     koreanOnly: "KR",
     koreanOnlyTitle: "아직 번역되지 않은 글 (한국어)",
@@ -212,6 +221,10 @@ export const MESSAGES: Record<Locale, Messages> = {
     prev: "‹ Prev",
     next: "Next ›",
     pagerLabel: "Pages",
+    browseByTag: "Browse by tag",
+    byYear: "By year",
+    allShort: "All",
+    allTags: "All tags →",
     toc: "Contents",
     koreanOnly: "KR",
     koreanOnlyTitle: "Not translated yet (Korean only)",

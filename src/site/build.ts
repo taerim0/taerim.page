@@ -26,7 +26,7 @@ import type { SearchBodies, SearchIndex, SearchItem } from "./search.ts";
 import type { ArchiveActivity } from "./archive.ts";
 import { ARCHIVE_PATH, activityAnchor, pagePath, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, STATS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
 import { absoluteUrl, archivePage, searchPage, statsPage, HOME_ACTIVITY_COUNT, HOME_POST_COUNT, homePage, listPage, notFoundPage, postPage, tagsPage, untranslatedPostPage } from "./templates.ts";
-import type { Html, PostCardData, SiteConfig, TagNav } from "./templates.ts";
+import type { Html, ListBrowse, PostCardData, SiteConfig, TagNav } from "./templates.ts";
 
 /** 목록 한 페이지의 글 수 (관리자 목록과 같은 10개) */
 export const SITE_PAGE_SIZE = 10;
@@ -104,6 +104,12 @@ export async function buildSite({ site: baseSite, settings, activities = [], pos
   /** 이 글이 있는 언어들 (hreflang) */
   const localesOf = (id: number) => LOCALES.filter((l) => l === SOURCE_LOCALE || byLocale.get(l)?.has(id));
   const tags = countTags(published);
+  /** 글 목록·태그 페이지 왼쪽 카드 (설계 16-9) */
+  const browse: ListBrowse = {
+    total: published.length,
+    tags,
+    years: [...new Set(published.map((post) => Number(formatDate(post.publishedAt!, SOURCE_LOCALE).slice(0, 4))))].sort((a, b) => b - a),
+  };
   /** 통계 (설계 15-9): 한국어 본문 글자는 한국어 차례에서 모으고, 수치는 언어와 상관없이 한 번만 셈 */
   const koreanTexts = new Map<number, string>();
   let stats: SiteStats | null = null;
@@ -123,7 +129,7 @@ export async function buildSite({ site: baseSite, settings, activities = [], pos
     );
     // 아카이브 (설계 15-5): 글 + 활동을 연 → 월로
     await add(localizedPath(locale, ARCHIVE_PATH), archivePage({ site, locale, years: groupArchive(cardsOf(published), archiveActivities) }));
-    for (const [path, page] of listPages(site, locale, cardsOf(published), POSTS_PATH, imageSizes)) await add(path, page);
+    for (const [path, page] of listPages(site, locale, cardsOf(published), POSTS_PATH, imageSizes, undefined, undefined, browse)) await add(path, page);
 
     // 글: 한국어 / 번역본 / 미번역(한글을 흐리게 + 안내)
     /** 검색용 본문 HTML (글 id → 이 언어 페이지에 보이는 본문) */
@@ -157,7 +163,7 @@ export async function buildSite({ site: baseSite, settings, activities = [], pos
       const tagged = published.filter((post) => post.tags.includes(name));
       // 태그 페이지 위: 상위 경로 / 아래: 하위 태그 (글이 있는 것만)
       const nav = { ancestors: tree.ancestorsOf(name), children: tags.filter((tag) => tree.parentOf(tag.name) === name) };
-      for (const [path, page] of listPages(site, locale, cardsOf(tagged), tagPath(name), imageSizes, name, nav)) await add(path, page);
+      for (const [path, page] of listPages(site, locale, cardsOf(tagged), tagPath(name), imageSizes, name, nav, browse)) await add(path, page);
     }
 
     // 통계 (설계 15-9): 첫 차례(한국어)에서 본문 글자를 모은 뒤 셈
@@ -268,13 +274,14 @@ function* listPages(
   imageSizes: ReadonlyMap<string, ImageSize>,
   tag?: string,
   tagNav?: TagNav,
+  browse?: ListBrowse,
 ): Generator<[string, Html]> {
   const totalPages = Math.ceil(cards.length / SITE_PAGE_SIZE);
   for (let page = 1; page <= Math.max(totalPages, 1); page++) {
     const items = cards.slice((page - 1) * SITE_PAGE_SIZE, page * SITE_PAGE_SIZE);
     yield [
       localizedPath(locale, pagePath(listPath, page)),
-      listPage({ site, locale, posts: items, pagination: { page, totalPages, listPath }, tag, tagNav, imageSizes }),
+      listPage({ site, locale, posts: items, pagination: { page, totalPages, listPath }, tag, tagNav, imageSizes, browse }),
     ];
   }
 }

@@ -33,7 +33,7 @@ const $ = (id) => /** @type {HTMLElement} */ (document.getElementById(id));
 const inputs = {
   title: /** @type {HTMLInputElement} */ ($("title")),
   body: /** @type {HTMLTextAreaElement} */ ($("body")),
-  summary: /** @type {HTMLInputElement} */ ($("summary")),
+  summary: /** @type {HTMLTextAreaElement} */ ($("summary")),
 };
 const editor = $("editor");
 const preview = $("preview");
@@ -178,7 +178,9 @@ function renderStatus() {
   buttons.unpublish.hidden = !published;
   buttons.discard.hidden = !draft;
   buttons.unpublish.textContent = `${langName}본 내리기`;
-  buttons.generate.textContent = draft || published ? "다시 번역" : `${langName}로 번역`;
+  // AI 번역 (설계 16-14): 이름은 늘 같게, 이미 번역이 있으면 설명으로 "다시 번역 (덮어써요)"
+  buttons.generate.dataset.label = draft || published ? "AI 다시 번역" : "AI 번역";
+  if (!buttons.generate.dataset.confirming) buttons.generate.textContent = buttons.generate.dataset.label;
 }
 
 /** 입력할 때마다: 글자 수, 저장 안 됨, 버튼 켜고 끄기 */
@@ -189,6 +191,8 @@ function refresh() {
   const sourceReady = view.source.published;
 
   $("dirty-mark").hidden = !dirty;
+  // [글 정보] 단추의 점: 요약에 저장 안 한 변경
+  metaDot.hidden = inputs.summary.value.trim() === saved.summary;
   document.title = `${now.title || "번역"} (${lang.toUpperCase()}) · taerim.page 관리자`;
   if (paneTab === "preview") previewTitle.textContent = now.title;
 
@@ -279,8 +283,10 @@ const initialPreviewState = () => (narrowScreen.matches ? false : widePreference
 /** @param {boolean} open @param {{ remember?: boolean }} [options] */
 function setPreviewOpen(open, { remember = false } = {}) {
   editor.dataset.preview = open ? "open" : "closed";
-  previewToggle.setAttribute("aria-expanded", String(open));
-  previewToggle.textContent = open ? "오른쪽 칸 숨기기" : "미리보기·원문 보기";
+  // 동그라미 눈 버튼 (설계 16-13·16-14): 펼쳐져 있으면 초록 채움
+  previewToggle.setAttribute("aria-pressed", String(open));
+  previewToggle.title = open ? "미리보기·원문 접기" : "미리보기·원문 펴기";
+  previewToggle.setAttribute("aria-label", previewToggle.title);
   if (remember && !narrowScreen.matches) {
     try {
       localStorage.setItem(PREVIEW_PREF_KEY, open ? "open" : "closed");
@@ -295,6 +301,7 @@ function setPreviewOpen(open, { remember = false } = {}) {
 
 /** 입력 오류는 칸 아래에, 나머지는 위쪽 알림 줄에 @param {unknown} error */
 function showError(error) {
+  if (error instanceof ApiError && error.issues.some((issue) => issue.field === "summary") && !metaDialog.open) openMeta();
   if (!(error instanceof ApiError)) {
     notify("요청을 처리하지 못했어요");
     return;
@@ -434,10 +441,9 @@ bindCodeCopy(preview);
 tabs.preview.addEventListener("click", () => setTab("preview"));
 tabs.source.addEventListener("click", () => setTab("source"));
 previewToggle.addEventListener("click", () => setPreviewOpen(!isPreviewOpen(), { remember: true }));
-$("preview-close").addEventListener("click", () => setPreviewOpen(false, { remember: true }));
 narrowScreen.addEventListener("change", () => setPreviewOpen(initialPreviewState()));
 window.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && narrowScreen.matches && isPreviewOpen()) setPreviewOpen(false);
+  if (event.key === "Escape" && narrowScreen.matches && isPreviewOpen() && !metaDialog.open) setPreviewOpen(false);
 });
 
 twoStep(buttons.generate, "덮어써요 — 한 번 더", hasContent, generate);
@@ -459,6 +465,42 @@ window.addEventListener("beforeunload", (event) => {
   if (!view || !isDirty()) return;
   event.preventDefault();
   event.returnValue = "";
+});
+
+// ── 글 정보 팝업 (설계 16-14): 요약만. 열 때 기억 → [취소]·Esc·바깥이면 되돌림, [적용]은 닫기 ──
+const metaDialog = /** @type {HTMLDialogElement} */ ($("meta-dialog"));
+const metaDot = $("meta-dot");
+let summarySnapshot = /** @type {string | null} */ (null);
+
+function openMeta() {
+  if (metaDialog.open) return;
+  summarySnapshot = inputs.summary.value;
+  metaDialog.showModal();
+  inputs.summary.focus();
+}
+function cancelMeta() {
+  if (summarySnapshot !== null) {
+    inputs.summary.value = summarySnapshot;
+    summarySnapshot = null;
+    onEdit("summary");
+  }
+  metaDialog.close();
+}
+function applyMeta() {
+  summarySnapshot = null;
+  metaDialog.close();
+  $("meta-button").focus();
+}
+$("meta-button").addEventListener("click", openMeta);
+$("meta-close").addEventListener("click", cancelMeta);
+$("meta-cancel").addEventListener("click", cancelMeta);
+$("meta-apply").addEventListener("click", applyMeta);
+metaDialog.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  cancelMeta();
+});
+metaDialog.addEventListener("click", (event) => {
+  if (event.target === metaDialog) cancelMeta();
 });
 
 clearNotice();

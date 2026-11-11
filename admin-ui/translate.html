@@ -40,39 +40,32 @@
     <p id="loading" class="muted">불러오는 중…</p>
 
     <div id="editor" hidden>
+      <!-- 번역 편집 (설계 16-14): 글 편집 화면과 같은 틀 — 쓰기 카드 + 동그라미 미리보기 버튼, 요약은 [글 정보] 팝업, 아래 [AI 번역] -->
       <!-- 지금 상태: EN 없음 / 초안 / 공개됨, 원문 바뀜, 저장 안 됨, 번역한 모델·시각 -->
       <div class="editor-status">
-        <a id="back" class="button" href="/">← 한글 편집</a>
         <span id="status-pill" class="pill"></span>
         <span id="outdated-pill" class="pill outdated" hidden title="이 번역을 만든 뒤 한글 원문이 바뀌었어요. 다시 번역하거나 고쳐 주세요">원문 바뀜</span>
         <span id="dirty-mark" class="dirty" hidden>저장 안 됨</span>
         <span id="saved-at" class="muted"></span>
-        <button id="preview-toggle" class="button preview-toggle" type="button" aria-controls="preview-pane" aria-expanded="true">미리보기</button>
       </div>
       <p id="state-help" class="state-help" hidden></p>
 
-      <div class="editor-grid">
-        <!-- 왼쪽: 번역본 쓰기 -->
+      <div class="editor-grid with-card">
+        <!-- 왼쪽: 번역본 쓰기 = 흰 카드 (제목 → 도구 줄 → 본문) -->
         <section class="write" aria-label="번역 쓰기">
-          <div class="field">
+          <div class="write-card">
             <input id="title" class="title-input" type="text" placeholder="Title" aria-label="번역 제목" autocomplete="off" lang="en">
-            <div class="field-foot">
-              <p class="field-error" data-error-for="title"></p>
-              <span class="count" data-count-for="title"></span>
-            </div>
-          </div>
-
-          <div class="field field-body">
             <div class="body-tools">
-              <button id="image-button" class="button" type="button">이미지</button>
-              <span class="muted">붙여넣기·끌어놓기도 돼요</span>
+              <button id="image-button" class="button" type="button" title="붙여넣기·끌어놓기도 돼요">이미지</button>
               <input id="image-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden>
+              <button id="preview-toggle" class="preview-toggle" type="button" aria-controls="preview-pane" aria-pressed="true" aria-label="미리보기 접기" title="미리보기 접기"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
             </div>
             <textarea id="body" class="body-input" placeholder="Body (Markdown)" aria-label="번역 본문 (Markdown)" spellcheck="false" lang="en"></textarea>
-            <div class="field-foot">
-              <p class="field-error" data-error-for="body"></p>
-              <span class="count" data-count-for="body"></span>
-            </div>
+          </div>
+          <div class="write-foot">
+            <p class="field-error" data-error-for="title"></p>
+            <p class="field-error" data-error-for="body"></p>
+            <span class="write-counts"><span class="count" data-count-for="title"></span><span class="count" data-count-for="body"></span></span>
           </div>
         </section>
 
@@ -83,37 +76,52 @@
               <button id="tab-preview" type="button" role="tab" aria-selected="true">미리보기</button>
               <button id="tab-source" type="button" role="tab" aria-selected="false">한글 원문</button>
             </div>
-            <button id="preview-close" class="button" type="button" aria-label="오른쪽 칸 닫기">×</button>
           </div>
           <h1 id="preview-title" class="preview-title"></h1>
           <article id="preview" class="preview"></article>
         </section>
       </div>
 
-      <!-- 아래: 요약 -->
-      <div class="meta-fields">
-        <div class="field">
-          <label for="summary">Summary (요약)</label>
-          <input id="summary" type="text" placeholder="목록에 보일 짧은 소개 (원문에 소개글이 있을 때)" autocomplete="off" lang="en">
-          <div class="field-foot">
-            <p class="field-error" data-error-for="summary"></p>
-            <span class="count" data-count-for="summary"></span>
-          </div>
-        </div>
-      </div>
-
       <!-- 버튼 줄: 상태에 따라 translate.js가 보이거나 숨긴다 -->
       <div class="actions">
         <div class="actions-left">
-          <button id="generate" class="button" type="button">영어로 번역</button>
+          <a id="back" class="button" href="/">← 한글 편집</a>
+          <!-- AI 번역: 나중에 옵션 팝업(설계 따로)을 띄울 자리. 지금은 예전 [영어로 번역]과 같이 바로 번역 -->
+          <button id="generate" class="button ai-button" type="button">AI 번역</button>
         </div>
         <div class="actions-right">
+          <button id="meta-button" class="button meta-button" type="button" aria-haspopup="dialog">글 정보<span id="meta-dot" class="meta-dot" hidden title="저장 안 한 변경이 있어요"></span></button>
           <button id="discard" class="button danger" type="button" hidden>초안 버리기</button>
           <button id="unpublish" class="button danger" type="button" hidden>영어본 내리기</button>
           <button id="save" class="button" type="button" title="Ctrl+S">저장</button>
           <button id="publish" class="button primary" type="button" hidden>영어본 공개</button>
         </div>
       </div>
+
+      <!-- 글 정보 팝업 (번역): 요약만. 대표 이미지·태그는 한글 글 것을 같이 씀 -->
+      <dialog id="meta-dialog" class="meta-dialog" aria-labelledby="meta-title">
+        <form method="dialog" class="meta-form">
+          <div class="meta-head">
+            <h2 id="meta-title">글 정보 (영어)</h2>
+            <button id="meta-close" class="meta-x" type="button" aria-label="닫기 (고친 것 버림)">×</button>
+          </div>
+          <div class="meta-body">
+            <section class="meta-section" aria-labelledby="meta-summary-title">
+              <h3 id="meta-summary-title">Summary <span class="muted meta-note">목록·검색엔진에 보이는 영어 소개</span></h3>
+              <textarea id="summary" class="meta-input summary-input" rows="3" placeholder="목록에 보일 짧은 소개 (원문에 소개글이 있을 때)" aria-labelledby="meta-summary-title" lang="en"></textarea>
+              <div class="field-foot">
+                <p class="field-error" data-error-for="summary"></p>
+                <span class="count" data-count-for="summary"></span>
+              </div>
+            </section>
+            <p class="muted meta-note">대표 이미지·태그는 한글 글 것을 같이 써요 (한글 편집의 글 정보에서 바꿔요)</p>
+          </div>
+          <div class="meta-actions">
+            <button id="meta-cancel" class="button" type="button">취소</button>
+            <button id="meta-apply" class="button primary" type="button">적용</button>
+          </div>
+        </form>
+      </dialog>
     </div>
   </main>
 </body>

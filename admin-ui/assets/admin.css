@@ -600,3 +600,6 @@ span.tag-caret { cursor: default; }
 .tag-child-input { width: 100%; padding: 4px 8px; border: 1px solid var(--accent); border-radius: 6px; font: inherit; font-size: .92em; }
 .tag-pick-empty { padding: 8px 12px; }
 @media (hover: none) { .tag-add-child { visibility: visible; } }
+/* 번역 편집 (설계 16-14): [AI 번역] — 나중에 옵션 팝업을 띄울 자리 */
+.ai-button { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.with-card .preview-head { background: var(--bg); }

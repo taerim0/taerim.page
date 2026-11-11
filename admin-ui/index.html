@@ -5,42 +5,54 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>글 목록 · taerim.page 관리자</title>
   <link rel="stylesheet" href="/assets/admin.css">
+  <script src="/assets/theme.js"></script>
   <script type="module" src="/assets/list.js"></script>
   <script type="module" src="/assets/deploy.js"></script>
 </head>
-<body>
+<body class="admin-list-body">
   <header class="topbar">
-    <a class="brand" href="/">taerim.page 관리자</a>
-    <nav>
-      <a class="button primary" href="/posts/new">+ 새 글</a>
-      <a class="button" href="/tags">태그</a>
-      <a class="button" href="/trash">휴지통</a>
-      <a class="button" href="/activities">활동</a>
-      <a class="button" href="/images">이미지</a>
-      <a class="button" href="/settings">설정</a>
-      <span id="deploy-status" class="muted deploy-status"></span>
-      <button id="deploy-button" class="button" type="button" disabled title="공개 사이트에 반영해요 (GitHub Actions)">배포</button>
-    </nav>
+    <!-- 머리글 (설계 16-11): 모든 관리자 화면이 같은 모양. 배포 상태·버튼은 deploy.js, 다크 버튼은 theme.js -->
+    <div class="topbar-inner">
+      <a class="brand" href="/">taerim.page <span class="brand-sub">admin</span></a>
+      <nav class="admin-nav" aria-label="관리자 메뉴">
+        <a href="/" aria-current="page">글</a>
+        <a href="/activities">활동</a>
+        <a href="/tags">태그</a>
+        <a href="/images">이미지</a>
+        <a href="/trash">휴지통</a>
+        <a href="/settings">설정</a>
+      </nav>
+      <div class="topbar-tools">
+        <span id="deploy-status" class="muted deploy-status"></span>
+        <button id="deploy-button" class="button deploy-button" type="button" disabled title="공개 사이트에 반영해요 (GitHub Actions)">배포</button>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="다크 모드" title="다크 모드"></button>
+      </div>
+    </div>
   </header>
 
-  <main>
-    <section class="filters">
-      <div class="tabs" role="tablist" aria-label="상태">
-        <button type="button" role="tab" data-status="">전체</button>
-        <button type="button" role="tab" data-status="draft">초안</button>
-        <button type="button" role="tab" data-status="published">공개</button>
+  <main class="list-page">
+    <!-- 관리자 메인 (설계 16-11, 시안 M-6): 위 상태·찾기·새 글, 왼쪽 목록 카드, 오른쪽 고른 글 상세 -->
+    <div class="list-toolbar">
+      <h1 class="list-title">글</h1>
+      <div class="segmented" role="group" aria-label="상태">
+        <button type="button" data-status="">전체 <span class="seg-count" data-count="all"></span></button>
+        <button type="button" data-status="draft">초안 <span class="seg-count" data-count="draft"></span></button>
+        <button type="button" data-status="published">공개 <span class="seg-count" data-count="published"></span></button>
+        <button type="button" data-status="edited">수정본 <span class="seg-count" data-count="edited"></span></button>
       </div>
-      <div class="tag-filter">
-        <span class="label">태그</span>
-        <span id="tag-chips"></span>
-        <input id="tag-input" type="text" placeholder="태그 입력 후 띄어쓰기·엔터" aria-label="태그로 거르기 (여러 개면 모두 가진 글)">
-      </div>
-    </section>
+      <span class="toolbar-gap"></span>
+      <input id="search" class="list-search" type="search" placeholder="제목 · #태그로 찾기" aria-label="제목으로 찾기 (#태그를 쓰면 그 태그로 거름)" autocomplete="off">
+      <a class="button primary" href="/posts/new">+ 새 글</a>
+    </div>
 
-    <p id="summary" class="muted"></p>
-    <ul id="post-list" class="post-list" aria-live="polite"></ul>
-
-    <nav id="pager" class="pager" aria-label="페이지"></nav>
+    <div class="list-layout">
+      <section class="list-card" aria-label="글 목록">
+        <p id="summary" class="list-summary muted" aria-live="polite"></p>
+        <ul id="post-list" class="admin-rows"></ul>
+        <nav id="pager" class="list-pager" aria-label="페이지"></nav>
+      </section>
+      <aside id="detail" class="detail-card" aria-label="고른 글" hidden></aside>
+    </div>
   </main>
 </body>
 </html>

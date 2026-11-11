@@ -360,3 +360,17 @@ a.pill:hover { text-decoration: underline; }
 .activity-badge { display: inline-block; padding: 0 6px; border: 1px solid var(--accent); border-radius: 4px; color: var(--accent); font-size: .8em; font-weight: 600; }
 .activity-english { margin-bottom: 16px; }
 .activity-english summary { cursor: pointer; color: var(--muted); margin-bottom: 8px; }
+
+/* ── 이미지 정리 화면 (images.html, 설계 11-16) ── */
+.image-help { margin: 0 0 12px; font-size: .9em; }
+.image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; list-style: none; margin: 0; padding: 0; }
+.image-grid .empty { grid-column: 1 / -1; padding: 24px 0; }
+.image-card { display: flex; flex-direction: column; gap: 2px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.image-card.deletable { border-color: var(--accent); }
+.image-thumb { position: relative; display: block; aspect-ratio: 4 / 3; background: rgba(127, 127, 127, .12); border-radius: 6px; overflow: hidden; cursor: default; }
+.image-card.deletable .image-thumb { cursor: pointer; }
+.image-thumb img { width: 100%; height: 100%; object-fit: contain; }
+.image-check { position: absolute; top: 6px; left: 6px; width: 18px; height: 18px; }
+.image-name { margin: 4px 0 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.image-meta, .image-used { margin: 0; font-size: .85em; overflow-wrap: anywhere; }
+.image-actions { position: sticky; bottom: 0; justify-content: flex-end; gap: 8px; margin-top: 16px; padding: 10px 0; background: var(--bg, #fff); }

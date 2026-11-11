@@ -6,6 +6,7 @@
  * 로컬 개발(wrangler dev)에서는 내 PC의 로컬 D1·R2(.wrangler/)를 쓴다.
  */
 import { D1ViewsRepository } from "../stats/views.ts";
+import { D1ImageUseSource, ImageCleanupService } from "../images/cleanup.ts";
 import { D1ActivityRepository, ActivityService } from "../activities/activities.ts";
 import type { Hono } from "hono";
 import { createAdminApp } from "../admin/app.ts";
@@ -93,6 +94,7 @@ function buildApp(env: AdminWorkerEnv): Hono<AdminEnv> {
     authenticator: chooseAuthenticator(env),
     deploy: chooseDeploy(env),
     images: env.IMAGES ? new ImageService(new R2ImageStore(env.IMAGES), new D1ImageRepository(env.DB)) : undefined,
+    cleanup: env.IMAGES ? new ImageCleanupService(new D1ImageRepository(env.DB), new R2ImageStore(env.IMAGES), new D1ImageUseSource(env.DB)) : undefined,
     settings: new SettingsService(new D1SettingsRepository(env.DB)),
     activities: new ActivityService(new D1ActivityRepository(env.DB)),
     views: new D1ViewsRepository(env.DB),

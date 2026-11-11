@@ -40,6 +40,7 @@ export function createPageRoutes(assets: AssetFetcher): Hono<AdminEnv> {
   pages.get("/tags", serve("/tags.html"));
   pages.get("/settings", serve("/settings.html"));
   pages.get("/activities", serve("/activities.html"));
+  pages.get("/images", serve("/images.html"));
   pages.get("/trash", serve("/trash.html"));
   pages.get("/assets/*", (c) => serveFile(c, assets, c.req.path));
 

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>이미지 · taerim.page 관리자</title>
+  <link rel="stylesheet" href="/assets/admin.css">
+  <script type="module" src="/assets/images.js"></script>
+</head>
+<body>
+  <!-- 안 쓰이는 이미지 정리 (설계 11-16): 글·작업본·번역·활동·설정 어디에도 안 쓰이고, 올린 지 24시간이 지난 것만 지울 수 있음 -->
+  <header class="topbar">
+    <a class="brand" href="/">taerim.page 관리자</a>
+    <nav>
+      <a class="button primary" href="/posts/new">+ 새 글</a>
+      <a class="button" href="/">글 목록</a>
+      <a class="button" href="/tags">태그</a>
+      <a class="button" href="/trash">휴지통</a>
+      <a class="button" href="/activities">활동</a>
+      <a class="button" href="/settings">설정</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="filters">
+      <div class="tabs" role="tablist" aria-label="보기">
+        <button type="button" role="tab" data-view="unused">안 쓰임</button>
+        <button type="button" role="tab" data-view="all">전체</button>
+      </div>
+      <p id="summary" class="muted">불러오는 중…</p>
+    </section>
+    <p class="muted image-help">글(휴지통 포함)·수정 중인 작업본·번역·활동·사이트 설정 사진에 쓰인 이미지는 지울 수 없어요. 올린 지 24시간이 안 된 것도요.</p>
+
+    <ul id="image-grid" class="image-grid" aria-live="polite"></ul>
+
+    <div class="actions image-actions">
+      <button id="select-all" class="button" type="button" hidden>모두 고르기</button>
+      <button id="delete" class="button danger" type="button" disabled hidden>지우기</button>
+    </div>
+  </main>
+</body>
+</html>

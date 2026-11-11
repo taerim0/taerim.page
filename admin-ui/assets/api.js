@@ -27,6 +27,8 @@
 /** @typedef {import("../../src/posts/errors.ts").FieldIssue} FieldIssue */
 /** @typedef {import("../../src/admin/deploy.ts").DeployRun} DeployRun */
 /** @typedef {import("../../src/images/types.ts").ImageInfo} ImageInfo */
+/** @typedef {import("../../src/images/cleanup.ts").CleanupImage} CleanupImage */
+/** @typedef {import("../../src/images/cleanup.ts").DeleteResult} DeleteResult */
 
 /**
  * 목록 조건
@@ -185,6 +187,10 @@ export const imagesApi = {
       headers: { "Content-Type": file.type || "application/octet-stream", "X-File-Name": encodeURIComponent(fileName) },
       body: file,
     }),
+  /** 정리 화면 (설계 11-16): 모든 이미지 + 쓰는 곳 + 지울 수 있는지 @returns {Promise<{ images: CleanupImage[] }>} */
+  listForCleanup: () => request("GET", "/images"),
+  /** 고른 이미지 영구 삭제. 서버가 다시 확인해서 지울 수 없는 건 kept @param {string[]} names @returns {Promise<DeleteResult>} */
+  deleteUnused: (names) => request("POST", "/images/delete", { names }),
 };
 
 /** 조회 수 (설계 2-3): 글 id(글자) → 한·영 합계. 조회가 없는 글은 빠짐 */

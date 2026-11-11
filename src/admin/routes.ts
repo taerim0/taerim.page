@@ -3,6 +3,7 @@ import type { Context } from "hono";
 import type { EmbedService } from "../embeds/service.ts";
 import type { ActivityService } from "../activities/activities.ts";
 import type { SettingsService } from "../settings/settings.ts";
+import type { ImageCleanupService } from "../images/cleanup.ts";
 import type { ImageService } from "../images/service.ts";
 import { MAX_IMAGE_BYTES } from "../images/service.ts";
 import type { RenderFn } from "../markdown/index.ts";
@@ -30,6 +31,8 @@ export interface ApiDeps {
   deploy?: DeployTrigger;
   /** 이미지 기능. 없으면 이미지 API는 503 (R2 설정이 없을 때) */
   images?: ImageService;
+  /** 안 쓰이는 이미지 정리 (설계 11-16). 없으면 정리 API는 503 */
+  cleanup?: ImageCleanupService;
   /** 사이트 설정 (설계 15-3). 없으면 설정 API는 503 */
   settings?: SettingsService;
   /** 활동 (설계 15-5). 없으면 활동 API는 503 */
@@ -50,7 +53,7 @@ export const MAX_BODY_BYTES = 1024 * 1024;
  * 여기서는 요청을 읽어 서비스에 넘기고 결과를 JSON으로 돌려주기만 한다.
  * 실패하면 오류를 던지고, 응답 변환은 app.ts의 오류 처리가 맡는다.
  */
-export function createApiRoutes({ service, render, deploy, images, translations, embeds, settings, activities, views }: ApiDeps): Hono<AdminEnv> {
+export function createApiRoutes({ service, render, deploy, images, cleanup, translations, embeds, settings, activities, views }: ApiDeps): Hono<AdminEnv> {
   const api = new Hono<AdminEnv>();
 
   // ── 글 ─────────────────────────────────────────────
@@ -139,6 +142,19 @@ export function createApiRoutes({ service, render, deploy, images, translations,
     return c.json({ image }, created ? 201 : 200);
   });
 
+  // ── 이미지 정리 (설계 11-16) ────────────────────────
+  /** 모든 이미지 + 쓰는 곳 + 지울 수 있는지 */
+  api.get("/images", async (c) => c.json({ images: await requireCleanup(cleanup).list() }));
+  /** 고른 이미지 지우기. 서버가 쓰임을 다시 확인해서 지울 수 없는 건 kept로 */
+  api.post("/images/delete", async (c) => {
+    const body = (await readJson(c)) as { names?: unknown } | null;
+    const names = body?.names;
+    if (!Array.isArray(names) || names.length === 0 || names.length > 500 || !names.every((n) => typeof n === "string")) {
+      throw new HttpError("bad_request", "지울 이미지 이름(names)을 1~500개 보내 주세요");
+    }
+    return c.json(await requireCleanup(cleanup).delete(names));
+  });
+
   // ── 번역 (설계 12-9) ────────────────────────────────
   /** 목록 표시용: 번역이 있는 글들의 상태 */
   api.get("/translations/:lang", async (c) => c.json(await requireTranslations(translations).list(langParam(c))));
@@ -197,6 +213,11 @@ export function createApiRoutes({ service, render, deploy, images, translations,
   api.get("/deploy", async (c) => c.json({ run: await requireDeploy(deploy).latest().catch(toHttpError) }));
 
   return api;
+}
+
+function requireCleanup(cleanup: ImageCleanupService | undefined): ImageCleanupService {
+  if (!cleanup) throw new HttpError("unavailable", "이미지 저장소 설정이 없어요");
+  return cleanup;
 }
 
 function requireActivities(activities: ActivityService | undefined): ActivityService {

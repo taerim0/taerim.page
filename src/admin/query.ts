@@ -42,6 +42,18 @@ export function parseListQuery(params: URLSearchParams): PostListFilter {
     filter.tags = tags;
   }
 
+  // 설계 16-11: 수정본 있는 글만, 제목 찾기
+  const edited = value(params, "edited");
+  if (edited !== undefined) {
+    if (edited !== "true" && edited !== "false") throw badRequest("edited는 true 또는 false만 쓸 수 있어요");
+    filter.edited = edited === "true";
+  }
+  const q = value(params, "q")?.trim();
+  if (q) {
+    if (q.length > MAX_QUERY_LENGTH) throw badRequest(`q는 ${MAX_QUERY_LENGTH}자까지예요`);
+    filter.q = q;
+  }
+
   const page = value(params, "page");
   if (page !== undefined) filter.page = positiveInt(page, "page", Number.MAX_SAFE_INTEGER);
 
@@ -50,6 +62,9 @@ export function parseListQuery(params: URLSearchParams): PostListFilter {
 
   return filter;
 }
+
+/** 제목 찾기 글자 최대 길이 */
+export const MAX_QUERY_LENGTH = 100;
 
 /** 값 하나. 없거나 빈 문자열이면 undefined */
 function value(params: URLSearchParams, name: string): string | undefined {

@@ -67,10 +67,23 @@ export interface PostListFilter {
    * 있으면 tags 대신 쓴다. 예) [["개발", "react"], ["블로그"]] = (개발 또는 react) 그리고 블로그
    */
   tagGroups?: string[][];
+  /** true면 반영 안 한 수정본이 있는 글만 (설계 16-11) */
+  edited?: boolean;
+  /** 제목에 이 글자가 들어간 글만 (대소문자 무시, 설계 16-11) */
+  q?: string;
   /** 몇 번째 페이지인지. 1부터 시작. 생략하면 1 */
   page?: number;
   /** 한 페이지 글 개수. 생략하면 DEFAULT_PAGE_SIZE(10) */
   pageSize?: number;
+}
+
+/** 관리자 글 목록 위 상태별 개수 (휴지통 제외, 설계 16-11) */
+export interface PostCounts {
+  all: number;
+  draft: number;
+  published: number;
+  /** 반영 안 한 수정본이 있는 글 */
+  edited: number;
 }
 
 /** 페이지로 끊은 목록 결과 */

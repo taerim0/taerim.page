@@ -2,6 +2,7 @@ import { normalizePage, normalizePageSize } from "./repository.ts";
 import { compareTagNames, sortTagNames } from "./tag-order.ts";
 import type { GetOptions, PostRepository } from "./repository.ts";
 import type {
+  PostCounts,
   NewPostData,
   Page,
   Post,
@@ -58,6 +59,8 @@ export class MemoryPostRepository implements PostRepository {
       // 묶음마다 하나라도 가진 글만, 묶음끼리는 AND (tags는 한 태그씩 묶음)
       const groups = filter.tagGroups ?? (filter.tags ?? []).map((tag) => [tag]);
       if (!groups.every((group) => group.length === 0 || group.some((tag) => post.tags.includes(tag)))) return false;
+      if (filter.edited && !this.#drafts.has(post.id)) return false;
+      if (filter.q && !post.title.toLowerCase().includes(filter.q.toLowerCase())) return false;
       return true;
     });
 
@@ -156,6 +159,16 @@ export class MemoryPostRepository implements PostRepository {
     this.#drafts.delete(postId);
 
     return structuredClone(post);
+  }
+
+  async counts(): Promise<PostCounts> {
+    const live = [...this.#posts.values()].filter((post) => post.deletedAt === null);
+    return {
+      all: live.length,
+      draft: live.filter((post) => post.status === "draft").length,
+      published: live.filter((post) => post.status === "published").length,
+      edited: live.filter((post) => this.#drafts.has(post.id)).length,
+    };
   }
 
   async listPublished(): Promise<Post[]> {

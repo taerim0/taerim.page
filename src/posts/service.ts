@@ -2,7 +2,7 @@ import { ConflictError, NotFoundError, ValidationError } from "./errors.ts";
 import { MAX_PAGE_SIZE } from "./repository.ts";
 import type { PostRepository } from "./repository.ts";
 import { TagTree } from "./tag-tree.ts";
-import type { Page, Post, PostDraft, PostListFilter, PostSummary, TagNode } from "./types.ts";
+import type { Page, Post, PostCounts, PostDraft, PostListFilter, PostSummary, TagNode } from "./types.ts";
 import { isAllowedTag, normalizeTag, TAG_CHARS_MESSAGE, validatePostInput, validatePostPatch } from "./validation.ts";
 
 /** 서비스 설정 */
@@ -62,6 +62,11 @@ export class PostService {
     const tagGroups = filter.tagGroups ?? filter.tags?.map((tag) => [tag, ...tree.descendantsOf(tag)]);
     const page = await this.#repo.list({ ...filter, tags: undefined, tagGroups });
     return { ...page, items: page.items.map((item) => ({ ...item, tags: tree.withAncestors(item.tags) })) };
+  }
+
+  /** 상태별 글 수 (관리자 글 목록 위, 설계 16-11) */
+  counts(): Promise<PostCounts> {
+    return this.#repo.counts();
   }
 
   /** 모든 태그와 부모·글 수 (트리 순, 안 쓰이는 태그 포함 — 화면이 total로 거름) */

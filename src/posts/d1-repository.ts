@@ -3,6 +3,7 @@ import { normalizePage, normalizePageSize } from "./repository.ts";
 import type { GetOptions, PostRepository } from "./repository.ts";
 import { compareTagNames, sortTagNames } from "./tag-order.ts";
 import type {
+  PostCounts,
   NewPostData,
   Page,
   Post,
@@ -140,6 +141,12 @@ export class D1PostRepository implements PostRepository {
       )`);
       values.push(JSON.stringify(group));
     }
+    if (filter.edited) conditions.push("EXISTS (SELECT 1 FROM post_drafts d WHERE d.post_id = p.id)");
+    if (filter.q) {
+      // 제목 안에 그 글자 (LIKE의 %·_ 걱정 없이 instr, 영문 대소문자 무시)
+      conditions.push("instr(lower(p.title), lower(?)) > 0");
+      values.push(filter.q);
+    }
     const where = conditions.join(" AND ");
     const sortColumn = filter.trash ? "p.deleted_at" : filter.status === "published" ? "p.published_at" : "p.updated_at";
 
@@ -276,6 +283,19 @@ export class D1PostRepository implements PostRepository {
       this.#db.prepare("DELETE FROM post_drafts WHERE post_id = ?").bind(postId),
     ]);
     return this.get(postId);
+  }
+
+  async counts(): Promise<PostCounts> {
+    const row = await this.#db
+      .prepare(
+        `SELECT COUNT(*) AS all_posts,
+                COALESCE(SUM(p.status = 'draft'), 0) AS draft,
+                COALESCE(SUM(p.status = 'published'), 0) AS published,
+                COALESCE(SUM(EXISTS (SELECT 1 FROM post_drafts d WHERE d.post_id = p.id)), 0) AS edited
+         FROM posts p WHERE p.deleted_at IS NULL`,
+      )
+      .first<{ all_posts: number; draft: number; published: number; edited: number }>();
+    return { all: Number(row?.all_posts ?? 0), draft: Number(row?.draft ?? 0), published: Number(row?.published ?? 0), edited: Number(row?.edited ?? 0) };
   }
 
   async listPublished(): Promise<Post[]> {

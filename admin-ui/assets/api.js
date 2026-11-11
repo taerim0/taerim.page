@@ -36,6 +36,8 @@
  * @property {PostStatus} [status]
  * @property {boolean} [trash]
  * @property {string[]} [tags] 모두 가진 글만 (AND)
+ * @property {boolean} [edited] 반영 안 한 수정본이 있는 글만 (설계 16-11)
+ * @property {string} [q] 제목에 들어간 글자 (설계 16-11)
  * @property {number} [page]
  * @property {number} [pageSize]
  */
@@ -119,6 +121,8 @@ function toSearch(query) {
   if (query.status) params.set("status", query.status);
   if (query.trash) params.set("trash", "true");
   for (const tag of query.tags ?? []) params.append("tag", tag);
+  if (query.edited) params.set("edited", "true");
+  if (query.q) params.set("q", query.q);
   if (query.page && query.page > 1) params.set("page", String(query.page));
   if (query.pageSize) params.set("pageSize", String(query.pageSize));
   const search = params.toString();
@@ -129,6 +133,8 @@ function toSearch(query) {
 export const postsApi = {
   /** @param {ListQuery} [query] @returns {Promise<PostPage>} */
   list: (query = {}) => request("GET", `/posts${toSearch(query)}`),
+  /** 상태별 글 수 (설계 16-11) @returns {Promise<import("../../src/posts/types.ts").PostCounts>} */
+  counts: () => request("GET", "/posts/counts"),
   /** @param {number} id @returns {Promise<PostForEdit>} */
   get: (id) => request("GET", `/posts/${id}`),
   /** @param {Partial<PostInput>} input @returns {Promise<Post>} */

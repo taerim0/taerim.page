@@ -64,6 +64,9 @@ export function createApiRoutes({ service, render, deploy, images, cleanup, tran
 
   api.post("/posts", async (c) => c.json(await service.create(await readJson(c)), 201));
 
+  /** 상태별 글 수 (설계 16-11). /posts/:id보다 먼저 */
+  api.get("/posts/counts", async (c) => c.json(await service.counts()));
+
   // 조회 수 (설계 2-3): 글 id → 한·영 합계 (조회가 있는 글만). 매일 04시에 모은 값
   api.get("/views", async (c) => c.json(views ? Object.fromEntries(viewsByPost(await views.totals())) : {}));
 

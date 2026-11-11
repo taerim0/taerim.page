@@ -5,6 +5,7 @@ import type {
   Post,
   PostChanges,
   PostDraft,
+  PostCounts,
   PostListFilter,
   PostSummary,
   TagCount,
@@ -60,6 +61,8 @@ export interface PostRepository {
 
   /** 조건에 맞는 글 요약 목록을 페이지로 끊어서 돌려준다. */
   list(filter?: PostListFilter): Promise<Page<PostSummary>>;
+  /** 상태별 글 수 (휴지통 제외) */
+  counts(): Promise<PostCounts>;
 
   /** 글을 고친다. 넣은 값만 바뀐다. 없거나 휴지통에 있으면 null */
   update(id: number, changes: PostChanges): Promise<Post | null>;

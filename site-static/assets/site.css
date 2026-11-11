@@ -344,26 +344,51 @@ a { color: var(--accent); }
 .tag-tree li { padding: 2px 0; }
 .tag-tree .tag-tree { border-left: 1px solid var(--line); margin-left: .3em; padding-left: 1em; }
 
-/* ── 아카이브·활동 (설계 15-5·15-8). 배치는 시안을 정할 때 다시 ── */
-.archive-total { margin: 0 0 4px; color: var(--muted); }
-.archive-years { margin: 0 0 16px; }
-.archive-year h2 { margin: 24px 0 4px; font-size: 1.4em; }
-.archive-month h3 { margin: 12px 0 4px; font-size: 1.05em; }
-.archive-year .count, .archive-month .count { color: var(--muted); font-size: .8em; font-weight: 400; }
-.archive-list { list-style: none; margin: 0; padding: 0; }
-.archive-list li { padding: 3px 0; }
-.archive-list time { display: inline-block; min-width: 3.2em; color: var(--muted); font-variant-numeric: tabular-nums; }
-.archive-activity { margin: 6px 0; padding: 8px 12px !important; border: 1px solid var(--line); border-radius: 10px; scroll-margin-top: 16px; }
-.archive-activity:target { outline: 2px solid var(--accent); }
-.archive-activity-head { margin: 0; }
+/* ── 아카이브 (설계 16-6, 시안 A-4): 해마다 큰 카드, 카드 안 왼쪽 칸에 달 ── */
+.page-archive .site-main { max-width: 1112px; }
+.archive { display: grid; gap: 20px; }
+.archive-top { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; align-items: flex-end; padding: 0 4px; }
+.archive-top .list-heading { margin: 0; }
+.archive-total { margin: 4px 0 0; color: var(--muted); font-size: .95em; }
+.archive-years { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: .95em; }
+.archive-years a { color: var(--muted); text-decoration: none; }
+.archive-years a:hover { color: var(--accent); }
+.archive-years a.is-latest { color: var(--accent); font-weight: 700; }
+.archive-year { overflow: hidden; scroll-margin-top: 16px; }
+.archive-year-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 0; padding: 18px 28px; border-bottom: 1px solid var(--line); font-size: 1.5em; font-weight: 800; }
+.archive-year-head .count, .archive-month-name .count { color: var(--muted); font-size: .58em; font-weight: 400; }
+.archive-month { display: grid; grid-template-columns: 140px minmax(0, 1fr); border-bottom: 1px solid var(--line-soft); }
+.archive-month:last-child { border-bottom: 0; }
+.archive-month-name { margin: 0; padding: 18px 28px; color: var(--accent); font-size: 1em; font-weight: 700; }
+.archive-month-name .count { display: block; font-size: .78em; }
+.archive-list { list-style: none; margin: 0; padding: 8px 28px 8px 0; }
+.archive-list > li { padding: 10px 0; border-bottom: 1px solid var(--line-soft); }
+.archive-list > li:last-child { border-bottom: 0; }
+.archive-post { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 12px; }
+.archive-list time { color: var(--muted); font-variant-numeric: tabular-nums; }
+.archive-post a { color: var(--text); text-decoration: none; }
+.archive-post a:hover { color: var(--accent); }
+@media (max-width: 599px) {
+  .archive-year-head { padding: 16px 20px; }
+  .archive-month { grid-template-columns: 1fr; }
+  .archive-month-name { padding: 14px 20px 0; }
+  .archive-month-name .count { display: inline; margin-left: 6px; }
+  .archive-list { padding: 4px 20px 8px; }
+}
+/* 활동 줄: 꼬리표 + 굵은 제목, 내용이 있으면 ▸ 눌러 펼침 (테두리 상자) */
+.archive-activity { scroll-margin-top: 16px; }
+.archive-activity:target .archive-activity-title { color: var(--accent); }
+/* 일 · 꼬리표 · 제목 · (접기 표시) */
+.archive-activity-head { display: grid; grid-template-columns: 48px auto minmax(0, 1fr) auto; gap: 12px; align-items: center; margin: 0; }
 .archive-activity-title { font-weight: 700; }
 .archive-activity-toggle > summary { cursor: pointer; list-style: none; }
 .archive-activity-toggle > summary::-webkit-details-marker { display: none; }
-.archive-activity-toggle > summary::after { content: "▸"; float: right; margin-left: 8px; color: var(--muted); }
+.archive-activity-toggle > summary::after { content: "▸"; color: var(--muted); }
 .archive-activity-toggle[open] > summary::after { content: "▾"; }
-.archive-activity-body { margin-top: 8px; }
+.archive-activity-body { margin: 10px 0 0 60px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 10px; font-size: .95em; }
 .archive-activity-body > :first-child { margin-top: 0; }
 .archive-activity-body > :last-child { margin-bottom: 0; }
+@media (max-width: 599px) { .archive-activity-body { margin-left: 0; } }
 
 /* ── 검색 (설계 15-7). 배치는 시안을 정할 때 다시 ── */
 .search-form { margin: 0 0 8px; }

@@ -591,31 +591,40 @@ function profileCard(locale: Locale, p: SiteSettings): Html {
 export function archivePage({ site, locale = SOURCE_LOCALE, years }: { site: SiteConfig; locale?: Locale; years: ArchiveYear[] }): Html {
   const m = MESSAGES[locale];
   const total = years.reduce((sum, y) => ({ posts: sum.posts + y.posts, activities: sum.activities + y.activities }), { posts: 0, activities: 0 });
+  // 설계 16-6 (시안 A-4): 위에 제목·개수와 연도 바로 가기, 해마다 큰 카드, 카드 안 왼쪽 칸에 달
   const body = html`
-    <h1 class="list-heading">${m.archiveHeading}</h1>
-    ${years.length === 0
-      ? html`<p class="empty">${m.emptyPosts}</p>`
-      : html`<p class="archive-total">${m.archiveCounts(total.posts, total.activities)}</p>
-    <nav class="archive-years" aria-label="${m.archiveYears}">${years.map(
-      (y, i) => html`${i > 0 ? " · " : ""}<a href="#year-${y.year}">${y.year}</a>`,
-    )}</nav>
-    ${years.map(
-      (y) => html`<section class="archive-year">
-      <h2 id="year-${y.year}">${y.year} <span class="count">${m.archiveCounts(y.posts, y.activities)}</span></h2>
-      ${y.months.map(
-        (month) => html`<section class="archive-month">
-        <h3>${m.monthName(month.month)} <span class="count">${m.archiveCounts(month.posts, month.activities)}</span></h3>
-        <ul class="archive-list">${month.entries.map((entry) =>
-          entry.kind === "post"
-            ? archivePostLine(locale, entry.date, entry.post)
-            : archiveActivityLine(locale, entry.activity),
-        )}</ul>
+    <div class="archive">
+      <div class="archive-top">
+        <div>
+          <h1 class="list-heading">${m.archiveHeading}</h1>
+          ${years.length === 0 ? "" : html`<p class="archive-total">${m.archiveCounts(total.posts, total.activities)}</p>`}
+        </div>
+        ${years.length === 0
+          ? ""
+          : html`<nav class="archive-years" aria-label="${m.archiveYears}">${years.map(
+              (y, i) => html`<a href="#year-${y.year}"${i === 0 ? html` class="is-latest"` : ""}>${y.year}</a>`,
+            )}</nav>`}
+      </div>
+      ${years.length === 0
+        ? html`<p class="empty card">${m.emptyPosts}</p>`
+        : years.map(
+            (y) => html`<section class="archive-year card" aria-labelledby="year-${y.year}">
+        <h2 class="archive-year-head" id="year-${y.year}">${y.year} <span class="count">${m.archiveCounts(y.posts, y.activities)}</span></h2>
+        ${y.months.map(
+          (month) => html`<div class="archive-month">
+          <h3 class="archive-month-name">${m.monthName(month.month)} <span class="count">${m.archiveCounts(month.posts, month.activities)}</span></h3>
+          <ul class="archive-list">${month.entries.map((entry) =>
+            entry.kind === "post"
+              ? archivePostLine(locale, entry.date, entry.post)
+              : archiveActivityLine(locale, entry.activity),
+          )}</ul>
+        </div>`,
+        )}
       </section>`,
-      )}
-    </section>`,
-    )}`}`;
+          )}
+    </div>`;
   const math = years.some((y) => y.months.some((mo) => mo.entries.some((e) => e.kind === "activity" && hasMath(e.activity.bodyHtml))));
-  return layout({ site, locale, title: m.archiveHeading, path: ARCHIVE_PATH, math, section: "archive", body });
+  return layout({ site, locale, title: m.archiveHeading, path: ARCHIVE_PATH, math, section: "archive", bodyClass: "page-archive", body });
 }
 
 /** 활동 꼬리표 (비었으면 기본 "활동"/"Activity") */
@@ -625,7 +634,7 @@ function activityBadge(locale: Locale, activity: Pick<ArchiveActivity, "label" |
 
 /** 아카이브의 활동 한 줄: 내용이 있으면 <details>(닫힘) 안에, 없으면 한 줄 (설계 15-8) */
 function archiveActivityLine(locale: Locale, activity: ArchiveActivity): Html {
-  const head = html`<time datetime="${activity.date}">${activity.date.slice(5)}</time> ${activityBadge(locale, activity)} <span class="archive-activity-title"${activity.titleLang ? html` lang="${activity.titleLang}"` : ""}>${activity.title}</span>`;
+  const head = html`<time datetime="${activity.date}">${archiveDay(locale, activity.date)}</time> ${activityBadge(locale, activity)} <span class="archive-activity-title"${activity.titleLang ? html` lang="${activity.titleLang}"` : ""}>${activity.title}</span>`;
   const id = activityAnchor(activity.id);
   if (!activity.bodyHtml) return html`<li class="archive-activity" id="${id}"><p class="archive-activity-head">${head}</p></li>`;
   return html`<li class="archive-activity has-body" id="${id}"><details class="archive-activity-toggle">
@@ -634,11 +643,16 @@ function archiveActivityLine(locale: Locale, activity: ArchiveActivity): Html {
           </details></li>`;
 }
 
-/** 아카이브의 글 한 줄: 월-일 + 제목 (번역 언어의 미번역 글은 한글 제목 + KR) */
+/** 아카이브의 날짜: 달은 왼쪽 칸에 있으니 일만 ("11일" / "11") */
+function archiveDay(locale: Locale, date: string): string {
+  return MESSAGES[locale].dayOfMonth(Number(date.slice(8, 10)));
+}
+
+/** 아카이브의 글 한 줄: 일 + 제목 (번역 언어의 미번역 글은 한글 제목 + KR) */
 function archivePostLine(locale: Locale, date: string, post: PostCardData): Html {
   const m = MESSAGES[locale];
   const korean = post.untranslated === true && locale !== SOURCE_LOCALE;
-  return html`<li class="archive-post"><time datetime="${date}">${date.slice(5)}</time> <a href="${localizedPath(locale, postPath(post.id))}"${korean ? html` lang="ko"` : ""}>${post.title}</a>${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</li>`;
+  return html`<li class="archive-post"><time datetime="${date}">${archiveDay(locale, date)}</time> <span class="archive-post-title"><a href="${localizedPath(locale, postPath(post.id))}"${korean ? html` lang="ko"` : ""}>${post.title}</a>${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</span></li>`;
 }
 
 // ── 검색 (설계 15-7) ─────────────────────────────────

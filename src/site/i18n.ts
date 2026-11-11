@@ -63,6 +63,8 @@ export interface Messages {
   /** "글 3 · 활동 1" (0인 쪽은 뺌) */
   archiveCounts: (posts: number, activities: number) => string;
   monthName: (month: number) => string;
+  /** 아카이브 줄의 날짜 (달은 따로 보이므로 일만, 설계 16-6) */
+  dayOfMonth: (day: number) => string;
   activityBadge: string;
   recentActivities: string;
   viewArchive: string;
@@ -120,6 +122,7 @@ export const MESSAGES: Record<Locale, Messages> = {
     archiveYears: "연도",
     archiveCounts: (posts, activities) => [posts > 0 ? `글 ${posts}` : "", activities > 0 ? `활동 ${activities}` : ""].filter(Boolean).join(" · "),
     monthName: (month) => `${month}월`,
+    dayOfMonth: (day) => `${day}일`,
     activityBadge: "활동",
     recentActivities: "최근 활동",
     viewArchive: "아카이브 전체 보기 →",
@@ -171,6 +174,7 @@ export const MESSAGES: Record<Locale, Messages> = {
     archiveCounts: (posts, activities) =>
       [posts > 0 ? `${posts} ${posts === 1 ? "post" : "posts"}` : "", activities > 0 ? `${activities} ${activities === 1 ? "activity" : "activities"}` : ""].filter(Boolean).join(" · "),
     monthName: (month) => new Intl.DateTimeFormat("en-US", { month: "long", timeZone: "UTC" }).format(new Date(Date.UTC(2000, month - 1, 1))),
+    dayOfMonth: (day) => String(day),
     activityBadge: "Activity",
     recentActivities: "Recent activity",
     viewArchive: "View full archive →",

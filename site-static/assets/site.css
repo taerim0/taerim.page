@@ -1,185 +1,301 @@
-/* 공개 사이트 최소 스타일. 구조를 알아볼 수 있을 정도만 (꾸미기는 나중 UI/UX 단계)
+/* 공개 사이트 스타일 (설계 16: UI/UX — 홈 16-1, 본문 블록 16-2, 글 페이지 16-3)
  *
  * 라이트/다크 (설계 13-7): 색은 모두 아래 변수로. 기본 라이트 →
  *   기기가 다크이고 <html data-theme="light">가 아니면 다크 / <html data-theme="dark">면 다크
  *   (data-theme은 머리글 버튼으로 고른 것을 스크립트가 붙임. 같은 다크 변수 묶음이 두 번 나오는 건 이 두 경우 때문)
+ * 라이트 = 확정 시안 B2-5·P-5·본문 5 (초록). 다크 = 시안 P-4 값으로 먼저 (다크는 아직 확정 전)
+ * 글꼴은 시스템 글꼴 (사용자 "폰트는 나중에")
  */
 :root {
   color-scheme: light;
-  --bg: #ffffff;
-  --text: #1f2328;
+  --bg: #f5f6f8;
+  --card: #ffffff;
+  --text: #111827;
+  --body-text: #1f2937;
   --muted: #6b7280;
-  --line: #e3e6ea;
-  --accent: #2b5fd9;
-  --surface: #f6f8fa;
-  --inline-code: #eff1f3;
+  --line: #e5e7eb;
+  --line-soft: #f3f4f6;
+  --accent: #15803d;
+  --accent-soft: #dcfce7;
+  --accent-line: #bbf7d0;
+  --surface: #f9fafb;
   --thumb-bg: #eef1f5;
-  --quote-line: #d0d7de;
-  --quote-text: #57606a;
-  --table-line: #d0d7de;
   --overlay: rgba(255, 255, 255, .35);
-  --dialog-bg: #ffffff;
-  --shadow: rgba(0, 0, 0, .15);
-  /* 콜아웃 색과 옅은 바탕 비율 */
-  --c-note: #0969da; --c-tip: #1a7f37; --c-important: #8250df; --c-warning: #9a6700; --c-caution: #cf222e; --c-fold: #6e7781;
-  --callout-tint: 6%;
-  /* 코드 블록 (github-light-default) */
-  --code-bg: #f6f8fa; --code-text: #1f2328; --code-border: #d1d9e0; --code-muted: #59636e; --code-ln: #8c959f; --code-btn: #ffffff;
-  --code-add: rgba(46, 160, 67, .15); --code-add-mark: #1a7f37;
-  --code-del: rgba(248, 81, 73, .15); --code-del-mark: #cf222e;
-  --code-mark: rgba(84, 174, 255, .2); --code-mark-bar: #0969da;
+  --shadow: rgba(0, 0, 0, .12);
+  --radius: 12px;
+  /* 콜아웃: 왼쪽 선·제목 색 (설계 16-2) */
+  --c-note: #1d4ed8; --c-tip: #15803d; --c-important: #7c3aed; --c-warning: #b45309; --c-caution: #b91c1c; --c-fold: #6b7280;
+  /* 코드 블록 (github-light-default 색칠 + 초록 테두리 상자) */
+  --code-bg: #ffffff; --code-head: #f9fafb; --code-text: #1f2937; --code-border: #e5e7eb; --code-muted: #4b5563; --code-ln: #9ca3af; --code-btn: #ffffff;
+  --code-add: #f0fdf4; --code-add-mark: #16a34a;
+  --code-del: #fef2f2; --code-del-mark: #dc2626;
+  --code-mark: rgba(21, 128, 61, .08); --code-mark-bar: #15803d;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: #0d1117; --text: #e6edf3; --muted: #8b949e; --line: #30363d; --accent: #4493f8;
-    --surface: #161b22; --inline-code: #262c36; --thumb-bg: #161b22; --quote-line: #3d444d; --quote-text: #9198a1; --table-line: #3d444d;
-    --overlay: rgba(13, 17, 23, .45); --dialog-bg: #161b22; --shadow: rgba(0, 0, 0, .5);
-    --c-note: #4493f8; --c-tip: #3fb950; --c-important: #ab7df8; --c-warning: #d29922; --c-caution: #f85149; --c-fold: #9198a1;
-    --callout-tint: 10%;
-    --code-bg: #0d1117; --code-text: #e6edf3; --code-border: #30363d; --code-muted: #8b949e; --code-ln: #6e7681; --code-btn: #161b22;
-    --code-add: rgba(46, 160, 67, .18); --code-add-mark: #3fb950;
-    --code-del: rgba(248, 81, 73, .18); --code-del-mark: #f85149;
-    --code-mark: rgba(56, 139, 253, .15); --code-mark-bar: #388bfd;
+    --bg: #0b0f0d; --card: #111714; --text: #e5e7eb; --body-text: #d1d5db; --muted: #9ca3af; --line: #1f2a24; --line-soft: #18211c;
+    --accent: #86efac; --accent-soft: #0f2418; --accent-line: #14532d; --surface: #0b100d; --thumb-bg: #18211c;
+    --overlay: rgba(11, 15, 13, .5); --shadow: rgba(0, 0, 0, .5);
+    --c-note: #60a5fa; --c-tip: #4ade80; --c-important: #a78bfa; --c-warning: #fbbf24; --c-caution: #f87171; --c-fold: #9ca3af;
+    --code-bg: #0b100d; --code-head: #111714; --code-text: #e5e7eb; --code-border: #1f2a24; --code-muted: #9ca3af; --code-ln: #6b7280; --code-btn: #111714;
+    --code-add: rgba(46, 160, 67, .16); --code-add-mark: #4ade80;
+    --code-del: rgba(248, 81, 73, .16); --code-del-mark: #f87171;
+    --code-mark: rgba(134, 239, 172, .1); --code-mark-bar: #86efac;
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0d1117; --text: #e6edf3; --muted: #8b949e; --line: #30363d; --accent: #4493f8;
-  --surface: #161b22; --inline-code: #262c36; --thumb-bg: #161b22; --quote-line: #3d444d; --quote-text: #9198a1; --table-line: #3d444d;
-  --overlay: rgba(13, 17, 23, .45); --dialog-bg: #161b22; --shadow: rgba(0, 0, 0, .5);
-  --c-note: #4493f8; --c-tip: #3fb950; --c-important: #ab7df8; --c-warning: #d29922; --c-caution: #f85149; --c-fold: #9198a1;
-  --callout-tint: 10%;
-  --code-bg: #0d1117; --code-text: #e6edf3; --code-border: #30363d; --code-muted: #8b949e; --code-ln: #6e7681; --code-btn: #161b22;
-  --code-add: rgba(46, 160, 67, .18); --code-add-mark: #3fb950;
-  --code-del: rgba(248, 81, 73, .18); --code-del-mark: #f85149;
-  --code-mark: rgba(56, 139, 253, .15); --code-mark-bar: #388bfd;
+  --bg: #0b0f0d; --card: #111714; --text: #e5e7eb; --body-text: #d1d5db; --muted: #9ca3af; --line: #1f2a24; --line-soft: #18211c;
+  --accent: #86efac; --accent-soft: #0f2418; --accent-line: #14532d; --surface: #0b100d; --thumb-bg: #18211c;
+  --overlay: rgba(11, 15, 13, .5); --shadow: rgba(0, 0, 0, .5);
+  --c-note: #60a5fa; --c-tip: #4ade80; --c-important: #a78bfa; --c-warning: #fbbf24; --c-caution: #f87171; --c-fold: #9ca3af;
+  --code-bg: #0b100d; --code-head: #111714; --code-text: #e5e7eb; --code-border: #1f2a24; --code-muted: #9ca3af; --code-ln: #6b7280; --code-btn: #111714;
+  --code-add: rgba(46, 160, 67, .16); --code-add-mark: #4ade80;
+  --code-del: rgba(248, 81, 73, .16); --code-del-mark: #f87171;
+  --code-mark: rgba(134, 239, 172, .1); --code-mark-bar: #86efac;
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); font-family: system-ui, "Malgun Gothic", sans-serif; color: var(--text); line-height: 1.7; }
+body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; background: var(--bg); font-family: system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--text); line-height: 1.7; }
 a { color: var(--accent); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-.site-header, .site-main, .site-footer { max-width: 760px; margin: 0 auto; padding: 16px; }
-.site-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); }
-.site-name { font-weight: 700; color: inherit; text-decoration: none; }
-.site-nav { display: flex; align-items: center; flex-wrap: wrap; }
-.site-nav a { margin-left: 12px; }
-.site-footer { border-top: 1px solid var(--line); color: var(--muted); font-size: .9em; }
+/* 카드 (설계 16: 둥근 박스로 단위를 나눔) */
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); }
+.card-heading { margin: 0 0 8px; font-size: 1em; font-weight: 700; }
+/* 카드 안 맨 아래 "전체 보기": 위 구분선 + 오른쪽 (설계 16-1) */
+.card-more { margin: 0; padding: 12px 0; border-top: 1px solid var(--line); text-align: right; font-size: .9em; }
+.card-more a { font-weight: 600; text-decoration: none; }
+.card-more a:hover { text-decoration: underline; }
+
+/* ── 머리글·바닥글: 흰 띠, 안쪽 폭 1080px ── */
+.site-header { position: relative; z-index: 11; background: var(--card); border-bottom: 1px solid var(--line); }
+.site-header-inner, .site-footer-inner, .site-main { width: 100%; max-width: 1112px; margin: 0 auto; padding-left: 16px; padding-right: 16px; }
+.site-header-inner { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; align-items: center; padding-top: 14px; padding-bottom: 14px; }
+.site-name { font-weight: 700; font-size: 1.2em; color: var(--text); text-decoration: none; }
+.site-nav { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.nav-link { padding: 6px 10px; color: var(--muted); text-decoration: none; border-bottom: 2px solid transparent; }
+.nav-link:hover { color: var(--text); }
+.nav-link[aria-current="page"] { color: var(--accent); font-weight: 600; border-bottom-color: var(--accent); }
+.site-main { flex: 1; padding-top: 32px; padding-bottom: 48px; }
+.site-footer { background: var(--card); border-top: 1px solid var(--line); color: var(--muted); font-size: .85em; }
+.site-footer-inner { display: flex; flex-wrap: wrap; gap: 4px 16px; justify-content: space-between; align-items: center; padding-top: 20px; padding-bottom: 20px; }
+.site-footer a { color: inherit; }
+.footer-links, .copyright { margin: 0; }
 
 /* 라이트/다크 버튼 (설계 13-7): 지금 라이트면 ☾, 다크면 ☀. 스크립트가 켜졌을 때만 보임 */
-.theme-toggle { display: none; align-items: center; justify-content: center; width: 28px; height: 28px; margin-left: 12px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: var(--text); font-size: 15px; line-height: 1; cursor: pointer; }
+.theme-toggle { display: none; align-items: center; justify-content: center; width: 36px; height: 36px; margin-left: 8px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--text); font-size: 15px; line-height: 1; cursor: pointer; }
 .js .theme-toggle { display: inline-flex; }
 .theme-toggle::before { content: "☾"; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .theme-toggle::before { content: "☀"; } }
 :root[data-theme="dark"] .theme-toggle::before { content: "☀"; }
 
-/* 목록 */
-.post-list { list-style: none; margin: 0; padding: 0; }
-.post-card { padding: 16px 0; border-bottom: 1px solid var(--line); }
-.post-card-link { color: inherit; text-decoration: none; display: block; }
-.post-card .thumbnail { width: 100%; aspect-ratio: 1200 / 630; object-fit: cover; border-radius: 8px; background: var(--thumb-bg); }
-.post-card .post-title { margin: 8px 0 4px; font-size: 1.3em; }
-.summary { margin: 0; color: var(--muted); }
-.post-meta { margin: 4px 0 0; color: var(--muted); font-size: .9em; }
-.post-meta .tag { margin-left: 6px; }
-.pager { display: flex; gap: 16px; justify-content: center; margin: 24px 0; }
-.empty { color: var(--muted); }
-
-/* 글 */
-.post-header .post-title { margin: 8px 0 4px; font-size: 2em; line-height: 1.3; }
-.toc { margin: 24px 0; padding: 12px 16px; border: 1px solid var(--line); border-radius: 8px; font-size: .95em; }
-.toc-title { margin: 0 0 4px; font-weight: 700; }
-.toc ol { list-style: none; margin: 0; padding: 0; }
-.toc-level-2 { padding-left: 1em; }
-.toc-level-3 { padding-left: 2em; }
-.post-body code { font-family: ui-monospace, "D2Coding", Consolas, monospace; font-size: .9em; }
-.post-body :not(pre) > code { padding: .1em .35em; border-radius: 4px; background: var(--inline-code); }
-.post-body img { max-width: 100%; height: auto; } /* height:auto: 크기(|400)나 width/height 속성이 있어도 비율 유지 */
-/* 이미지만 있는 문단: 줄(.img-row)마다 가로로, 사이 간격은 고정 8px. 정렬은 문단 클래스 (기본 가운데) */
-.post-body .img-row { display: flex; gap: 8px; align-items: flex-start; }
-.post-body .img-row + .img-row { margin-top: 8px; }
-.post-body .img-row img { min-width: 0; } /* 합이 100%가 넘으면(간격 포함) 이미지가 조금씩 줄어 한 줄에 맞음 */
-.post-body .img-align-center .img-row { justify-content: center; }
-.post-body .img-align-left .img-row { justify-content: flex-start; }
-.post-body .img-align-right .img-row { justify-content: flex-end; }
-
-/* 태그 모음 */
-.tag-cloud { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
-.tag-cloud .count { color: var(--muted); font-size: .85em; }
-
 /* 언어 선택 (머리글) — 지금 언어는 굵게 */
-.lang-switch { margin-left: 16px; padding-left: 12px; border-left: 1px solid var(--line); font-size: .9em; }
-.lang-switch a { margin-left: 0; color: var(--muted); text-decoration: none; }
+.lang-switch { margin-left: 8px; padding-left: 12px; border-left: 1px solid var(--line); font-size: .9em; }
+.lang-switch a { color: var(--muted); text-decoration: none; }
 .lang-switch a + a::before { content: "·"; margin: 0 6px; color: var(--line); }
-.lang-switch a[aria-current] { color: inherit; font-weight: 700; }
+.lang-switch a[aria-current] { color: var(--text); font-weight: 700; }
 
 /* 번역 언어 목록의 미번역 글 표시 */
 .lang-badge { margin-left: 6px; padding: 0 6px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: .6em; font-weight: 400; vertical-align: middle; }
 
+/* ── 기본 페이지 (목록·태그·아카이브·검색·404): 흰 카드 한 장. 배치는 시안을 정할 때 다시 ── */
+.page-basic .site-main { flex: 0 0 auto; width: calc(100% - 32px); max-width: 792px; margin: 32px auto 48px; padding: 32px 40px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); }
+.page-basic .site-main > :first-child { margin-top: 0; }
+.page-basic .site-footer { margin-top: auto; }
+@media (max-width: 599px) { .page-basic .site-main { padding: 24px 20px; } }
+.list-heading { margin: 0 0 16px; font-size: 1.6em; }
+.empty { color: var(--muted); }
+.empty.card { margin: 0; padding: 24px; }
+
+/* 목록(/posts, 태그) */
+.post-list { list-style: none; margin: 0; padding: 0; }
+.post-card { padding: 18px 0; border-bottom: 1px solid var(--line-soft); }
+.post-card-link { color: inherit; text-decoration: none; display: block; }
+.post-card .thumbnail { width: 100%; aspect-ratio: 1200 / 630; object-fit: cover; border-radius: 8px; background: var(--thumb-bg); }
+.post-card .post-title { margin: 8px 0 4px; font-size: 1.25em; }
+.summary { margin: 0; color: var(--muted); }
+.post-meta { display: flex; flex-wrap: wrap; gap: 2px 10px; margin: 6px 0 0; color: var(--muted); font-size: .85em; }
+.post-meta .tag { text-decoration: none; }
+.post-meta .tag:hover { text-decoration: underline; }
+.pager { display: flex; gap: 16px; justify-content: center; margin: 24px 0 0; }
+
+/* ── 홈 (설계 16-1): 왼쪽 280px(소개·태그) + 오른쪽(큰 카드 → 목록 카드 → 활동 카드) ── */
+.home { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 32px; align-items: start; }
+.home-side, .home-main { display: grid; gap: 16px; min-width: 0; }
+@media (max-width: 799px) { .home { grid-template-columns: 1fr; gap: 16px; } }
+.profile-card { padding: 24px; text-align: center; }
+.profile-card .avatar { width: 88px; height: 88px; border-radius: 50%; object-fit: cover; background: var(--accent-line); }
+.profile-name { margin: 10px 0 2px; font-weight: 700; font-size: 1.15em; }
+.profile-tagline { margin: 0; color: var(--muted); font-size: .92em; }
+.profile-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; list-style: none; margin: 12px 0 0; padding: 0; font-size: .85em; }
+.profile-links a { text-decoration: none; }
+.profile-links a:hover { text-decoration: underline; }
+.profile-contact { margin: 8px 0 0; color: var(--muted); font-size: .85em; }
+.contact-email { user-select: all; }
+.home-tags { padding: 18px 24px; font-size: .92em; }
+.home-tags summary { cursor: pointer; font-weight: 700; margin-bottom: 8px; }
+.home-tags .tag { color: var(--text); text-decoration: none; }
+.home-tags .tag:hover { color: var(--accent); }
+/* 큰 카드: 그림 왼쪽·글 오른쪽, 좁으면 그림 위 */
+.featured { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); overflow: hidden; }
+.featured-image { display: block; min-height: 260px; background: var(--thumb-bg); }
+.featured-image img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.featured-text { display: flex; flex-direction: column; gap: 8px; padding: 26px 28px; }
+.featured-title { margin: 0; font-size: 1.55em; line-height: 1.35; }
+.featured-title a, .post-row-title a { color: var(--text); text-decoration: none; }
+.featured-title a:hover, .post-row-title a:hover { color: var(--accent); }
+.featured .summary { font-size: .95em; line-height: 1.6; }
+.featured .post-meta { margin-top: auto; }
+@media (max-width: 699px) { .featured { grid-template-columns: 1fr; } .featured-image { min-height: 0; aspect-ratio: 1200 / 630; } }
+/* 목록 카드: 줄마다 제목 → 요약 → 날짜·태그, 작은 그림 오른쪽(있을 때만) */
+.list-card { padding: 0 24px; }
+.post-rows { list-style: none; margin: 0; padding: 0; }
+.post-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: center; padding: 18px 0; border-bottom: 1px solid var(--line-soft); }
+.post-row:last-child { border-bottom: 0; }
+.post-row.has-thumb { grid-template-columns: minmax(0, 1fr) 120px; }
+.post-row-title { margin: 0 0 4px; font-size: 1.1em; line-height: 1.4; }
+.post-row .summary { font-size: .9em; }
+.post-row-thumb { width: 120px; height: 80px; object-fit: cover; border-radius: 8px; background: var(--thumb-bg); }
+@media (max-width: 479px) { .post-row.has-thumb { grid-template-columns: minmax(0, 1fr) 80px; } .post-row-thumb { width: 80px; height: 56px; } }
+/* 활동 카드 */
+.home-activities { padding-top: 18px; }
+.activity-lines { list-style: none; margin: 0; padding: 0 0 12px; }
+.activity-lines li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line-soft); font-size: .92em; }
+.activity-lines li:last-child { border-bottom: 0; }
+.activity-lines time { min-width: 6.5em; color: var(--muted); font-variant-numeric: tabular-nums; }
+.activity-lines a { color: var(--text); text-decoration: none; }
+.activity-lines a:hover { color: var(--accent); }
+.activity-badge { display: inline-block; padding: 0 7px; border: 1px solid var(--accent-line); border-radius: 6px; color: var(--accent); font-size: .8em; font-weight: 600; line-height: 1.6; }
+
+/* ── 글 페이지 (설계 16-3): 본문 왼쪽 + 목차 오른쪽(240px, 따라옴), 좁으면 목차가 위 ── */
+.post-layout { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 32px; align-items: start; }
+.post-layout.no-toc { grid-template-columns: minmax(0, 1fr); max-width: 816px; margin: 0 auto; }
+.post-main { display: grid; gap: 16px; min-width: 0; }
+.post-side { position: sticky; top: 16px; }
+@media (max-width: 899px) { .post-layout { grid-template-columns: minmax(0, 1fr); gap: 16px; } .post-side { position: static; order: -1; } }
+.post { overflow: hidden; }
+.post-hero { display: block; width: 100%; max-height: 360px; object-fit: cover; background: var(--thumb-bg); }
+.post-inner { padding: 36px 48px 48px; }
+@media (max-width: 599px) { .post-inner { padding: 24px 20px 32px; } }
+.post-header { padding-bottom: 22px; margin-bottom: 28px; border-bottom: 1px solid var(--line); }
+.post-header .post-title { margin: 0; font-size: 2.05em; line-height: 1.3; font-weight: 800; }
+.post-summary { margin: 10px 0 0; color: var(--muted); font-size: 1.02em; line-height: 1.6; }
+.post-header .post-meta { margin-top: 14px; font-size: .9em; }
+.post-views { color: var(--muted); }
+/* 목차 */
+.toc { padding: 16px 20px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); font-size: .9em; }
+.toc-title { font-weight: 700; cursor: pointer; }
+.toc[open] .toc-title { margin-bottom: 8px; }
+.toc ol { list-style: none; margin: 0; padding: 0; }
+.toc li { border-left: 2px solid var(--line); }
+.toc li a { display: block; padding: 4px 0 4px 10px; color: var(--muted); text-decoration: none; }
+.toc li a:hover { color: var(--accent); }
+.toc .toc-level-2 a { padding-left: 24px; }
+.toc .toc-level-3 a { padding-left: 38px; }
+/* 이전·다음 글 두 칸 (설계 15-6) */
+.post-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 599px) { .post-nav { grid-template-columns: 1fr; } .post-nav-empty { display: none; } }
+.post-nav a { display: flex; flex-direction: column; gap: 4px; padding: 16px 20px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); color: var(--text); text-decoration: none; }
+.post-nav a:hover { border-color: var(--accent); }
+.post-nav-next { grid-column: 2; text-align: right; }
+@media (max-width: 599px) { .post-nav-next { grid-column: 1; } }
+.post-nav-label { color: var(--muted); font-size: .82em; }
+.post-nav-title { font-weight: 700; }
+/* 반응·댓글 giscus (설계 2-1). iframe 높이는 스크립트가 맞춤 */
+.comments { padding: 20px 24px; }
+.section-heading { margin: 0 0 12px; font-size: 1.05em; }
+.giscus { min-height: 150px; }
+.giscus-frame { display: block; width: 100%; border: 0; color-scheme: normal; }
+
 /* 미번역 글: 한글을 흐리게 깔고 가운데 안내 카드 (CSS만, 머리글은 덮지 않음) */
 .untranslated-content { opacity: .35; filter: blur(2px); pointer-events: none; user-select: none; }
 .untranslated-backdrop { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; padding: 16px; background: var(--overlay); pointer-events: none; }
-.untranslated-dialog { pointer-events: auto; width: min(420px, 100%); padding: 24px; border: 1px solid var(--line); border-radius: 12px; background: var(--dialog-bg); box-shadow: 0 8px 32px var(--shadow); text-align: center; }
+.untranslated-dialog { pointer-events: auto; width: min(420px, 100%); padding: 24px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); box-shadow: 0 8px 32px var(--shadow); text-align: center; }
 .untranslated-title { margin: 0; font-size: 1.15em; font-weight: 700; }
 .untranslated-note { margin: 4px 0 0; color: var(--muted); }
 .untranslated-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 20px 0 0; }
-.untranslated-button { padding: 6px 14px; border: 1px solid var(--line); border-radius: 6px; color: inherit; text-decoration: none; }
-.untranslated-button.primary { border-color: var(--accent); background: var(--accent); color: #fff; }
-/* 머리글은 팝업 배경 위로 (언어를 바로 바꿀 수 있게) */
-.site-header { position: relative; z-index: 11; background: var(--bg); }
+.untranslated-button { padding: 6px 14px; border: 1px solid var(--line); border-radius: 8px; color: inherit; text-decoration: none; }
+.untranslated-button.primary { border-color: var(--accent); background: var(--accent); color: var(--card); }
 
-/* 인용·콜아웃 (설계 13-3). 콜아웃 색은 GitHub와 비슷하게, 제목 앞 표시는 글자로 (그림 파일 없음) */
-.post-body blockquote { margin: 1em 0; padding: 0 1em; border-left: 4px solid var(--quote-line); color: var(--quote-text); }
-.post-body .callout { --callout: var(--c-note); margin: 1em 0; padding: 8px 16px; border-left: 4px solid var(--callout); border-radius: 0 6px 6px 0; background: color-mix(in srgb, var(--callout) var(--callout-tint), transparent); }
+/* ── 본문 블록 (설계 16-2) ── */
+.post-body { color: var(--body-text); font-size: 1.06em; line-height: 1.8; overflow-wrap: break-word; }
+.post-body > :first-child { margin-top: 0; }
+.post-body > :last-child { margin-bottom: 0; }
+.post-body h2, .post-body h3, .post-body h4 { color: var(--text); line-height: 1.4; scroll-margin-top: 16px; }
+.post-body h2 { margin: 1.8em 0 .6em; font-size: 1.5em; }
+.post-body h3 { margin: 1.5em 0 .5em; font-size: 1.22em; }
+.post-body h4 { margin: 1.3em 0 .4em; font-size: 1.05em; }
+.post-body code { font-family: ui-monospace, "D2Coding", Consolas, monospace; font-size: .88em; }
+/* 인라인 코드: 얇은 테두리 + 연회색 */
+.post-body :not(pre) > code { padding: .08em .35em; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--text); }
+/* 이미지: 이미지만 있는 문단은 테두리로 감쌈, 설명(따옴표 제목)은 아래 띠 */
+.post-body img { max-width: 100%; height: auto; } /* height:auto: 크기(|400)나 width/height 속성이 있어도 비율 유지 */
+.post-body .img-row { display: flex; gap: 8px; align-items: flex-start; }
+.post-body .img-row + .img-row { margin-top: 8px; }
+.post-body .img-row > img, .post-body .img-row > .img-figure { min-width: 0; } /* 합이 100%가 넘으면(간격 포함) 조금씩 줄어 한 줄에 맞음 */
+.post-body .img-row > img { border: 1px solid var(--line); border-radius: 10px; }
+.post-body .img-figure { display: inline-flex; flex-direction: column; max-width: 100%; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; vertical-align: top; }
+.post-body .img-figure img { display: block; width: 100%; }
+.post-body .img-caption { padding: 8px 14px; border-top: 1px solid var(--line); background: var(--surface); color: var(--muted); font-size: .85em; line-height: 1.5; }
+.post-body .img-align-center .img-row { justify-content: center; }
+.post-body .img-align-left .img-row { justify-content: flex-start; }
+.post-body .img-align-right .img-row { justify-content: flex-end; }
+/* 인용: 테두리 상자 + 연한 초록 따옴표 */
+.post-body blockquote { position: relative; margin: 1.2em 0; padding: 14px 20px 14px 44px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); }
+.post-body blockquote::before { content: "\201C"; position: absolute; top: 4px; left: 14px; color: var(--accent-line); font-size: 2.2em; line-height: 1; font-family: Georgia, serif; }
+.post-body blockquote > :first-child { margin-top: 0; }
+.post-body blockquote > :last-child { margin-bottom: 0; }
+/* 콜아웃: 왼쪽 색 선 + 굵은 제목, 바탕 없음 */
+.post-body .callout { --callout: var(--c-note); margin: 1.2em 0; padding: 2px 0 2px 16px; border-left: 3px solid var(--callout); }
 .post-body .callout > :last-child { margin-bottom: 0; }
-.post-body .callout-title { margin: 0 0 4px; color: var(--callout); font-weight: 700; }
-.post-body .callout-title::before { margin-right: 6px; }
+.post-body .callout-title { margin: 0 0 2px; color: var(--callout); font-weight: 700; font-size: .95em; }
 .post-body .callout-note { --callout: var(--c-note); }
-.post-body .callout-note .callout-title::before { content: "ⓘ"; }
 .post-body .callout-tip { --callout: var(--c-tip); }
-.post-body .callout-tip .callout-title::before { content: "✓"; }
 .post-body .callout-important { --callout: var(--c-important); }
-.post-body .callout-important .callout-title::before { content: "❢"; }
 .post-body .callout-warning { --callout: var(--c-warning); }
-.post-body .callout-warning .callout-title::before { content: "⚠"; }
 .post-body .callout-caution { --callout: var(--c-caution); }
-.post-body .callout-caution .callout-title::before { content: "⊘"; }
-
-/* 표 (설계 13-4): 넓으면 표만 가로 스크롤. 정렬은 칸의 style(text-align) */
-.post-body .table-wrap { margin: 1em 0; overflow-x: auto; }
-.post-body table { border-collapse: collapse; line-height: 1.5; }
-.post-body th, .post-body td { padding: 6px 12px; border: 1px solid var(--table-line); }
-/* 칸 안은 띄어쓰기에서만 줄을 바꿈 (한글이 한 글자씩 세로로 쪼개지지 않게) → 칸이 넓어지면 표만 가로 스크롤 */
-.post-body th, .post-body td { overflow-wrap: normal; word-break: keep-all; }
-.post-body th { background: var(--surface); font-weight: 700; }
-
-/* 접기 (설계 13-5): 접는 콜아웃은 details. 제목 줄을 눌러 접고 펼침, 오른쪽 ▸/▾ */
-.post-body .callout-fold { --callout: var(--c-fold); }
-.post-body .callout-fold .callout-title::before { content: "≡"; }
+/* 접기 (설계 13-5): 테두리 상자 + 회색 머리. 제목 줄을 눌러 접고 펼침, 오른쪽 ▸/▾ */
+.post-body .callout-fold { --callout: var(--c-fold); padding: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.post-body .callout-fold > .callout-title { margin: 0; padding: 10px 14px; background: var(--surface); color: var(--text); font-weight: 600; }
+.post-body .callout-fold[open] > .callout-title { border-bottom: 1px solid var(--line); }
+.post-body .callout-fold > :not(.callout-title) { margin-left: 14px; margin-right: 14px; }
+.post-body .callout-fold > :last-child:not(.callout-title) { margin-bottom: 12px; }
 .post-body details.callout > summary { display: flex; align-items: center; cursor: pointer; list-style: none; }
 .post-body details.callout > summary::-webkit-details-marker { display: none; }
-.post-body details.callout > summary::after { content: "▸"; margin-left: auto; padding-left: 12px; }
+.post-body details.callout > summary::after { content: "▸"; margin-left: auto; padding-left: 12px; color: var(--muted); }
 .post-body details.callout[open] > summary::after { content: "▾"; }
-.post-body details.callout:not([open]) > summary { margin-bottom: 0; }
+/* 표 (설계 13-4): 테두리 + 둥근 모서리, 회색 머리. 넓으면 표만 가로 스크롤. 정렬은 칸의 style(text-align) */
+.post-body .table-wrap { margin: 1.2em 0; overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+.post-body table { min-width: 100%; border-collapse: collapse; line-height: 1.5; font-size: .92em; }
+.post-body th, .post-body td { padding: 9px 14px; border-bottom: 1px solid var(--line); border-left: 1px solid var(--line); text-align: left; }
+.post-body th:first-child, .post-body td:first-child { border-left: 0; }
+.post-body tr:last-child td { border-bottom: 0; }
+/* 칸 안은 띄어쓰기에서만 줄을 바꿈 (한글이 한 글자씩 세로로 쪼개지지 않게) → 칸이 넓어지면 표만 가로 스크롤 */
+.post-body th, .post-body td { overflow-wrap: normal; word-break: keep-all; }
+.post-body th { background: var(--surface); color: var(--text); font-weight: 700; }
 
-/* 코드 블록 (설계 13-6·13-7): 라이트는 github-light-default, 다크는 github-dark-default.
+/* 코드 블록 (설계 13-6·16-2): 테두리 상자, 머리 띠(언어 · 파일 이름 · 복사) 항상, 줄 번호 항상.
  * 글자 조각의 색은 HTML의 --sl(라이트)·--sd(다크) 중 지금 모드 것. 변수가 없는 조각은 기본 글자색 */
-.post-body .code-block { margin: 1em 0; border: 1px solid var(--code-border); border-radius: 8px; background: var(--code-bg); color: var(--code-text); overflow: hidden; }
+.post-body .code-block { margin: 1.2em 0; border: 1px solid var(--code-border); border-radius: 10px; background: var(--code-bg); color: var(--code-text); overflow: hidden; }
 .post-body .code-text [style] { color: var(--sl); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .post-body .code-text [style] { color: var(--sd); } }
 :root[data-theme="dark"] .post-body .code-text [style] { color: var(--sd); }
-.post-body .code-head { display: flex; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--code-border); color: var(--code-muted); font-size: .9em; line-height: 1.4; }
+.post-body .code-head { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 6px 8px 6px 14px; border-bottom: 1px solid var(--code-border); background: var(--code-head); color: var(--code-muted); font-size: .82em; line-height: 1.4; }
+.post-body .code-lang { padding: 0 6px; border: 1px solid var(--accent-line); border-radius: 4px; color: var(--accent); font-size: .85em; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; }
+.post-body .code-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, "D2Coding", Consolas, monospace; }
 .post-body details.code-block > summary.code-head { cursor: pointer; list-style: none; }
 .post-body details.code-block > summary.code-head::-webkit-details-marker { display: none; }
-.post-body details.code-block > summary.code-head::after { content: "▸"; margin-left: auto; padding-left: 12px; }
+.post-body details.code-block > summary.code-head::after { content: "▸"; margin-left: auto; padding: 0 6px 0 12px; }
 .post-body details.code-block[open] > summary.code-head::after { content: "▾"; }
 .post-body details.code-block:not([open]) > summary.code-head { border-bottom: 0; }
 .post-body .code-body { position: relative; }
-.post-body .code-block pre.code { margin: 0; padding: 14px 0; border-radius: 0; background: transparent; overflow-x: auto; line-height: 1.6; }
-.post-body .code-block pre.code code { display: block; width: max-content; min-width: 100%; padding: 0; background: none; color: inherit; font-size: .88em; }
-.post-body .code-block .line { display: inline-block; box-sizing: border-box; width: 100%; min-height: 1.6em; padding: 0 56px 0 16px; }
-.post-body .code-block .ln { display: inline-block; width: 2.2em; margin-right: 14px; color: var(--code-ln); text-align: right; user-select: none; }
+.post-body .code-block pre.code { margin: 0; padding: 12px 0; border-radius: 0; background: transparent; overflow-x: auto; line-height: 1.65; }
+.post-body .code-block pre.code code { display: block; width: max-content; min-width: 100%; padding: 0; border: 0; background: none; color: inherit; font-size: .86em; }
+.post-body .code-block .line { display: inline-block; box-sizing: border-box; width: 100%; min-height: 1.65em; padding: 0 20px 0 8px; }
+.post-body details.code-block .line { padding-right: 56px; }
+.post-body .code-block .ln { display: inline-block; width: 2.6em; margin-right: 14px; color: var(--code-ln); text-align: right; user-select: none; }
 .post-body .code-block .diff-mark { display: inline-block; width: 1.4em; color: var(--code-muted); user-select: none; }
 .post-body .code-block .line-add { background: var(--code-add); }
 .post-body .code-block .line-add .diff-mark { color: var(--code-add-mark); }
@@ -187,18 +303,19 @@ a { color: var(--accent); }
 .post-body .code-block .line-del .diff-mark { color: var(--code-del-mark); }
 .post-body .code-block .line-mark { background: var(--code-mark); box-shadow: inset 3px 0 0 var(--code-mark-bar); }
 /* 복사 아이콘: 겹친 사각형 두 개(CSS로 그림), 평소 흐리게 → 올리면 진하게, 복사하면 ✓
- * 스크립트가 <html>에 js 표시를 붙였을 때만 보임 (JS가 꺼지면 눌러도 안 되는 버튼이 보이지 않게) */
-.post-body .code-copy { display: none; position: absolute; top: 8px; right: 8px; z-index: 1; width: 32px; height: 32px; padding: 0; border: 1px solid var(--code-border); border-radius: 6px; background: var(--code-btn); cursor: pointer; opacity: .55; }
+ * 머리 띠 오른쪽 끝 (접는 코드는 본문 오른쪽 위). 스크립트가 <html>에 js 표시를 붙였을 때만 보임 */
+.post-body .code-copy { display: none; position: relative; flex: none; margin-left: auto; width: 30px; height: 30px; padding: 0; border: 1px solid var(--code-border); border-radius: 6px; background: var(--code-btn); cursor: pointer; opacity: .6; }
+.post-body .code-body > .code-copy { position: absolute; top: 8px; right: 8px; z-index: 1; }
 .js .post-body .code-copy { display: block; }
 .post-body .code-copy:hover, .post-body .code-copy:focus-visible { opacity: 1; }
 .post-body .code-copy::before, .post-body .code-copy::after { content: ""; position: absolute; width: 10px; height: 12px; border: 1.5px solid var(--code-muted); border-radius: 2px; }
-.post-body .code-copy::before { top: 7px; left: 8px; }
-.post-body .code-copy::after { top: 11px; left: 12px; background: var(--code-btn); }
+.post-body .code-copy::before { top: 6px; left: 7px; }
+.post-body .code-copy::after { top: 10px; left: 11px; background: var(--code-btn); }
 .post-body .code-copy[data-copied] { opacity: 1; }
-.post-body .code-copy[data-copied]::before { content: "✓"; top: 5px; left: 9px; width: auto; height: auto; border: 0; color: var(--code-add-mark); font-size: 15px; line-height: 1; }
+.post-body .code-copy[data-copied]::before { content: "✓"; top: 4px; left: 8px; width: auto; height: auto; border: 0; color: var(--code-add-mark); font-size: 15px; line-height: 1; }
 .post-body .code-copy[data-copied]::after { display: none; }
 
-/* 수식 (설계 13-8): KaTeX가 그린 HTML. 블록 수식이 넓으면 그 블록만 가로 스크롤. 그리개가 없을 때(미리보기 첫 순간)는 원문을 회색 코드 모양으로 */
+/* 수식 (설계 13-8·16-2): KaTeX가 그린 HTML = 진짜 글자. 상자 없이, 블록 수식이 넓으면 그 블록만 가로 스크롤 */
 .post-body .math-block { margin: 1em 0; overflow-x: auto; overflow-y: hidden; }
 .post-body .math-block .katex-display { margin: 0; }
 .post-body .math-src { color: var(--muted); }
@@ -206,8 +323,22 @@ a { color: var(--accent); }
 /* 틀린 수식 원문: 한글 글꼴에서는 \ 가 ₩로 보여서 코드 글꼴로 */
 .post-body .katex-error { font-family: ui-monospace, "D2Coding", Consolas, monospace; }
 
-/* 태그 상하관계 (설계 14): 태그 페이지 위 경로, 아래 하위 태그, 태그 모음 트리 */
-.tag-path { margin: 8px 0 -8px; color: var(--muted); font-size: .9em; }
+/* 임베드 카드 (설계 13-9·16-2): 테두리 카드 전체가 링크. 링크 카드는 오른쪽에 대표 그림, 좁으면 위로 */
+.post-body .embed { margin: 1.2em 0; }
+.post-body .embed-card { display: flex; align-items: stretch; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; color: inherit; text-decoration: none; }
+.post-body .embed-card:hover { border-color: var(--accent); }
+.post-body .embed-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; }
+.post-body .embed-title { font-weight: 700; color: var(--text); overflow-wrap: anywhere; }
+.post-body .embed-desc { color: var(--muted); font-size: .9em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.post-body .embed-meta { margin-top: auto; color: var(--muted); font-size: .85em; }
+.post-body .embed-repo .embed-meta::before { content: "◉ "; }
+.post-body .embed-image { flex: 0 0 auto; width: 180px; max-width: 35%; object-fit: cover; background: var(--surface); border-left: 1px solid var(--line); }
+@media (max-width: 520px) { .post-body .embed-card.has-image { flex-direction: column-reverse; } .post-body .embed-image { width: 100%; max-width: none; aspect-ratio: 1200 / 630; border-left: 0; } }
+
+/* ── 태그 (설계 14): 태그 페이지 위 경로, 아래 하위 태그, 태그 모음 트리 ── */
+.tag-cloud { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.tag-cloud .count { color: var(--muted); font-size: .85em; }
+.tag-path { margin: 0 0 4px; color: var(--muted); font-size: .9em; }
 .tag-children { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: .95em; }
 .tag-children .count, .tag-tree .count { color: var(--muted); font-size: .85em; }
 .tag-tree { list-style: none; margin: 0; padding: 0 0 0 1.2em; }
@@ -215,38 +346,7 @@ a { color: var(--accent); }
 .tag-tree li { padding: 2px 0; }
 .tag-tree .tag-tree { border-left: 1px solid var(--line); margin-left: .3em; padding-left: 1em; }
 
-/* 임베드 카드 (설계 13-9): 카드 전체가 링크. 링크 카드는 오른쪽에 대표 그림, 좁으면 위로 */
-.post-body .embed { margin: 1em 0; }
-.post-body .embed-card { display: flex; gap: 12px; align-items: stretch; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; color: inherit; text-decoration: none; }
-.post-body .embed-card:hover { border-color: var(--accent); }
-.post-body .embed-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; }
-.post-body .embed-title { font-weight: 700; overflow-wrap: anywhere; }
-.post-body .embed-desc { color: var(--muted); font-size: .9em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.post-body .embed-meta { margin-top: auto; color: var(--muted); font-size: .85em; }
-.post-body .embed-repo .embed-meta::before { content: "◉ "; }
-.post-body .embed-image { flex: 0 0 auto; width: 180px; max-width: 35%; object-fit: cover; background: var(--surface); }
-@media (max-width: 520px) { .post-body .embed-card.has-image { flex-direction: column-reverse; } .post-body .embed-image { width: 100%; max-width: none; aspect-ratio: 1200 / 630; } }
-
-/* ── 홈 (설계 15-4): 넓으면 2칸, 좁으면 세로. 꾸미기는 UI/UX 단계 ── */
-.page-home .site-header, .page-home .site-main, .page-home .site-footer { max-width: 1040px; }
-.home { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 32px; align-items: start; }
-@media (max-width: 799px) { .home { grid-template-columns: 1fr; gap: 20px; } }
-.home-side { display: grid; gap: 16px; }
-.profile-card { padding: 16px; border: 1px solid var(--line); border-radius: 12px; text-align: center; }
-.profile-card .avatar { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; }
-.profile-name { margin: 8px 0 2px; font-weight: 700; font-size: 1.15em; }
-.profile-tagline { margin: 0; color: var(--muted); }
-.profile-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; list-style: none; margin: 10px 0 0; padding: 0; font-size: .9em; }
-.profile-contact { margin: 8px 0 0; color: var(--muted); font-size: .9em; }
-.contact-email { user-select: all; }
-.home-tags summary { cursor: pointer; font-weight: 700; margin-bottom: 6px; }
-.section-heading { margin: 0 0 8px; font-size: 1.2em; }
-.more { margin: 12px 0 0; text-align: right; }
-
-/* 바닥글 */
-.footer-links, .copyright { margin: 4px 0; }
-
-/* ── 아카이브·활동 (설계 15-5). 꾸미기는 UI/UX 단계 ── */
+/* ── 아카이브·활동 (설계 15-5·15-8). 배치는 시안을 정할 때 다시 ── */
 .archive-total { margin: 0 0 4px; color: var(--muted); }
 .archive-years { margin: 0 0 16px; }
 .archive-year h2 { margin: 24px 0 4px; font-size: 1.4em; }
@@ -254,8 +354,8 @@ a { color: var(--accent); }
 .archive-year .count, .archive-month .count { color: var(--muted); font-size: .8em; font-weight: 400; }
 .archive-list { list-style: none; margin: 0; padding: 0; }
 .archive-list li { padding: 3px 0; }
-.archive-list time, .activity-lines time { display: inline-block; min-width: 3.2em; color: var(--muted); font-variant-numeric: tabular-nums; }
-.archive-activity { margin: 6px 0; padding: 8px 12px !important; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; scroll-margin-top: 16px; }
+.archive-list time { display: inline-block; min-width: 3.2em; color: var(--muted); font-variant-numeric: tabular-nums; }
+.archive-activity { margin: 6px 0; padding: 8px 12px !important; border: 1px solid var(--line); border-radius: 10px; scroll-margin-top: 16px; }
 .archive-activity:target { outline: 2px solid var(--accent); }
 .archive-activity-head { margin: 0; }
 .archive-activity-title { font-weight: 700; }
@@ -266,37 +366,15 @@ a { color: var(--accent); }
 .archive-activity-body { margin-top: 8px; }
 .archive-activity-body > :first-child { margin-top: 0; }
 .archive-activity-body > :last-child { margin-bottom: 0; }
-.activity-badge { display: inline-block; padding: 0 6px; border: 1px solid var(--accent); border-radius: 4px; color: var(--accent); font-size: .8em; font-weight: 600; line-height: 1.5; }
-.home-activities { margin-top: 28px; }
-.activity-lines { list-style: none; margin: 0; padding: 0; }
-.activity-lines li { padding: 3px 0; }
-.activity-lines time { min-width: 6.5em; }
 
-.post-views { color: var(--muted); }
-
-/* ── 반응·댓글 giscus (설계 2-1). iframe 높이는 스크립트가 맞춤 ── */
-.comments { margin: 40px 0 8px; }
-.giscus { min-height: 150px; }
-.giscus-frame { display: block; width: 100%; border: 0; color-scheme: normal; }
-
-/* ── 이전·다음 글 (설계 15-6). 꾸미기는 UI/UX 단계 ── */
-.post-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 40px 0 8px; }
-@media (max-width: 520px) { .post-nav { grid-template-columns: 1fr; } .post-nav-empty { display: none; } }
-.post-nav a { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; color: inherit; text-decoration: none; }
-.post-nav a:hover { border-color: var(--accent); }
-.post-nav-next { grid-column: 2; text-align: right; }
-@media (max-width: 520px) { .post-nav-next { grid-column: 1; } }
-.post-nav-label { color: var(--muted); font-size: .85em; }
-.post-nav-title { font-weight: 600; }
-
-/* ── 검색 (설계 15-7). 꾸미기는 UI/UX 단계 ── */
+/* ── 검색 (설계 15-7). 배치는 시안을 정할 때 다시 ── */
 .search-form { margin: 0 0 8px; }
 .search-label { display: block; margin-bottom: 4px; color: var(--muted); font-size: .9em; }
-.search-input { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; font-size: 1.05em; }
+.search-input { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--text); font: inherit; font-size: 1.05em; }
 .search-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 .search-status { min-height: 1.5em; color: var(--muted); font-size: .9em; }
 .search-results { list-style: none; margin: 0; padding: 0; }
-.search-result { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.search-result { padding: 12px 0; border-bottom: 1px solid var(--line-soft); }
 .search-result-head { margin: 0; }
 .search-result-title { font-weight: 700; }
 .search-result .post-meta { margin: 2px 0; }

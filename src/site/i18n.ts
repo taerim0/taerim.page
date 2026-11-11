@@ -122,7 +122,7 @@ export const MESSAGES: Record<Locale, Messages> = {
     monthName: (month) => `${month}월`,
     activityBadge: "활동",
     recentActivities: "최근 활동",
-    viewArchive: "아카이브 보기 →",
+    viewArchive: "아카이브 전체 보기 →",
     postNavLabel: "이전·다음 글",
     commentsHeading: "반응·댓글",
     views: (n) => `조회 ${n.toLocaleString("ko-KR")}`,
@@ -173,7 +173,7 @@ export const MESSAGES: Record<Locale, Messages> = {
     monthName: (month) => new Intl.DateTimeFormat("en-US", { month: "long", timeZone: "UTC" }).format(new Date(Date.UTC(2000, month - 1, 1))),
     activityBadge: "Activity",
     recentActivities: "Recent activity",
-    viewArchive: "View archive →",
+    viewArchive: "View full archive →",
     postNavLabel: "Previous and next posts",
     commentsHeading: "Reactions & comments",
     views: (n) => `${n.toLocaleString("en-US")} ${n === 1 ? "view" : "views"}`,
@@ -230,9 +230,9 @@ export function formatDate(iso: string, locale: Locale = SOURCE_LOCALE): string 
  * - 버튼의 aria-pressed = 지금 다크인지
  *
  * 홈 태그 트리 (설계 15-4)
- * - <details class="home-tags" open>을 좁은 화면(799px 이하)이면 처음에 접음. JS가 꺼지면 펼친 채
+ * - <details class="home-tags" open>·글 페이지 목차(.post-side .toc, 설계 16-3)를 좁은 화면(799px 이하)이면 처음에 접음. JS가 꺼지면 펼친 채
  *
  * 아카이브 활동 접기 (설계 15-8)
  * - 주소 조각(#activity-n)이 가리키는 곳 안의 <details>를 펼침 (열 때 + 조각이 바뀔 때). 나머지는 닫힌 채
  */
-export const SITE_SCRIPT = `(function(){var K="lang",T="theme",d=document.documentElement;d.classList.add("js");try{var m=localStorage.getItem(T);if(m==="dark"||m==="light")d.setAttribute("data-theme",m)}catch(e){}function dark(){var v=d.getAttribute("data-theme");return v==="dark"||(v!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches)}function sync(){var g=document.querySelector("[data-theme-toggle]");if(g)g.setAttribute("aria-pressed",String(dark()))}function hash(){var i=location.hash.slice(1),e=i&&document.getElementById(i),t=e&&e.querySelector("details");if(t)t.open=true}addEventListener("hashchange",hash);document.addEventListener("DOMContentLoaded",function(){sync();hash();var h=document.querySelector(".home-tags");if(h&&matchMedia("(max-width: 799px)").matches)h.removeAttribute("open")});try{var s=localStorage.getItem(K);if(s&&s!==d.lang&&!/[?&]lang=/.test(location.search)){var p=d.getAttribute("data-path-"+s);if(p){location.replace(p+location.hash);return}}}catch(e){}document.addEventListener("click",function(e){var t=e.target&&e.target.closest?e.target:null;if(!t)return;var a=t.closest("a[data-set-lang]");if(a)try{localStorage.setItem(K,a.getAttribute("data-set-lang"))}catch(x){}if(t.closest("[data-theme-toggle]")){var n=dark()?"light":"dark";d.setAttribute("data-theme",n);try{localStorage.setItem(T,n)}catch(x){}sync();return}var b=t.closest(".code-copy"),c=b&&b.closest(".code-block");if(!c||!navigator.clipboard)return;var l=[].slice.call(c.querySelectorAll(".line")).filter(function(n){return!n.classList.contains("line-del")}).map(function(n){var x=n.querySelector(".code-text");return x?x.textContent:""});navigator.clipboard.writeText(l.join("\\n")).then(function(){b.setAttribute("data-copied","true");setTimeout(function(){b.removeAttribute("data-copied")},1500)})})})();`;
+export const SITE_SCRIPT = `(function(){var K="lang",T="theme",d=document.documentElement;d.classList.add("js");try{var m=localStorage.getItem(T);if(m==="dark"||m==="light")d.setAttribute("data-theme",m)}catch(e){}function dark(){var v=d.getAttribute("data-theme");return v==="dark"||(v!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches)}function sync(){var g=document.querySelector("[data-theme-toggle]");if(g)g.setAttribute("aria-pressed",String(dark()))}function hash(){var i=location.hash.slice(1),e=i&&document.getElementById(i),t=e&&e.querySelector("details");if(t)t.open=true}addEventListener("hashchange",hash);document.addEventListener("DOMContentLoaded",function(){sync();hash();if(matchMedia("(max-width: 799px)").matches)[].forEach.call(document.querySelectorAll(".home-tags,.post-side .toc"),function(x){x.removeAttribute("open")})});try{var s=localStorage.getItem(K);if(s&&s!==d.lang&&!/[?&]lang=/.test(location.search)){var p=d.getAttribute("data-path-"+s);if(p){location.replace(p+location.hash);return}}}catch(e){}document.addEventListener("click",function(e){var t=e.target&&e.target.closest?e.target:null;if(!t)return;var a=t.closest("a[data-set-lang]");if(a)try{localStorage.setItem(K,a.getAttribute("data-set-lang"))}catch(x){}if(t.closest("[data-theme-toggle]")){var n=dark()?"light":"dark";d.setAttribute("data-theme",n);try{localStorage.setItem(T,n)}catch(x){}sync();return}var b=t.closest(".code-copy"),c=b&&b.closest(".code-block");if(!c||!navigator.clipboard)return;var l=[].slice.call(c.querySelectorAll(".line")).filter(function(n){return!n.classList.contains("line-del")}).map(function(n){var x=n.querySelector(".code-text");return x?x.textContent:""});navigator.clipboard.writeText(l.join("\\n")).then(function(){b.setAttribute("data-copied","true");setTimeout(function(){b.removeAttribute("data-copied")},1500)})})})();`;

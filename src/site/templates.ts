@@ -87,8 +87,10 @@ interface LayoutProps {
   math?: boolean;
   /** 검색 엔진에 "같은 페이지의 다른 언어"로 알릴 언어들 (hreflang). 생략하면 모든 언어. 둘 미만이면 넣지 않음 */
   alternates?: readonly Locale[];
-  /** <body> class (홈은 넓은 2칸 배치용 page-home) */
+  /** <body> class (홈 page-home, 글 page-post, 나머지 page-basic = 흰 카드 한 장) */
   bodyClass?: string;
+  /** 머리 메뉴에서 지금 표시할 칸 (설계 16-1: 초록 밑줄) */
+  section?: "posts" | "tags" | "archive" | "search";
   /** 이 페이지에만 붙일 모듈 스크립트 (검색 페이지의 /assets/search.js) */
   moduleScript?: string;
   body: Html;
@@ -129,16 +131,21 @@ export function layout(props: LayoutProps): Html {
   <script>${raw(SITE_SCRIPT)}</script>
   ${props.moduleScript ? html`<script type="module" src="${props.moduleScript}"></script>` : ""}
 </head>
-<body${props.bodyClass ? html` class="${props.bodyClass}"` : ""}>
+<body class="${props.bodyClass ?? "page-basic"}">
   <header class="site-header">
-    <a class="site-name" href="${localizedPath(locale, "/")}">${site.name}</a>
-    <nav class="site-nav">
-      <a href="${localizedPath(locale, POSTS_PATH)}">${m.navPosts}</a> <a href="${localizedPath(locale, TAGS_PATH)}">${m.navTags}</a> <a href="${localizedPath(locale, ARCHIVE_PATH)}">${m.navArchive}</a> <a href="${localizedPath(locale, SEARCH_PATH)}">${m.navSearch}</a>
-      <span class="lang-switch" role="group" aria-label="${m.languageLabel}">${LOCALES.map(
-        (l) => html`<a href="${localizedPath(l, props.path)}" hreflang="${l}" lang="${l}" data-set-lang="${l}"${l === locale ? html` aria-current="true"` : ""}>${MESSAGES[l].languageName}</a>`,
-      )}</span>
-      <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="${m.themeToggle}" title="${m.themeToggle}"></button>
-    </nav>
+    <div class="site-header-inner">
+      <a class="site-name" href="${localizedPath(locale, "/")}">${site.name}</a>
+      <nav class="site-nav">
+        ${navLink(localizedPath(locale, POSTS_PATH), m.navPosts, props.section === "posts")}
+        ${navLink(localizedPath(locale, TAGS_PATH), m.navTags, props.section === "tags")}
+        ${navLink(localizedPath(locale, ARCHIVE_PATH), m.navArchive, props.section === "archive")}
+        ${navLink(localizedPath(locale, SEARCH_PATH), m.navSearch, props.section === "search")}
+        <span class="lang-switch" role="group" aria-label="${m.languageLabel}">${LOCALES.map(
+          (l) => html`<a href="${localizedPath(l, props.path)}" hreflang="${l}" lang="${l}" data-set-lang="${l}"${l === locale ? html` aria-current="true"` : ""}>${MESSAGES[l].languageName}</a>`,
+        )}</span>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="${m.themeToggle}" title="${m.themeToggle}"></button>
+      </nav>
+    </div>
   </header>
   <main class="site-main">
 ${props.body}
@@ -147,6 +154,11 @@ ${props.body}
 </body>
 </html>
 `;
+}
+
+/** 머리 메뉴 한 칸. 지금 칸이면 aria-current="page" (CSS가 초록 밑줄) */
+function navLink(href: string, label: string, current: boolean): Html {
+  return html`<a class="nav-link" href="${href}"${current ? html` aria-current="page"` : ""}>${label}</a>`;
 }
 
 /** 바닥글 (설계 15-4): RSS · GitHub · Contact: 이메일 (비운 칸은 안 보임, 이메일은 링크 없이 글로만) + © 빌드한 해 이름 */
@@ -159,8 +171,10 @@ function footer(site: SiteConfig, locale: Locale): Html {
     p?.email ? contact(locale, p.email) : null,
   ].filter((link) => link !== null);
   return html`<footer class="site-footer">
-    <p class="footer-links">${links.map((link, i) => (i === 0 ? link : html` · ${link}`))}</p>
-    <p class="copyright">© ${new Date().getFullYear()} ${p?.name ?? site.name}</p>
+    <div class="site-footer-inner">
+      <p class="footer-links">${links.map((link, i) => (i === 0 ? link : html` · ${link}`))}</p>
+      <p class="copyright">© ${new Date().getFullYear()} ${p?.name ?? site.name}</p>
+    </div>
   </footer>`;
 }
 
@@ -222,6 +236,7 @@ export function listPage({ site, locale = SOURCE_LOCALE, posts, pagination, tag,
     title: heading === null ? `${m.postListTitle}${pageSuffix}` : `${heading}${pageSuffix}`,
     description: heading === null ? undefined : m.tagDescription(heading),
     path: pagePath(pagination.listPath, pagination.page),
+    section: heading === null ? "posts" : "tags",
     body,
   });
 }
@@ -301,10 +316,34 @@ export function postPage({ site, locale = SOURCE_LOCALE, post, bodyHtml, toc, al
     alternates,
     math: hasMath(bodyHtml),
     moduleScript: site.giscus ? COMMENTS_SCRIPT : undefined,
-    body: html`${article(locale, post, bodyHtml, toc, views)}
-    ${postNav(locale, neighbors)}
-    ${site.giscus ? comments(locale, site.giscus, post.id) : ""}`,
+    bodyClass: "page-post",
+    section: "posts",
+    body: postLayout(locale, toc, html`${article(locale, post, bodyHtml, views, true)}
+        ${postNav(locale, neighbors)}
+        ${site.giscus ? comments(locale, site.giscus, post.id) : ""}`),
   });
+}
+
+/**
+ * 글 페이지 배치 (설계 16-3): 본문 왼쪽 + 목차 오른쪽(스크롤 따라옴).
+ * 좁으면 목차가 본문 위로 오고 접힘 (방문자 스크립트). 목차 항목이 둘 미만이면 목차 칸 없이 한 칸
+ */
+function postLayout(locale: Locale, toc: TocItem[], main: Html): Html {
+  const items = toc.filter((item) => item.level <= TOC_MAX_LEVEL);
+  if (items.length < 2) return html`<div class="post-layout no-toc"><div class="post-main">${main}</div></div>`;
+  const minLevel = Math.min(...items.map((item) => item.level));
+  const m = MESSAGES[locale];
+  return html`<div class="post-layout">
+      <div class="post-main">${main}</div>
+      <aside class="post-side">
+        <details class="toc" open>
+          <summary class="toc-title">${m.toc}</summary>
+          <nav aria-label="${m.toc}"><ol>${items.map(
+            (item) => html`<li class="toc-level-${item.level - minLevel + 1}"><a href="#${item.id}">${item.text}</a></li>`,
+          )}</ol></nav>
+        </details>
+      </aside>
+    </div>`;
 }
 
 /** 반응·댓글 스크립트 주소 (빌드가 src/site/comments-client.ts를 묶어 씀) */
@@ -316,7 +355,7 @@ export const COMMENTS_SCRIPT = "/assets/comments.js";
  */
 function comments(locale: Locale, giscus: GiscusConfig, postId: number): Html {
   const m = MESSAGES[locale];
-  return html`<section class="comments" aria-labelledby="comments-heading">
+  return html`<section class="comments card" aria-labelledby="comments-heading">
       <h2 class="section-heading" id="comments-heading">${m.commentsHeading}</h2>
       <div class="giscus" data-repo="${giscus.repo}" data-repo-id="${giscus.repoId}" data-category="${giscus.category}" data-category-id="${giscus.categoryId}" data-post-id="${postId}" data-lang="${locale}" data-title="${m.commentsHeading}"></div>
       <noscript><p class="empty">${m.commentsNeedJs} <a href="https://github.com/${giscus.repo}/discussions">GitHub Discussions</a></p></noscript>
@@ -343,26 +382,23 @@ function postNav(locale: Locale, neighbors: PostPageProps["neighbors"]): Html | 
     </nav>`;
 }
 
-/** 글 본문 덩어리 (글 페이지와 미번역 페이지가 같이 씀) */
-function article(locale: Locale, post: Post, bodyHtml: string, toc: TocItem[], views?: number): Html {
-  const items = toc.filter((item) => item.level <= TOC_MAX_LEVEL);
-  const minLevel = Math.min(...items.map((item) => item.level));
+/**
+ * 글 박스 (글 페이지와 미번역 페이지가 같이 씀, 설계 16-3):
+ * 대표 이미지(있을 때만, 맨 위) → 제목 → 요약 → 날짜·조회 수·태그 → 구분선 → 본문
+ */
+function article(locale: Locale, post: Post, bodyHtml: string, views?: number, hero = false): Html {
   return html`
-    <article class="post">
-      <header class="post-header">
-        <h1 class="post-title">${post.title}</h1>
-        ${postMeta(locale, post, views)}
-      </header>
-      ${items.length < 2
-        ? ""
-        : html`<nav class="toc" aria-label="${MESSAGES[locale].toc}">
-        <p class="toc-title">${MESSAGES[locale].toc}</p>
-        <ol>${items.map(
-          (item) => html`<li class="toc-level-${item.level - minLevel + 1}"><a href="#${item.id}">${item.text}</a></li>`,
-        )}</ol>
-      </nav>`}
-      <div class="post-body">
+    <article class="post card">
+      ${hero && post.thumbnail ? html`<img class="post-hero" src="${post.thumbnail}" alt="">` : ""}
+      <div class="post-inner">
+        <header class="post-header">
+          <h1 class="post-title">${post.title}</h1>
+          ${post.summary ? html`<p class="post-summary">${post.summary}</p>` : ""}
+          ${postMeta(locale, post, views)}
+        </header>
+        <div class="post-body">
 ${raw(bodyHtml)}
+        </div>
       </div>
     </article>`;
 }
@@ -387,7 +423,7 @@ export function untranslatedPostPage({ site, locale, post, bodyHtml }: Untransla
   const ko = MESSAGES[SOURCE_LOCALE];
   const body = html`
     <div class="untranslated">
-      <div class="untranslated-content" lang="ko" inert aria-hidden="true">${article(SOURCE_LOCALE, post, bodyHtml, [])}
+      <div class="untranslated-content" lang="ko" inert aria-hidden="true">${article(SOURCE_LOCALE, post, bodyHtml)}
       </div>
       <div class="untranslated-backdrop">
         <section class="untranslated-dialog" role="dialog" aria-label="${m.untranslatedTitle}">
@@ -400,7 +436,7 @@ export function untranslatedPostPage({ site, locale, post, bodyHtml }: Untransla
         </section>
       </div>
     </div>`;
-  return layout({ site, locale, title: post.title, path: postPath(post.id), image: post.thumbnail, noindex: true, math: hasMath(bodyHtml), body });
+  return layout({ site, locale, title: post.title, path: postPath(post.id), image: post.thumbnail, noindex: true, math: hasMath(bodyHtml), bodyClass: "page-post", section: "posts", body });
 }
 
 // ── 태그 모음 ────────────────────────────────────────
@@ -413,7 +449,7 @@ export function tagsPage({ site, locale = SOURCE_LOCALE, tags, tree }: { site: S
   const body = html`
     <h1 class="list-heading">${m.tagsHeading}</h1>
     ${tags.length === 0 ? html`<p class="empty">${m.emptyTags}</p>` : tagList(locale, tags, tree)}`;
-  return layout({ site, locale, title: m.tagsHeading, path: TAGS_PATH, body });
+  return layout({ site, locale, title: m.tagsHeading, path: TAGS_PATH, section: "tags", body });
 }
 
 /** 태그 목록: 트리가 있으면 들여쓴 트리, 없으면 나열. 태그 모음·홈이 같이 씀 */
@@ -449,6 +485,8 @@ interface HomePageProps {
   imageSizes?: ReadonlyMap<string, ImageSize>;
   /** 최근 활동 (설계 15-5, HOME_ACTIVITY_COUNT개까지). 없으면 그 부분을 안 보임 */
   activities?: ArchiveActivity[];
+  /** 전체 활동 수. HOME_ACTIVITY_COUNT보다 많을 때만 "아카이브 전체 보기" (설계 16-1). 없으면 activities 수 */
+  activityTotal?: number;
 }
 
 /** 홈에 보일 최근 활동 수 */
@@ -458,38 +496,74 @@ export const HOME_ACTIVITY_COUNT = 10;
  * 홈: 넓으면 왼쪽(소개 카드 + 태그 트리) · 오른쪽(최신 글 + 전체 글 보기), 좁으면 세로로 (CSS).
  * 태그 트리는 <details open> 하나 → 좁은 화면에서는 방문자 스크립트가 처음에 접음
  */
-export function homePage({ site, locale = SOURCE_LOCALE, profile, posts, tags, tree, imageSizes, activities = [] }: HomePageProps): Html {
+export function homePage({ site, locale = SOURCE_LOCALE, profile, posts, tags, tree, imageSizes, activities = [], activityTotal }: HomePageProps): Html {
   const m = MESSAGES[locale];
+  const [first, ...rest] = posts;
+  const moreActivities = (activityTotal ?? activities.length) > HOME_ACTIVITY_COUNT;
   const body = html`
     <div class="home">
       <aside class="home-side">
         ${profileCard(locale, profile)}
         ${tags.length === 0
           ? ""
-          : html`<details class="home-tags" open>
+          : html`<details class="home-tags card" open>
           <summary>${m.tagsHeading}</summary>
           ${tagList(locale, tags, tree)}
         </details>`}
       </aside>
       <section class="home-main" aria-labelledby="home-latest">
-        <h2 class="section-heading" id="home-latest">${m.latestPosts}</h2>
-        ${posts.length === 0
-          ? html`<p class="empty">${m.emptyPosts}</p>`
-          : html`<ul class="post-list">${posts.map((post) => postCard(site, locale, post, imageSizes))}</ul>
-        <p class="more"><a href="${localizedPath(locale, POSTS_PATH)}">${m.allPosts}</a></p>`}
+        <h2 class="visually-hidden" id="home-latest">${m.latestPosts}</h2>
+        ${first === undefined
+          ? html`<p class="empty card">${m.emptyPosts}</p>`
+          : html`${featuredCard(site, locale, first, imageSizes)}
+        <div class="card list-card">
+          ${rest.length === 0 ? "" : html`<ul class="post-rows">${rest.map((post) => postRow(locale, post, imageSizes))}</ul>`}
+          <p class="card-more"><a href="${localizedPath(locale, POSTS_PATH)}">${m.allPosts}</a></p>
+        </div>`}
         ${activities.length === 0
           ? ""
-          : html`<section class="home-activities" aria-labelledby="home-activities">
-          <h2 class="section-heading" id="home-activities">${m.recentActivities}</h2>
+          : html`<section class="card list-card home-activities" aria-labelledby="home-activities">
+          <h2 class="card-heading" id="home-activities">${m.recentActivities}</h2>
           <ul class="activity-lines">${activities.map(
             (activity) =>
               html`<li><time datetime="${activity.date}">${formatDay(activity.date, locale)}</time> ${activityBadge(locale, activity)} <a href="${localizedPath(locale, ARCHIVE_PATH)}#${activityAnchor(activity.id)}"${activity.titleLang ? html` lang="${activity.titleLang}"` : ""}>${activity.title}</a></li>`,
           )}</ul>
-          <p class="more"><a href="${localizedPath(locale, ARCHIVE_PATH)}">${m.viewArchive}</a></p>
+          ${moreActivities ? html`<p class="card-more"><a href="${localizedPath(locale, ARCHIVE_PATH)}">${m.viewArchive}</a></p>` : ""}
         </section>`}
       </section>
     </div>`;
   return layout({ site, locale, path: "/", bodyClass: "page-home", body });
+}
+
+/** 홈 맨 위 큰 카드 (설계 16-1): 넓으면 그림 왼쪽·글 오른쪽, 좁으면 그림 위. 대표 이미지가 없으면 기본 그림 */
+function featuredCard(site: SiteConfig, locale: Locale, post: PostCardData, imageSizes?: ReadonlyMap<string, ImageSize>): Html {
+  const m = MESSAGES[locale];
+  const src = post.thumbnail || site.defaultThumbnail;
+  const size = imageSizes?.get(src);
+  const korean = post.untranslated === true && locale !== SOURCE_LOCALE;
+  return html`<article class="card featured">
+          <a class="featured-image" href="${localizedPath(locale, postPath(post.id))}" tabindex="-1" aria-hidden="true"><img src="${src}" alt=""${size ? html` width="${size.width}" height="${size.height}"` : ""}></a>
+          <div class="featured-text">
+            <h3 class="featured-title"${korean ? html` lang="ko"` : ""}><a href="${localizedPath(locale, postPath(post.id))}">${post.title}</a>${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</h3>
+            ${post.summary ? html`<p class="summary"${korean ? html` lang="ko"` : ""}>${post.summary}</p>` : ""}
+            ${postMeta(locale, post)}
+          </div>
+        </article>`;
+}
+
+/** 홈 목록 카드의 한 줄 (설계 16-1): 제목 → 요약 → 날짜·태그, 대표 이미지가 있을 때만 오른쪽에 작은 그림 */
+function postRow(locale: Locale, post: PostCardData, imageSizes?: ReadonlyMap<string, ImageSize>): Html {
+  const m = MESSAGES[locale];
+  const size = post.thumbnail ? imageSizes?.get(post.thumbnail) : undefined;
+  const korean = post.untranslated === true && locale !== SOURCE_LOCALE;
+  return html`<li class="post-row${post.thumbnail ? " has-thumb" : ""}">
+            <div class="post-row-text">
+              <h3 class="post-row-title"${korean ? html` lang="ko"` : ""}><a href="${localizedPath(locale, postPath(post.id))}">${post.title}</a>${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</h3>
+              ${post.summary ? html`<p class="summary"${korean ? html` lang="ko"` : ""}>${post.summary}</p>` : ""}
+              ${postMeta(locale, post)}
+            </div>
+            ${post.thumbnail ? html`<img class="post-row-thumb" src="${post.thumbnail}" alt=""${size ? html` width="${size.width}" height="${size.height}"` : ""} loading="lazy">` : ""}
+          </li>`;
 }
 
 /** 소개 카드: 사진(없으면 기본 그림) · 이름 · 한 줄 소개 · 링크(비운 칸은 안 보임) · Contact: 이메일(글로만) */
@@ -502,7 +576,7 @@ function profileCard(locale: Locale, p: SiteSettings): Html {
     p.linkedin ? html`<li><a href="${p.linkedin}" rel="me noopener">LinkedIn</a></li>` : null,
     p.solvedac ? html`<li><a href="${p.solvedac}" rel="me noopener">solved.ac</a></li>` : null,
   ].filter((link) => link !== null);
-  return html`<section class="profile-card" aria-label="${m.profileLabel}">
+  return html`<section class="profile-card card" aria-label="${m.profileLabel}">
           <img class="avatar" src="${p.photo ?? DEFAULT_AVATAR}" alt="" width="96" height="96">
           <p class="profile-name">${p.name}</p>
           ${tagline ? html`<p class="profile-tagline"${taglineLang ? html` lang="${taglineLang}"` : ""}>${tagline}</p>` : ""}
@@ -546,7 +620,7 @@ export function archivePage({ site, locale = SOURCE_LOCALE, years }: { site: Sit
     </section>`,
     )}`}`;
   const math = years.some((y) => y.months.some((mo) => mo.entries.some((e) => e.kind === "activity" && hasMath(e.activity.bodyHtml))));
-  return layout({ site, locale, title: m.archiveHeading, path: ARCHIVE_PATH, math, body });
+  return layout({ site, locale, title: m.archiveHeading, path: ARCHIVE_PATH, math, section: "archive", body });
 }
 
 /** 활동 꼬리표 (비었으면 기본 "활동"/"Activity") */
@@ -596,7 +670,7 @@ export function searchPage({ site, locale = SOURCE_LOCALE }: { site: SiteConfig;
     <p class="search-status" aria-live="polite"></p>
     <ul class="search-results"></ul>
     <noscript><p class="empty">${m.searchNeedsJs} <a href="${localizedPath(locale, ARCHIVE_PATH)}">${m.archiveHeading}</a></p></noscript>`;
-  return layout({ site, locale, title: m.searchHeading, path: SEARCH_PATH, moduleScript: SEARCH_SCRIPT, body });
+  return layout({ site, locale, title: m.searchHeading, path: SEARCH_PATH, moduleScript: SEARCH_SCRIPT, section: "search", body });
 }
 
 // ── 없는 주소 ────────────────────────────────────────

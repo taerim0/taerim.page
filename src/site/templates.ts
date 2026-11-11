@@ -91,7 +91,7 @@ interface LayoutProps {
   /** <body> class (홈 page-home, 글 page-post, 나머지 page-basic = 흰 카드 한 장) */
   bodyClass?: string;
   /** 머리 메뉴에서 지금 표시할 칸 (설계 16-1: 초록 밑줄) */
-  section?: "posts" | "tags" | "archive" | "search" | "stats";
+  section?: "posts" | "archive" | "search" | "stats";
   /** 이 페이지에만 붙일 모듈 스크립트 (검색 페이지의 /assets/search.js) */
   moduleScript?: string;
   body: Html;
@@ -138,7 +138,6 @@ export function layout(props: LayoutProps): Html {
       <a class="site-name" href="${localizedPath(locale, "/")}">${site.name}</a>
       <nav class="site-nav">
         ${navLink(localizedPath(locale, POSTS_PATH), m.navPosts, props.section === "posts")}
-        ${navLink(localizedPath(locale, TAGS_PATH), m.navTags, props.section === "tags")}
         ${navLink(localizedPath(locale, ARCHIVE_PATH), m.navArchive, props.section === "archive")}
         ${navLink(localizedPath(locale, SEARCH_PATH), m.navSearch, props.section === "search")}
         ${navLink(localizedPath(locale, STATS_PATH), m.navStats, props.section === "stats")}
@@ -262,7 +261,8 @@ export function listPage({ site, locale = SOURCE_LOCALE, posts, pagination, tag,
     title: heading === null ? `${m.postListTitle}${pageSuffix}` : `${heading}${pageSuffix}`,
     description: heading === null ? undefined : m.tagDescription(heading),
     path: pagePath(pagination.listPath, pagination.page),
-    section: heading === null ? "posts" : "tags",
+    // 태그 글 목록도 글 목록의 한 갈래 → 메뉴 [글] (설계 16-10, 메뉴에 태그 없음)
+    section: "posts",
     bodyClass: "page-list",
     body,
   });
@@ -509,7 +509,7 @@ export function tagsPage({ site, locale = SOURCE_LOCALE, tags, tree }: { site: S
   const body = html`
     <h1 class="list-heading">${m.tagsHeading}</h1>
     ${tags.length === 0 ? html`<p class="empty">${m.emptyTags}</p>` : tagList(locale, tags, tree)}`;
-  return layout({ site, locale, title: m.tagsHeading, path: TAGS_PATH, section: "tags", body });
+  return layout({ site, locale, title: m.tagsHeading, path: TAGS_PATH, section: "posts", body });
 }
 
 /** 태그 목록: 트리가 있으면 들여쓴 트리, 없으면 나열. 태그 모음·홈이 같이 씀 */

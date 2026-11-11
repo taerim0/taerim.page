@@ -30,7 +30,6 @@ export interface Messages {
   languageName: string;
   languageLabel: string;
   navPosts: string;
-  navTags: string;
   postListTitle: string;
   emptyPosts: string;
   emptyTags: string;
@@ -130,7 +129,6 @@ export const MESSAGES: Record<Locale, Messages> = {
     languageName: "한국어",
     languageLabel: "언어",
     navPosts: "글",
-    navTags: "태그",
     postListTitle: "글 목록",
     emptyPosts: "아직 글이 없어요.",
     emptyTags: "아직 태그가 없어요.",
@@ -211,7 +209,6 @@ export const MESSAGES: Record<Locale, Messages> = {
     languageName: "English",
     languageLabel: "Language",
     navPosts: "Posts",
-    navTags: "Tags",
     postListTitle: "Posts",
     emptyPosts: "No posts yet.",
     emptyTags: "No tags yet.",

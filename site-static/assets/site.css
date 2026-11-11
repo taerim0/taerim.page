@@ -419,8 +419,7 @@ a { color: var(--accent); }
 @media (max-width: 899px) { .stats { grid-template-columns: minmax(0, 1fr); } }
 .stats-side, .stats-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .stats .card { padding: 20px 22px; }
-.stats-title { margin: 0; font-size: 1.4em; }
-.stats-note { margin: 2px 0 10px; color: var(--muted); font-size: .8em; }
+.stats-title { margin: 0 0 8px; font-size: 1.4em; }
 .stat-list { margin: 0; }
 .stat-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line-soft); }
 .stat-row dt { color: var(--muted); font-size: .92em; }

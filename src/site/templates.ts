@@ -707,7 +707,6 @@ export function statsPage({ site, locale = SOURCE_LOCALE, stats }: { site: SiteC
       <aside class="stats-side">
         <section class="card stats-numbers">
           <h1 class="stats-title">${m.statsHeading}</h1>
-          <p class="stats-note">${m.statsNote}</p>
           <dl class="stat-list">
             ${row(m.statPosts, n(stats.posts), m.unitCount)}
             ${row(m.statActivities, n(stats.activities), m.unitCount)}

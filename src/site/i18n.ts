@@ -68,7 +68,6 @@ export interface Messages {
   /** 통계 탭 (설계 15-9) */
   navStats: string;
   statsHeading: string;
-  statsNote: string;
   statPosts: string;
   statActivities: string;
   statTags: string;
@@ -155,7 +154,6 @@ export const MESSAGES: Record<Locale, Messages> = {
     dayOfMonth: (day) => `${day}일`,
     navStats: "통계",
     statsHeading: "통계",
-    statsNote: "글과 활동으로 셈 · 배포할 때마다 새로",
     statPosts: "글",
     statActivities: "활동",
     statTags: "태그",
@@ -233,7 +231,6 @@ export const MESSAGES: Record<Locale, Messages> = {
     dayOfMonth: (day) => String(day),
     navStats: "Stats",
     statsHeading: "Stats",
-    statsNote: "Counted from posts and activities · updated on every deploy",
     statPosts: "Posts",
     statActivities: "Activities",
     statTags: "Tags",

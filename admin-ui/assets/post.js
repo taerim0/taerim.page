@@ -10,7 +10,7 @@
  * - 설계 16-12: 메인은 제목·본문·미리보기. 대표 이미지·소개글·태그는 [글 정보] 팝업(<dialog>)
  *   팝업의 칸이 곧 편집 화면 값 — 열 때 기억해 두고 [취소]·Esc면 되돌림, [적용]은 닫기만. 저장은 아래 [저장]
  *   태그는 체크박스 트리 (하위를 고르면 상위는 자동), 찾기 칸에서 Enter = 새 태그, [+ 하위] = 그 아래 새 태그
- * - 미리보기 접기·펴기는 쓰기와 미리보기 사이 세로 띠 (접히면 오른쪽 끝)
+ * - 미리보기 접기·펴기는 본문 도구 줄 오른쪽 끝 동그라미 눈 버튼 (설계 16-13)
  */
 import { ApiError, getLimits, listTags, postsApi, setTagParent, translationsApi } from "./api.js";
 import { blockIndexAt, charCount, createBlockPreview, isAllowedTag, normalizeTag, normalizeTags, renderMarkdown, TAG_CHARS_MESSAGE, TagTree } from "./lib.js";
@@ -64,7 +64,7 @@ const editor = $("editor");
 const preview = $("preview");
 const previewPane = $("preview-pane");
 const previewTitle = $("preview-title");
-const previewStrip = /** @type {HTMLButtonElement} */ ($("preview-strip"));
+const previewToggle = /** @type {HTMLButtonElement} */ ($("preview-toggle"));
 const buttons = {
   save: /** @type {HTMLButtonElement} */ ($("save")),
   publish: /** @type {HTMLButtonElement} */ ($("publish")),
@@ -557,9 +557,9 @@ function widePreference() {
 /** @param {boolean} open @param {{ remember?: boolean }} [options] remember: 사용자가 버튼으로 바꾼 것 */
 function setPreviewOpen(open, { remember = false } = {}) {
   editor.dataset.preview = open ? "open" : "closed";
-  previewStrip.setAttribute("aria-expanded", String(open));
-  previewStrip.title = open ? "미리보기 접기" : "미리보기 펴기";
-  $("preview-strip-label").textContent = open ? "미리보기 ›" : "‹ 미리보기";
+  previewToggle.setAttribute("aria-pressed", String(open));
+  previewToggle.title = open ? "미리보기 접기" : "미리보기 펴기";
+  previewToggle.setAttribute("aria-label", previewToggle.title);
   if (remember && !narrowScreen.matches) {
     try {
       localStorage.setItem(PREVIEW_PREF_KEY, open ? "open" : "closed");
@@ -796,7 +796,7 @@ bindImageUpload({
 });
 
 bindCodeCopy(preview);
-previewStrip.addEventListener("click", () => setPreviewOpen(!isPreviewOpen(), { remember: true }));
+previewToggle.addEventListener("click", () => setPreviewOpen(!isPreviewOpen(), { remember: true }));
 // 창 크기가 넓은↔좁은 경계를 넘으면 그 크기의 처음 상태로
 narrowScreen.addEventListener("change", () => setPreviewOpen(initialPreviewState()));
 // 좁은 화면에서 덮고 있는 미리보기는 Esc로 닫기

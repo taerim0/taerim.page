@@ -120,9 +120,8 @@ a { color: inherit; }
 /* 쓰기 | 미리보기. 미리보기를 닫으면 쓰기가 전체 폭 */
 .editor-grid { position: relative; flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr); gap: 16px; }
 #editor[data-preview="closed"] .editor-grid { grid-template-columns: 1fr; }
-/* 글 편집: 쓰기 | 세로 띠 | 미리보기 (설계 16-12). 접으면 쓰기 | 띠(오른쪽 끝). 번역 화면은 아직 위 규칙 */
-.editor-grid.with-strip { grid-template-columns: minmax(0, 1fr) 26px minmax(0, 1fr); gap: 0 12px; }
-#editor[data-preview="closed"] .editor-grid.with-strip { grid-template-columns: minmax(0, 1fr) 26px; }
+/* 글 편집 (설계 16-13): 쓰기 카드 | 미리보기 칸. 번역 화면은 아직 위 규칙 */
+.editor-grid.with-card { gap: 16px; }
 #editor[data-preview="closed"] .preview-pane { display: none; }
 
 .write { min-height: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -523,28 +522,34 @@ a.pill:hover { text-decoration: underline; }
 .detail-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 16px 20px 20px; }
 .detail-actions .button { display: flex; align-items: center; justify-content: center; min-height: 36px; padding: 6px 8px; font-size: .9em; text-align: center; white-space: nowrap; }
 
-/* ── 편집 화면 (post.html, 설계 16-12 · 시안 E-2) ── */
-.editor-body { background: var(--card); }
-.with-strip .title-input { padding: 6px 2px; border: 0 !important; border-bottom: 1px solid var(--line) !important; border-radius: 0 !important; font-size: 1.5em; font-weight: 700; }
-.with-strip .title-input:focus { outline: none; border-bottom-color: var(--accent) !important; }
-.body-input { border-radius: 10px; }
-.with-strip .preview-pane { border-left: 0; border-radius: 10px; }
+/* ── 편집 화면 (post.html, 설계 16-12·16-13 · 시안 E-2·E-8) ── */
+.editor-body:has(.with-card) { background: var(--bg); }
+.with-card .write { gap: 6px; }
+.write-card { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+.with-card .title-input { width: 100%; padding: 14px 20px; border: 0; background: transparent; color: var(--text); font: inherit; font-size: 1.5em; font-weight: 700; }
+.with-card .title-input:focus { outline: none; }
+.with-card .body-tools { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px 6px 14px; border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); background: var(--hover); }
+.with-card .body-input { flex: 1; min-height: 8em; padding: 16px 20px; border: 0; border-radius: 0; background: transparent; outline: none; }
+.write-card:focus-within { border-color: var(--accent-line); }
+.write-foot { display: flex; flex-wrap: wrap; gap: 2px 12px; align-items: baseline; min-height: 1.2em; font-size: .85em; }
+.write-foot .field-error:empty { display: none; }
+.write-counts { display: flex; gap: 12px; margin-left: auto; }
+.write-counts .count { margin-left: 0; }
+.write-counts [data-count-for="title"]::before { content: "제목 "; }
+.write-counts [data-count-for="body"]::before { content: "본문 "; }
+/* 미리보기 접기·펴기 동그라미 (눈). 펼쳐져 있으면 초록 채움 */
+.with-card .preview-toggle { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--card); color: var(--muted); cursor: pointer; }
+.with-card .preview-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.with-card .preview-toggle[aria-pressed="true"] { border-color: var(--accent-line); background: var(--accent-soft); color: var(--accent); }
+/* 미리보기 칸: 점선 둥근 칸 (공개 전 모습) */
+.with-card .preview-pane { border: 1px dashed var(--line); border-left: 1px dashed var(--line); border-radius: 12px; }
 .preview-label { margin: 10px 0 0; font-size: .8em; }
-/* 미리보기 접기·펴기 세로 띠 */
-.preview-strip { display: flex; align-items: center; justify-content: center; min-height: 0; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--hover); color: var(--muted); font: inherit; font-size: .78em; letter-spacing: 2px; cursor: pointer; }
-.preview-strip span { writing-mode: vertical-rl; white-space: nowrap; }
-.preview-strip:hover { border-color: var(--accent); color: var(--accent); }
 @media (max-width: 899px) {
-  .editor-grid.with-strip, #editor[data-preview="closed"] .editor-grid.with-strip { grid-template-columns: minmax(0, 1fr); }
-  .preview-strip { position: absolute; top: 50%; right: 0; z-index: 3; width: 26px; height: 120px; transform: translateY(-50%); border-right: 0; border-radius: 8px 0 0 8px; background: var(--card); }
-  #editor[data-preview="open"] .preview-strip { right: min(92%, 560px); }
+  .with-card .preview-pane { border-style: solid; }
 }
-/* 아래 줄: 왼쪽 · 가운데 [글 정보] · 오른쪽 */
-.actions:has(.meta-button) { display: grid; grid-template-columns: 1fr auto 1fr; }
-.actions-right { justify-content: flex-end; }
-.meta-button { position: relative; padding: 6px 16px; border-color: var(--accent); color: var(--accent); font-weight: 600; }
+/* 아래 줄: 왼쪽 ← 목록 · 휴지통 / 오른쪽 글 정보 · 상태 버튼 · 저장 */
+.meta-button { position: relative; border-color: var(--accent); color: var(--accent); font-weight: 600; }
 .meta-dot { position: absolute; top: -3px; right: -3px; width: 9px; height: 9px; border: 2px solid var(--card); border-radius: 50%; background: var(--warn); }
-@media (max-width: 599px) { .actions { grid-template-columns: 1fr; } .actions > * { justify-self: start; } }
 
 /* 글 정보 팝업 */
 .meta-dialog { width: min(600px, calc(100% - 32px)); max-height: calc(100vh - 48px); padding: 0; border: 0; border-radius: 14px; background: var(--card); color: var(--text); box-shadow: 0 20px 60px var(--shadow); }

@@ -40,7 +40,7 @@
     <p id="loading" class="muted">불러오는 중…</p>
 
     <div id="editor" hidden>
-      <!-- 편집 화면 (설계 16-12, 시안 E-2): 메인은 제목·본문·미리보기. 대표 이미지·소개글·태그는 아래 [글 정보] 팝업 -->
+      <!-- 편집 화면 (설계 16-12·16-13, 시안 E-2·E-8): 메인은 제목·본문·미리보기. 대표 이미지·소개글·태그는 아래 [글 정보] 팝업 -->
       <div class="editor-status">
         <span id="status-pill" class="pill"></span>
         <span id="dirty-mark" class="dirty" hidden>저장 안 됨</span>
@@ -51,33 +51,25 @@
       </div>
       <p id="state-help" class="state-help" hidden></p>
 
-      <div class="editor-grid with-strip">
-        <!-- 왼쪽: 쓰기 -->
+      <div class="editor-grid with-card">
+        <!-- 왼쪽: 쓰기 = 흰 카드 하나 (제목 → 도구 줄 → 본문), 설계 16-13 -->
         <section class="write" aria-label="쓰기">
-          <div class="field">
+          <div class="write-card">
             <input id="title" class="title-input" type="text" placeholder="제목을 입력하세요" aria-label="제목" autocomplete="off">
-            <div class="field-foot">
-              <p class="field-error" data-error-for="title"></p>
-              <span class="count" data-count-for="title"></span>
-            </div>
-          </div>
-
-          <div class="field field-body">
             <div class="body-tools">
-              <button id="image-button" class="button" type="button">이미지</button>
-              <span class="muted">붙여넣기·끌어놓기도 돼요</span>
+              <button id="image-button" class="button" type="button" title="붙여넣기·끌어놓기도 돼요">이미지</button>
               <input id="image-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden>
+              <!-- 미리보기 접기·펴기: 동그라미 눈 버튼 (펼쳐져 있으면 초록 채움) -->
+              <button id="preview-toggle" class="preview-toggle" type="button" aria-controls="preview-pane" aria-pressed="true" aria-label="미리보기 접기" title="미리보기 접기"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
             </div>
             <textarea id="body" class="body-input" placeholder="본문 (Markdown)" aria-label="본문 (Markdown)" spellcheck="false"></textarea>
-            <div class="field-foot">
-              <p class="field-error" data-error-for="body"></p>
-              <span class="count" data-count-for="body"></span>
-            </div>
+          </div>
+          <div class="write-foot">
+            <p class="field-error" data-error-for="title"></p>
+            <p class="field-error" data-error-for="body"></p>
+            <span class="write-counts"><span class="count" data-count-for="title"></span><span class="count" data-count-for="body"></span></span>
           </div>
         </section>
-
-        <!-- 미리보기 접기·펴기: 쓰기와 미리보기 사이 세로 띠 (접히면 오른쪽 끝) -->
-        <button id="preview-strip" class="preview-strip" type="button" aria-controls="preview-pane" aria-expanded="true"><span id="preview-strip-label">미리보기 ›</span></button>
 
         <!--
           오른쪽: 미리보기 (렌더러가 안전하게 만든 HTML만 들어감)
@@ -96,8 +88,8 @@
           <a class="button" href="/">← 목록</a>
           <button id="trash" class="button danger" type="button" hidden>휴지통</button>
         </div>
-        <button id="meta-button" class="button meta-button" type="button" aria-haspopup="dialog">글 정보<span id="meta-dot" class="meta-dot" hidden title="저장 안 한 변경이 있어요"></span></button>
         <div class="actions-right">
+          <button id="meta-button" class="button meta-button" type="button" aria-haspopup="dialog">글 정보<span id="meta-dot" class="meta-dot" hidden title="저장 안 한 변경이 있어요"></span></button>
           <button id="discard" class="button danger" type="button" hidden>수정본 버리기</button>
           <button id="unpublish" class="button" type="button" hidden>비공개로</button>
           <button id="save" class="button" type="button" title="Ctrl+S">저장</button>

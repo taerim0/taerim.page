@@ -420,7 +420,6 @@ interface UntranslatedPageProps {
  */
 export function untranslatedPostPage({ site, locale, post, bodyHtml }: UntranslatedPageProps): Html {
   const m = MESSAGES[locale];
-  const ko = MESSAGES[SOURCE_LOCALE];
   const body = html`
     <div class="untranslated">
       <div class="untranslated-content" lang="ko" inert aria-hidden="true">${article(SOURCE_LOCALE, post, bodyHtml)}
@@ -428,9 +427,8 @@ export function untranslatedPostPage({ site, locale, post, bodyHtml }: Untransla
       <div class="untranslated-backdrop">
         <section class="untranslated-dialog" role="dialog" aria-label="${m.untranslatedTitle}">
           <p class="untranslated-title">${m.untranslatedTitle}</p>
-          <p class="untranslated-note" lang="ko">${ko.untranslatedTitle}</p>
           <p class="untranslated-actions">
-            <a class="untranslated-button primary" href="${postPath(post.id)}?lang=${SOURCE_LOCALE}" hreflang="ko" lang="ko">${m.readInKorean}</a>
+            <a class="untranslated-button primary" href="${postPath(post.id)}?lang=${SOURCE_LOCALE}" hreflang="ko">${m.readInKorean}</a>
             <a class="untranslated-button" href="${localizedPath(locale, "/")}">${m.backToPosts}</a>
           </p>
         </section>
@@ -485,8 +483,6 @@ interface HomePageProps {
   imageSizes?: ReadonlyMap<string, ImageSize>;
   /** 최근 활동 (설계 15-5, HOME_ACTIVITY_COUNT개까지). 없으면 그 부분을 안 보임 */
   activities?: ArchiveActivity[];
-  /** 전체 활동 수. HOME_ACTIVITY_COUNT보다 많을 때만 "아카이브 전체 보기" (설계 16-1). 없으면 activities 수 */
-  activityTotal?: number;
 }
 
 /** 홈에 보일 최근 활동 수 */
@@ -496,20 +492,19 @@ export const HOME_ACTIVITY_COUNT = 10;
  * 홈: 넓으면 왼쪽(소개 카드 + 태그 트리) · 오른쪽(최신 글 + 전체 글 보기), 좁으면 세로로 (CSS).
  * 태그 트리는 <details open> 하나 → 좁은 화면에서는 방문자 스크립트가 처음에 접음
  */
-export function homePage({ site, locale = SOURCE_LOCALE, profile, posts, tags, tree, imageSizes, activities = [], activityTotal }: HomePageProps): Html {
+export function homePage({ site, locale = SOURCE_LOCALE, profile, posts, tags, tree, imageSizes, activities = [] }: HomePageProps): Html {
   const m = MESSAGES[locale];
   const [first, ...rest] = posts;
-  const moreActivities = (activityTotal ?? activities.length) > HOME_ACTIVITY_COUNT;
   const body = html`
     <div class="home">
       <aside class="home-side">
         ${profileCard(locale, profile)}
         ${tags.length === 0
           ? ""
-          : html`<details class="home-tags card" open>
-          <summary>${m.tagsHeading}</summary>
+          : html`<section class="home-tags card" aria-labelledby="home-tags">
+          <h2 class="card-heading" id="home-tags">${m.tagsHeading}</h2>
           ${tagList(locale, tags, tree)}
-        </details>`}
+        </section>`}
       </aside>
       <section class="home-main" aria-labelledby="home-latest">
         <h2 class="visually-hidden" id="home-latest">${m.latestPosts}</h2>
@@ -528,7 +523,7 @@ export function homePage({ site, locale = SOURCE_LOCALE, profile, posts, tags, t
             (activity) =>
               html`<li><time datetime="${activity.date}">${formatDay(activity.date, locale)}</time> ${activityBadge(locale, activity)} <a href="${localizedPath(locale, ARCHIVE_PATH)}#${activityAnchor(activity.id)}"${activity.titleLang ? html` lang="${activity.titleLang}"` : ""}>${activity.title}</a></li>`,
           )}</ul>
-          ${moreActivities ? html`<p class="card-more"><a href="${localizedPath(locale, ARCHIVE_PATH)}">${m.viewArchive}</a></p>` : ""}
+          <p class="card-more"><a href="${localizedPath(locale, ARCHIVE_PATH)}">${m.viewArchive}</a></p>
         </section>`}
       </section>
     </div>`;

@@ -110,7 +110,7 @@ export async function buildSite({ site: baseSite, settings, activities = [], pos
     const archiveActivities = sortedActivities.map((activity) => localizeActivity(activity, locale, imageSizes));
     await add(
       localizedPath(locale, "/"),
-      homePage({ site, locale, profile, posts: cardsOf(published.slice(0, HOME_POST_COUNT)), tags, tree, imageSizes, activities: archiveActivities.slice(0, HOME_ACTIVITY_COUNT), activityTotal: archiveActivities.length }),
+      homePage({ site, locale, profile, posts: cardsOf(published.slice(0, HOME_POST_COUNT)), tags, tree, imageSizes, activities: archiveActivities.slice(0, HOME_ACTIVITY_COUNT) }),
     );
     // 아카이브 (설계 15-5): 글 + 활동을 연 → 월로
     await add(localizedPath(locale, ARCHIVE_PATH), archivePage({ site, locale, years: groupArchive(cardsOf(published), archiveActivities) }));

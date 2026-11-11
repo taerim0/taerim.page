@@ -412,7 +412,6 @@ a { color: var(--accent); }
 @media (max-width: 899px) { .stats { grid-template-columns: minmax(0, 1fr); } }
 .stats-side, .stats-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .stats .card { padding: 20px 22px; }
-.stats-title { margin: 0 0 8px; font-size: 1.4em; }
 .stat-list { margin: 0; }
 .stat-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line-soft); }
 .stat-row dt { color: var(--muted); font-size: .92em; }
@@ -505,4 +504,23 @@ a.pager-num:hover { border-color: var(--accent); color: var(--accent); }
   .browse-link.is-current { border-color: var(--accent-line); }
   .browse-link .count { margin-left: 2px; }
   .browse-more { border-top: 0; padding-top: 0; }
+}
+
+/* ── 페이지 제목 통일 (설계 16-15): 글·아카이브·검색·통계·태그 모음·404 모두 카드 밖, 같은 크기 ── */
+.page-plain .site-main { flex: 0 0 auto; width: calc(100% - 32px); max-width: 792px; margin: 32px auto 48px; padding: 0; }
+.page-card { padding: 28px 32px; }
+.page-card > :first-child { margin-top: 0; }
+.page-card > :last-child { margin-bottom: 0; }
+@media (max-width: 599px) { .page-card { padding: 20px; } }
+.page-stats .list-heading, .page-plain .list-heading { margin: 0 0 16px; }
+
+/* ── 페이지 바뀔 때 움직임 (설계 16-15, 방문자 스크립트가 class를 붙임). 상단바·하단바는 그대로 ── */
+@keyframes page-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes page-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(12px); } }
+.enter-pending .site-main { opacity: 0; }
+.entering .enter-block { animation: page-in .45s cubic-bezier(.2, .7, .2, 1) both; animation-delay: calc(var(--i, 0) * 60ms); }
+.leaving .enter-block { animation: page-out .2s ease-in both; animation-delay: calc(var(--i, 0) * 30ms); }
+@media (prefers-reduced-motion: reduce) {
+  .enter-pending .site-main { opacity: 1; }
+  .entering .enter-block, .leaving .enter-block { animation: none; }
 }

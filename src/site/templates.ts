@@ -88,7 +88,7 @@ interface LayoutProps {
   math?: boolean;
   /** 검색 엔진에 "같은 페이지의 다른 언어"로 알릴 언어들 (hreflang). 생략하면 모든 언어. 둘 미만이면 넣지 않음 */
   alternates?: readonly Locale[];
-  /** <body> class (홈 page-home, 글 page-post, 나머지 page-basic = 흰 카드 한 장) */
+  /** <body> class (홈 page-home, 글 page-post, 목록 page-list, 제목 + 카드 한 장 page-plain (설계 16-15), 없으면 page-basic) */
   bodyClass?: string;
   /** 머리 메뉴에서 지금 표시할 칸 (설계 16-1: 초록 밑줄) */
   section?: "posts" | "archive" | "search" | "stats";
@@ -506,10 +506,11 @@ export function untranslatedPostPage({ site, locale, post, bodyHtml }: Untransla
  */
 export function tagsPage({ site, locale = SOURCE_LOCALE, tags, tree }: { site: SiteConfig; locale?: Locale; tags: TagCount[]; tree?: TagTree }): Html {
   const m = MESSAGES[locale];
+  // 제목은 카드 밖, 같은 크기 (설계 16-15)
   const body = html`
     <h1 class="list-heading">${m.tagsHeading}</h1>
-    ${tags.length === 0 ? html`<p class="empty">${m.emptyTags}</p>` : tagList(locale, tags, tree)}`;
-  return layout({ site, locale, title: m.tagsHeading, path: TAGS_PATH, section: "posts", body });
+    <div class="card page-card">${tags.length === 0 ? html`<p class="empty">${m.emptyTags}</p>` : tagList(locale, tags, tree)}</div>`;
+  return layout({ site, locale, title: m.tagsHeading, path: TAGS_PATH, section: "posts", bodyClass: "page-plain", body });
 }
 
 /** 태그 목록: 트리가 있으면 들여쓴 트리, 없으면 나열. 태그 모음·홈이 같이 씀 */
@@ -735,6 +736,7 @@ export function searchPage({ site, locale = SOURCE_LOCALE }: { site: SiteConfig;
   const m = MESSAGES[locale];
   const body = html`
     <h1 class="list-heading">${m.searchHeading}</h1>
+    <div class="card page-card search-card">
     <form class="search-form" role="search" action="${localizedPath(locale, SEARCH_PATH)}" method="get"
       data-index="${localizedPath(locale, SEARCH_INDEX_PATH)}" data-body="${localizedPath(locale, SEARCH_BODY_PATH)}"
       data-msg-count="${m.searchCount}" data-msg-more="${m.searchMore}" data-msg-none="${m.searchNone}"
@@ -745,8 +747,9 @@ export function searchPage({ site, locale = SOURCE_LOCALE }: { site: SiteConfig;
     </form>
     <p class="search-status" aria-live="polite"></p>
     <ul class="search-results"></ul>
-    <noscript><p class="empty">${m.searchNeedsJs} <a href="${localizedPath(locale, ARCHIVE_PATH)}">${m.archiveHeading}</a></p></noscript>`;
-  return layout({ site, locale, title: m.searchHeading, path: SEARCH_PATH, moduleScript: SEARCH_SCRIPT, section: "search", body });
+    <noscript><p class="empty">${m.searchNeedsJs} <a href="${localizedPath(locale, ARCHIVE_PATH)}">${m.archiveHeading}</a></p></noscript>
+    </div>`;
+  return layout({ site, locale, title: m.searchHeading, path: SEARCH_PATH, moduleScript: SEARCH_SCRIPT, section: "search", bodyClass: "page-plain", body });
 }
 
 // ── 통계 (설계 15-9) ─────────────────────────────────
@@ -763,10 +766,10 @@ export function statsPage({ site, locale = SOURCE_LOCALE, stats }: { site: SiteC
   const maxMonth = Math.max(1, ...stats.months.map((bar) => bar.posts + bar.activities));
   const pct = (value: number) => `${Math.round((value / maxMonth) * 1000) / 10}%`;
   const body = html`
+    <h1 class="list-heading">${m.statsHeading}</h1>
     <div class="stats">
       <aside class="stats-side">
-        <section class="card stats-numbers">
-          <h1 class="stats-title">${m.statsHeading}</h1>
+        <section class="card stats-numbers" aria-label="${m.statsHeading}">
           <dl class="stat-list">
             ${row(m.statPosts, n(stats.posts), m.unitCount)}
             ${row(m.statActivities, n(stats.activities), m.unitCount)}
@@ -850,9 +853,11 @@ export function statsPage({ site, locale = SOURCE_LOCALE, stats }: { site: SiteC
 export function notFoundPage({ site }: { site: SiteConfig }): Html {
   const body = html`
     <h1 class="list-heading">페이지를 찾을 수 없어요</h1>
+    <div class="card page-card">
     <p>주소가 바뀌었거나 지워진 글일 수 있어요. <a href="/">글 목록으로</a></p>
-    <p lang="en">Page not found. The address may have changed or the post was removed. <a href="${localizedPath("en", "/")}">Back to posts</a></p>`;
-  return layout({ site, title: "페이지를 찾을 수 없어요", path: "/404", noindex: true, body });
+    <p lang="en">Page not found. The address may have changed or the post was removed. <a href="${localizedPath("en", "/")}">Back to posts</a></p>
+    </div>`;
+  return layout({ site, title: "페이지를 찾을 수 없어요", path: "/404", noindex: true, bodyClass: "page-plain", body });
 }
 
 // ── 도우미 ──────────────────────────────────────────

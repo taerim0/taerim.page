@@ -5,19 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>사이트 설정 · taerim.page 관리자</title>
   <link rel="stylesheet" href="/assets/admin.css">
+  <script src="/assets/theme.js"></script>
   <script type="module" src="/assets/settings.js"></script>
+  <script type="module" src="/assets/deploy.js"></script>
 </head>
 <body>
   <!-- 사이트 설정 (설계 15-3): 홈 소개 카드·바닥글 링크·사이트 소개. 저장 후 [배포]하면 공개 사이트에 반영 -->
   <header class="topbar">
-    <a class="brand" href="/">taerim.page 관리자</a>
-    <nav>
-      <a class="button" href="/">글 목록</a>
-      <a class="button" href="/tags">태그</a>
-      <a class="button" href="/trash">휴지통</a>
-      <a class="button" href="/activities">활동</a>
-      <a class="button" href="/images">이미지</a>
-    </nav>
+    <!-- 머리글 (설계 16-11): 모든 관리자 화면이 같은 모양. 배포 상태·버튼은 deploy.js, 다크 버튼은 theme.js -->
+    <div class="topbar-inner">
+      <a class="brand" href="/">taerim.page <span class="brand-sub">admin</span></a>
+      <nav class="admin-nav" aria-label="관리자 메뉴">
+        <a href="/">글</a>
+        <a href="/activities">활동</a>
+        <a href="/tags">태그</a>
+        <a href="/images">이미지</a>
+        <a href="/trash">휴지통</a>
+        <a href="/settings" aria-current="page">설정</a>
+      </nav>
+      <div class="topbar-tools">
+        <span id="deploy-status" class="muted deploy-status"></span>
+        <button id="deploy-button" class="button deploy-button" type="button" disabled title="공개 사이트에 반영해요 (GitHub Actions)">배포</button>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="다크 모드" title="다크 모드"></button>
+      </div>
+    </div>
   </header>
 
   <main>

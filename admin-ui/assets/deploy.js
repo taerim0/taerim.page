@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * [배포] 버튼 (글 목록 화면 위쪽)
+ * [배포] 버튼 (모든 관리자 화면 머리글, 설계 16-11)
  * - 누르면 공개 사이트 빌드·배포를 요청한다 (GitHub Actions). 실제 반영은 1~2분 뒤
  * - 옆에 가장 최근 배포 상태를 보여주고, 진행 중이면 10초마다 다시 확인한다
  * - 배포 설정이 없는 곳(로컬 개발)에서는 버튼이 꺼진다
@@ -32,13 +32,13 @@ function renderStatus(run) {
     return;
   }
   const when = formatDateTime(run.createdAt);
-  const text = isRunning(run)
-    ? `배포 중… (${when} 요청)`
+  const result = isRunning(run)
+    ? el("span", { class: "deploy-running" }, "배포 중…")
     : run.conclusion === "success"
-      ? `마지막 배포 ${when} ✓`
-      : `마지막 배포 ${when} 실패`;
-  // 상태 글자를 누르면 GitHub의 실행 기록(로그)으로
-  status.replaceChildren(el("a", { href: run.url, target: "_blank", rel: "noopener noreferrer" }, text));
+      ? el("span", { class: "deploy-ok" }, "성공")
+      : el("span", { class: "deploy-failed" }, "실패");
+  // 상태 글자를 누르면 GitHub의 실행 기록(로그)으로. "배포 11-11 04:02 · 성공"
+  status.replaceChildren(el("a", { href: run.url, target: "_blank", rel: "noopener noreferrer", title: "GitHub 실행 기록 열기" }, `배포 ${when} · `, result));
 }
 
 /** 상태를 받아 와서 그리고, 진행 중이면 다시 확인 예약 */

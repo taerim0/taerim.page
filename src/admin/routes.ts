@@ -8,6 +8,8 @@ import { MAX_IMAGE_BYTES } from "../images/service.ts";
 import type { RenderFn } from "../markdown/index.ts";
 import type { PostService } from "../posts/service.ts";
 import { LIMITS } from "../posts/validation.ts";
+import type { ViewTotalsSource } from "../stats/views.ts";
+import { viewsByPost } from "../stats/views.ts";
 import type { TranslationService } from "../translations/service.ts";
 import { TRANSLATION_LIMITS } from "../translations/service.ts";
 import { isTranslationLang } from "../translations/types.ts";
@@ -34,6 +36,8 @@ export interface ApiDeps {
   activities?: ActivityService;
   /** 임베드 카드 정보 (설계 13-9). 없으면 임베드 API는 503 */
   embeds?: EmbedService;
+  /** 조회 수 합계 (설계 2-3). 없으면 조회 수 API는 빈 값 */
+  views?: ViewTotalsSource;
   /** 번역 기능. 없으면 번역 API는 503 (제공자 설정이 없어도 이건 있음 — 그때는 번역 버튼만 503) */
   translations?: TranslationService;
 }
@@ -46,7 +50,7 @@ export const MAX_BODY_BYTES = 1024 * 1024;
  * 여기서는 요청을 읽어 서비스에 넘기고 결과를 JSON으로 돌려주기만 한다.
  * 실패하면 오류를 던지고, 응답 변환은 app.ts의 오류 처리가 맡는다.
  */
-export function createApiRoutes({ service, render, deploy, images, translations, embeds, settings, activities }: ApiDeps): Hono<AdminEnv> {
+export function createApiRoutes({ service, render, deploy, images, translations, embeds, settings, activities, views }: ApiDeps): Hono<AdminEnv> {
   const api = new Hono<AdminEnv>();
 
   // ── 글 ─────────────────────────────────────────────
@@ -56,6 +60,9 @@ export function createApiRoutes({ service, render, deploy, images, translations,
   });
 
   api.post("/posts", async (c) => c.json(await service.create(await readJson(c)), 201));
+
+  // 조회 수 (설계 2-3): 글 id → 한·영 합계 (조회가 있는 글만). 매일 04시에 모은 값
+  api.get("/views", async (c) => c.json(views ? Object.fromEntries(viewsByPost(await views.totals())) : {}));
 
   api.get("/posts/:id", async (c) => c.json(await service.getForEdit(idParam(c))));
 

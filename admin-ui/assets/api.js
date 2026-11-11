@@ -187,6 +187,12 @@ export const imagesApi = {
     }),
 };
 
+/** 조회 수 (설계 2-3): 글 id(글자) → 한·영 합계. 조회가 없는 글은 빠짐 */
+export const viewsApi = {
+  /** @returns {Promise<Record<string, number>>} */
+  get: () => request("GET", "/views"),
+};
+
 /** 번역 (설계 12-9). 쓰는 동작은 모두 번역 화면 정보(TranslationView)를 돌려준다 */
 export const translationsApi = {
   /** 번역이 있는 글들의 상태 (목록 표시용) @param {TranslationLang} lang @returns {Promise<TranslationListItem[]>} */

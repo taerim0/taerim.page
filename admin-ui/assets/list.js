@@ -4,7 +4,7 @@
  * - 상태 탭(전체·초안·공개), 여러 태그 거르기(모두 가진 글), 10개씩 페이지
  * - 조건은 주소(?status=…&tag=…&page=…)에 담아서 새로고침·뒤로 가기·북마크가 그대로 동작
  */
-import { ApiError, postsApi, translationsApi } from "./api.js";
+import { ApiError, postsApi, translationsApi, viewsApi } from "./api.js";
 import { normalizeTag } from "./lib.js";
 import { translationBadge } from "./translation-badge.js";
 import { bindTagInput, clearNotice, el, formatDateTime, notify, setQuery, showFlash } from "./ui.js";
@@ -61,16 +61,18 @@ async function render() {
   summary.textContent = "불러오는 중…";
 
   try {
-    const [page, translations] = await Promise.all([
+    const [page, translations, views] = await Promise.all([
       postsApi.list({ status: state.status || undefined, tags: state.tags, page: state.page }),
       // 번역 표시는 없어도 목록은 보이게 (실패하면 빈 목록)
       translationsApi.list("en").catch(() => /** @type {import("./api.js").TranslationListItem[]} */ ([])),
+      // 조회 수도 없어도 목록은 보이게
+      viewsApi.get().catch(() => /** @type {Record<string, number>} */ ({})),
     ]);
     if (mine !== renderCount) return;
     clearNotice();
 
     const statusById = new Map(translations.map((item) => [item.postId, item]));
-    list.replaceChildren(...page.items.map((post) => postRow(post, statusById.get(post.id))));
+    list.replaceChildren(...page.items.map((post) => postRow(post, statusById.get(post.id), views[String(post.id)])));
     summary.textContent =
       page.total === 0
         ? state.status || state.tags.length > 0
@@ -113,8 +115,9 @@ function renderFilters(state) {
  * 글 한 줄
  * @param {PostSummary} post
  * @param {import("./api.js").TranslationListItem} [translation] 영어 번역 상태 (없으면 표시 안 함)
+ * @param {number} [views] 조회 수 (설계 2-3, 한·영 합계). 0이거나 없으면 안 보임
  */
-function postRow(post, translation) {
+function postRow(post, translation, views) {
   const state = readState();
   return el(
     "li",
@@ -143,6 +146,7 @@ function postRow(post, translation) {
         ),
       ),
     ),
+    views ? el("span", { class: "views muted", title: "공개 사이트 조회 수 (한·영 합계, 매일 04시에 모음)" }, `조회 ${views.toLocaleString("ko-KR")}`) : "",
     el("time", { class: "muted", datetime: post.updatedAt, title: "마지막으로 고친 시각" }, formatDateTime(post.updatedAt)),
   );
 }

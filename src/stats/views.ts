@@ -105,7 +105,12 @@ export function recentRange(now: Date, days: number): { from: string; to: string
 /** D1 문장 하나에 넣을 수 있는 값이 100개까지라 한 번에 25행(4칸씩) */
 const ROWS_PER_STATEMENT = 25;
 
-export class D1ViewsRepository {
+/** 주소별 합계를 주는 곳 (관리자 API·빌드가 읽음) */
+export interface ViewTotalsSource {
+  totals(): Promise<{ path: string; views: number }[]>;
+}
+
+export class D1ViewsRepository implements ViewTotalsSource {
   readonly #db: D1Database;
 
   constructor(db: D1Database) {

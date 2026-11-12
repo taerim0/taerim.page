@@ -33,6 +33,7 @@ export class MemoryPostRepository implements PostRepository {
   async create(data: NewPostData): Promise<Post> {
     const post: Post = {
       ...structuredClone(data),
+      kind: data.kind ?? "post",
       tags: sortTagNames(data.tags), // 태그는 항상 이름순 (D1과 같게)
       id: this.#nextId++,
       deletedAt: null,
@@ -56,6 +57,7 @@ export class MemoryPostRepository implements PostRepository {
       const inTrash = post.deletedAt !== null;
       if (inTrash !== (filter.trash === true)) return false;
       if (filter.status !== undefined && post.status !== filter.status) return false;
+      if (filter.kind !== undefined && (post.kind ?? "post") !== filter.kind) return false;
       // 묶음마다 하나라도 가진 글만, 묶음끼리는 AND (tags는 한 태그씩 묶음)
       const groups = filter.tagGroups ?? (filter.tags ?? []).map((tag) => [tag]);
       if (!groups.every((group) => group.length === 0 || group.some((tag) => post.tags.includes(tag)))) return false;
@@ -167,6 +169,8 @@ export class MemoryPostRepository implements PostRepository {
       all: live.length,
       draft: live.filter((post) => post.status === "draft").length,
       published: live.filter((post) => post.status === "published").length,
+      posts: live.filter((post) => (post.kind ?? "post") === "post").length,
+      notes: live.filter((post) => post.kind === "note").length,
       edited: live.filter((post) => this.#drafts.has(post.id)).length,
     };
   }

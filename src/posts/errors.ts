@@ -15,7 +15,7 @@ export class PostError extends Error {
 }
 
 /** 입력 칸 이름 */
-export type PostField = "title" | "body" | "summary" | "thumbnail" | "tags";
+export type PostField = "title" | "body" | "summary" | "thumbnail" | "tags" | "kind";
 
 /** 사이트 설정 칸 이름 (설계 15-3) */
 export type SettingsField =

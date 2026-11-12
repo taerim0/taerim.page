@@ -10,6 +10,7 @@ import type {
   PostChanges,
   PostDraft,
   PostListFilter,
+  PostKind,
   PostStatus,
   PostSummary,
   TagCount,
@@ -25,6 +26,7 @@ interface PostRow {
   summary: string | null;
   thumbnail: string | null;
   status: PostStatus;
+  kind: PostKind;
   created_at: string;
   updated_at: string;
   published_at: string | null;
@@ -51,7 +53,7 @@ const TAGS_JSON = `(
   )
 ) AS tags`;
 
-const BASE_COLUMNS = `p.id, p.title, p.summary, p.thumbnail, p.status,
+const BASE_COLUMNS = `p.id, p.title, p.summary, p.thumbnail, p.status, p.kind,
   p.created_at, p.updated_at, p.published_at, p.deleted_at, ${TAGS_JSON}`;
 /** 목록: 본문 대신 "작업본 있음" */
 const SUMMARY_COLUMNS = `${BASE_COLUMNS},
@@ -66,6 +68,7 @@ const COLUMN_BY_FIELD = {
   summary: "summary",
   thumbnail: "thumbnail",
   status: "status",
+  kind: "kind",
   updatedAt: "updated_at",
   publishedAt: "published_at",
 } as const satisfies Record<Exclude<keyof PostChanges, "tags">, string>;
@@ -88,8 +91,8 @@ export class D1PostRepository implements PostRepository {
     const [inserted] = await this.#db.batch<{ id: number }>([
       this.#db
         .prepare(
-          `INSERT INTO posts (title, body, summary, thumbnail, status, created_at, updated_at, published_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+          `INSERT INTO posts (title, body, summary, thumbnail, status, kind, created_at, updated_at, published_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
         )
         .bind(
           data.title,
@@ -97,6 +100,7 @@ export class D1PostRepository implements PostRepository {
           data.summary,
           data.thumbnail,
           data.status,
+          data.kind ?? "post",
           data.createdAt,
           data.updatedAt,
           data.publishedAt,
@@ -129,6 +133,10 @@ export class D1PostRepository implements PostRepository {
     if (filter.status !== undefined) {
       conditions.push("p.status = ?");
       values.push(filter.status);
+    }
+    if (filter.kind !== undefined) {
+      conditions.push("p.kind = ?");
+      values.push(filter.kind);
     }
     // 묶음마다 "그중 하나라도 붙은 글", 묶음끼리는 AND (tags는 한 태그씩 묶음, 설계 14)
     // 태그 목록은 JSON 하나로 넘겨서(json_each) 개수와 상관없이 ? 자리가 늘지 않게 한다
@@ -291,11 +299,16 @@ export class D1PostRepository implements PostRepository {
         `SELECT COUNT(*) AS all_posts,
                 COALESCE(SUM(p.status = 'draft'), 0) AS draft,
                 COALESCE(SUM(p.status = 'published'), 0) AS published,
-                COALESCE(SUM(EXISTS (SELECT 1 FROM post_drafts d WHERE d.post_id = p.id)), 0) AS edited
+                COALESCE(SUM(EXISTS (SELECT 1 FROM post_drafts d WHERE d.post_id = p.id)), 0) AS edited,
+                COALESCE(SUM(p.kind = 'post'), 0) AS posts,
+                COALESCE(SUM(p.kind = 'note'), 0) AS notes
          FROM posts p WHERE p.deleted_at IS NULL`,
       )
-      .first<{ all_posts: number; draft: number; published: number; edited: number }>();
-    return { all: Number(row?.all_posts ?? 0), draft: Number(row?.draft ?? 0), published: Number(row?.published ?? 0), edited: Number(row?.edited ?? 0) };
+      .first<{ all_posts: number; draft: number; published: number; edited: number; posts: number; notes: number }>();
+    return {
+      all: Number(row?.all_posts ?? 0), draft: Number(row?.draft ?? 0), published: Number(row?.published ?? 0), edited: Number(row?.edited ?? 0),
+      posts: Number(row?.posts ?? 0), notes: Number(row?.notes ?? 0),
+    };
   }
 
   async listPublished(): Promise<Post[]> {
@@ -384,6 +397,7 @@ function baseFields(row: PostRow): Omit<Post, "body"> {
     summary: row.summary,
     thumbnail: row.thumbnail,
     status: row.status,
+    kind: row.kind ?? "post",
     tags: parseTags(row.tags),
     createdAt: row.created_at,
     updatedAt: row.updated_at,

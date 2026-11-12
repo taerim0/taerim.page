@@ -3,7 +3,7 @@ import { MAX_PAGE_SIZE } from "./repository.ts";
 import type { PostRepository } from "./repository.ts";
 import { TagTree } from "./tag-tree.ts";
 import type { Page, Post, PostCounts, PostDraft, PostListFilter, PostSummary, TagNode } from "./types.ts";
-import { isAllowedTag, normalizeTag, TAG_CHARS_MESSAGE, validatePostInput, validatePostPatch } from "./validation.ts";
+import { isAllowedTag, normalizeTag, TAG_CHARS_MESSAGE, validateKind, validatePostInput, validatePostPatch } from "./validation.ts";
 
 /** 서비스 설정 */
 export interface PostServiceOptions {
@@ -154,6 +154,17 @@ export class PostService {
     };
     if (!(await this.#repo.saveDraft(draft))) throw notFound();
     return { savedTo: "draft", draft };
+  }
+
+  /**
+   * 종류 바꾸기 (설계 17): 글 ↔ 노트. 작업본을 거치지 않고 바로 바뀐다 (공개 사이트는 다음 배포에,
+   * 옛 주소는 빌드가 _redirects로 옮김). 수정 시각은 그대로 (내용이 바뀐 게 아니므로)
+   */
+  async setKind(id: number, raw: unknown): Promise<Post> {
+    const kind = validateKind(raw);
+    const post = await this.#requirePost(id);
+    if ((post.kind ?? "post") === kind) return post;
+    return this.#updateOrThrow(id, { kind });
   }
 
   /** 공개. 처음 공개하면 공개 시각을 기록하고, 다시 공개하면 처음 시각을 유지한다. */

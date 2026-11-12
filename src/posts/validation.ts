@@ -1,5 +1,7 @@
 import { ValidationError } from "./errors.ts";
 import type { FieldIssue } from "./errors.ts";
+import { POST_KINDS } from "./types.ts";
+import type { PostKind } from "./types.ts";
 import { sortTagNames } from "./tag-order.ts";
 
 /** 입력 제한값 (글자 수는 이모지도 한 글자로 센다) */
@@ -24,6 +26,15 @@ export interface PostInput {
   tags: string[];
 }
 
+/** 새 글 입력: 내용 + 종류 (설계 17, 안 보내면 글) */
+export type NewPostInput = PostInput & { kind: PostKind };
+
+/** 종류 검사 (설계 17). 문제가 있으면 ValidationError */
+export function validateKind(raw: unknown): PostKind {
+  if (typeof raw === "string" && (POST_KINDS as readonly string[]).includes(raw)) return raw as PostKind;
+  throw new ValidationError([{ field: "kind", message: "종류는 글(post) 또는 노트(note)예요" }]);
+}
+
 /** 고칠 때 넣는 값: 보낸 칸만 들어 있다. */
 export type PostPatch = Partial<PostInput>;
 
@@ -34,10 +45,19 @@ const PATCH_FIELDS = ["title", "body", "summary", "thumbnail", "tags"] as const 
  * 새 글 입력을 정리하고 검사한다. (빠진 칸은 기본값: 본문 "", 소개·대표 이미지 null, 태그 [])
  * 문제가 있으면 칸별 문제를 모두 모아 ValidationError 하나로 던진다. 모르는 항목은 무시한다.
  */
-export function validatePostInput(raw: unknown): PostInput {
+export function validatePostInput(raw: unknown): NewPostInput {
   const data = isRecord(raw) ? raw : {};
   const issues: FieldIssue[] = [];
-  const input: PostInput = {
+  let kind: PostKind = "post";
+  if (data.kind !== undefined) {
+    try {
+      kind = validateKind(data.kind);
+    } catch {
+      issues.push({ field: "kind", message: "종류는 글(post) 또는 노트(note)예요" });
+    }
+  }
+  const input: NewPostInput = {
+    kind,
     title: readTitle(data.title, "제목을 입력하세요", issues),
     body: readBody(data.body, issues),
     summary: readSummary(data.summary, issues),

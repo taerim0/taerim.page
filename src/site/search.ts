@@ -10,7 +10,7 @@
 /** 검색 항목 하나 (글 또는 활동) */
 export interface SearchItem {
   /** 종류: 글 / 활동 */
-  k: "post" | "activity";
+  k: "post" | "note" | "activity";
   /** 누르면 갈 주소 */
   u: string;
   /** 제목 */

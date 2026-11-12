@@ -71,6 +71,13 @@ export interface Messages {
   dayOfMonth: (day: number) => string;
   /** 통계 탭 (설계 15-9) */
   navStats: string;
+  /** 노트 (설계 17) */
+  navNotes: string;
+  noteListTitle: string;
+  recentNotes: string;
+  allNotes: string;
+  noteBadge: string;
+  emptyNotes: string;
   statsHeading: string;
   statPosts: string;
   statActivities: string;
@@ -160,6 +167,12 @@ export const MESSAGES: Record<Locale, Messages> = {
     monthName: (month) => `${month}월`,
     dayOfMonth: (day) => `${day}일`,
     navStats: "통계",
+    navNotes: "노트",
+    noteListTitle: "노트",
+    recentNotes: "최근 노트",
+    allNotes: "노트 전체 보기 →",
+    noteBadge: "노트",
+    emptyNotes: "아직 노트가 없어요.",
     statsHeading: "통계",
     statPosts: "글",
     statActivities: "활동",
@@ -240,6 +253,12 @@ export const MESSAGES: Record<Locale, Messages> = {
     monthName: (month) => new Intl.DateTimeFormat("en-US", { month: "long", timeZone: "UTC" }).format(new Date(Date.UTC(2000, month - 1, 1))),
     dayOfMonth: (day) => String(day),
     navStats: "Stats",
+    navNotes: "Notes",
+    noteListTitle: "Notes",
+    recentNotes: "Recent notes",
+    allNotes: "All notes →",
+    noteBadge: "Note",
+    emptyNotes: "No notes yet.",
     statsHeading: "Stats",
     statPosts: "Posts",
     statActivities: "Activities",

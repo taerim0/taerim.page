@@ -34,7 +34,7 @@ import { createMathRenderer } from "../src/markdown/katex.ts";
 import { embedUrls, setEmbedResolver, setMathRenderer } from "../src/markdown/index.ts";
 import type { EmbedView } from "../src/markdown/index.ts";
 import { copyKatex } from "./copy-katex.ts";
-import { buildSite } from "../src/site/build.ts";
+import { buildSite, kindRedirects } from "../src/site/build.ts";
 import { D1ActivityRepository } from "../src/activities/activities.ts";
 import { D1ViewsRepository, viewsByPost } from "../src/stats/views.ts";
 import type { ActivityRepository } from "../src/activities/activities.ts";
@@ -265,6 +265,14 @@ async function main(): Promise<void> {
       const target = join(OUT_DIR, fileNameFor(urlPath));
       await mkdir(dirname(target), { recursive: true });
       await writeFile(target, content, "utf8");
+    }
+    // 종류를 바꾼 글의 옛 주소 옮기기 (설계 17): site-static/_redirects 뒤에 붙임
+    const redirects = kindRedirects(posts);
+    if (redirects.length > 0) {
+      const path = join(OUT_DIR, "_redirects");
+      const base = await readFile(path, "utf8").catch(() => "");
+      const header = "# 글 ↔ 노트 옛 주소 (설계 17, 빌드가 만듦)";
+      await writeFile(path, [base.trimEnd(), "", header, ...redirects, ""].join("\n"), "utf8");
     }
     // 임베드 카드 그림 (설계 13-9): R2 → dist/site/embeds/
     await mkdir(EMBEDS_DIR, { recursive: true });

@@ -11,6 +11,7 @@ import { byNewestActivity } from "../activities/activities.ts";
 import { renderDocument, renderMarkdown } from "../markdown/index.ts";
 import { compareTagNames } from "../posts/tag-order.ts";
 import { TagTree } from "../posts/tag-tree.ts";
+import { kindOf } from "../posts/types.ts";
 import type { Post, TagCount, TagParent } from "../posts/types.ts";
 import type { ImageInfo } from "../images/types.ts";
 import type { PublishedTranslation } from "../translations/types.ts";
@@ -24,8 +25,8 @@ import { computeStats } from "./stats.ts";
 import type { SiteStats } from "./stats.ts";
 import type { SearchBodies, SearchIndex, SearchItem } from "./search.ts";
 import type { ArchiveActivity } from "./archive.ts";
-import { ARCHIVE_PATH, activityAnchor, pagePath, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, STATS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
-import { absoluteUrl, archivePage, searchPage, statsPage, HOME_ACTIVITY_COUNT, HOME_POST_COUNT, homePage, listPage, notFoundPage, postPage, tagsPage, untranslatedPostPage } from "./templates.ts";
+import { ARCHIVE_PATH, activityAnchor, entryPath, NOTES_PATH, notePath, pagePath, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, STATS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
+import { absoluteUrl, archivePage, searchPage, statsPage, HOME_ACTIVITY_COUNT, HOME_NOTE_COUNT, HOME_POST_COUNT, homePage, listPage, notesPage, notFoundPage, postPage, tagsPage, untranslatedPostPage } from "./templates.ts";
 import type { Html, ListBrowse, PostCardData, SiteConfig, TagNav } from "./templates.ts";
 
 /** 목록 한 페이지의 글 수 (관리자 목록과 같은 10개) */
@@ -87,6 +88,9 @@ export async function buildSite({ site: baseSite, settings, activities = [], pos
     .filter((post) => post.status === "published" && post.deletedAt === null && post.publishedAt !== null)
     .map((post) => ({ ...post, tags: tree.withAncestors(post.tags) }))
     .sort(byNewest);
+  // 설계 17: 글(다른 사람이 읽는 글) / 노트(공부 정리). 홈·/posts·RSS는 글만, /notes는 노트만, 태그·아카이브·검색은 둘 다
+  const publishedPosts = published.filter((post) => kindOf(post) === "post");
+  const publishedNotes = published.filter((post) => kindOf(post) === "note");
   const files = new Map<string, string>();
   /** 검색 엔진에 넣지 않는 페이지 (sitemap에서 뺌) */
   const noindex = new Set<string>([NOT_FOUND_PATH]);
@@ -106,9 +110,9 @@ export async function buildSite({ site: baseSite, settings, activities = [], pos
   const tags = countTags(published);
   /** 글 목록·태그 페이지 왼쪽 카드 (설계 16-9) */
   const browse: ListBrowse = {
-    total: published.length,
+    total: publishedPosts.length,
     tags,
-    years: [...new Set(published.map((post) => Number(formatDate(post.publishedAt!, SOURCE_LOCALE).slice(0, 4))))].sort((a, b) => b - a),
+    years: [...new Set(publishedPosts.map((post) => Number(formatDate(post.publishedAt!, SOURCE_LOCALE).slice(0, 4))))].sort((a, b) => b - a),
   };
   /** 통계 (설계 15-9): 한국어 본문 글자는 한국어 차례에서 모으고, 수치는 언어와 상관없이 한 번만 셈 */
   const koreanTexts = new Map<number, string>();
@@ -125,19 +129,23 @@ export async function buildSite({ site: baseSite, settings, activities = [], pos
     const archiveActivities = sortedActivities.map((activity) => localizeActivity(activity, locale, imageSizes));
     await add(
       localizedPath(locale, "/"),
-      homePage({ site, locale, profile, posts: cardsOf(published.slice(0, HOME_POST_COUNT)), tags, tree, imageSizes, activities: archiveActivities.slice(0, HOME_ACTIVITY_COUNT) }),
+      homePage({ site, locale, profile, posts: cardsOf(publishedPosts.slice(0, HOME_POST_COUNT)), tags, tree, imageSizes, activities: archiveActivities.slice(0, HOME_ACTIVITY_COUNT), notes: cardsOf(publishedNotes.slice(0, HOME_NOTE_COUNT)) }),
     );
     // 아카이브 (설계 15-5): 글 + 활동을 연 → 월로
     await add(localizedPath(locale, ARCHIVE_PATH), archivePage({ site, locale, years: groupArchive(cardsOf(published), archiveActivities) }));
-    for (const [path, page] of listPages(site, locale, cardsOf(published), POSTS_PATH, imageSizes, undefined, undefined, browse)) await add(path, page);
+    for (const [path, page] of listPages(site, locale, cardsOf(publishedPosts), POSTS_PATH, imageSizes, undefined, undefined, browse)) await add(path, page);
+    // 노트 목록 (설계 17): 한 줄씩, 한 페이지
+    await add(localizedPath(locale, NOTES_PATH), notesPage({ site, locale, notes: cardsOf(publishedNotes) }));
 
     // 글: 한국어 / 번역본 / 미번역(한글을 흐리게 + 안내)
     /** 검색용 본문 HTML (글 id → 이 언어 페이지에 보이는 본문) */
     const bodyHtmlOf = new Map<number, string>();
-    for (const [index, { post, translation }] of localized.entries()) {
-      const path = localizedPath(locale, postPath(post.id));
-      // 이전 = 더 옛날 글(목록에서 다음 칸), 다음 = 더 새 글 (설계 15-6)
-      const neighbors = { prev: localized[index + 1] && cards.get(localized[index + 1]!.post.id), next: localized[index - 1] && cards.get(localized[index - 1]!.post.id) };
+    for (const { post, translation } of localized) {
+      const path = localizedPath(locale, entryPath(post));
+      // 이전 = 더 옛날 글(목록에서 다음 칸), 다음 = 더 새 글 (설계 15-6). 같은 종류 안에서만 (설계 17)
+      const sameKind = localized.filter((item) => kindOf(item.post) === kindOf(post));
+      const index = sameKind.findIndex((item) => item.post.id === post.id);
+      const neighbors = { prev: sameKind[index + 1] && cards.get(sameKind[index + 1]!.post.id), next: sameKind[index - 1] && cards.get(sameKind[index - 1]!.post.id) };
       if (locale === SOURCE_LOCALE) {
         const { html, toc } = renderDocument(post.body, { imageSizes });
         bodyHtmlOf.set(post.id, html);
@@ -160,10 +168,11 @@ export async function buildSite({ site: baseSite, settings, activities = [], pos
     // 태그 모음 + 태그별 목록 (태그 이름은 번역하지 않음)
     await add(localizedPath(locale, TAGS_PATH), tagsPage({ site, locale, tags, tree }));
     for (const { name } of tags) {
-      const tagged = published.filter((post) => post.tags.includes(name));
+      const tagged = publishedPosts.filter((post) => post.tags.includes(name));
+      const taggedNotes = publishedNotes.filter((post) => post.tags.includes(name));
       // 태그 페이지 위: 상위 경로 / 아래: 하위 태그 (글이 있는 것만)
       const nav = { ancestors: tree.ancestorsOf(name), children: tags.filter((tag) => tree.parentOf(tag.name) === name) };
-      for (const [path, page] of listPages(site, locale, cardsOf(tagged), tagPath(name), imageSizes, name, nav, browse)) await add(path, page);
+      for (const [path, page] of listPages(site, locale, cardsOf(tagged), tagPath(name), imageSizes, name, nav, browse, cardsOf(taggedNotes))) await add(path, page);
     }
 
     // 통계 (설계 15-9): 첫 차례(한국어)에서 본문 글자를 모은 뒤 셈
@@ -186,7 +195,8 @@ export async function buildSite({ site: baseSite, settings, activities = [], pos
     files.set(localizedPath(locale, SEARCH_BODY_PATH), JSON.stringify(search.bodies));
 
     // RSS: 번역 언어는 번역된 글만
-    const feed = localized.filter((item) => locale === SOURCE_LOCALE || item.translation).slice(0, RSS_ITEM_COUNT);
+    // RSS는 글만 (설계 17: 노트는 나를 위한 정리)
+    const feed = localized.filter((item) => kindOf(item.post) === "post" && (locale === SOURCE_LOCALE || item.translation)).slice(0, RSS_ITEM_COUNT);
     files.set(localizedPath(locale, "/rss.xml"), rss(site, locale, feed));
   }
 
@@ -204,8 +214,8 @@ function searchFiles(locale: Locale, cards: PostCardData[], bodyHtmlOf: Readonly
   for (const card of cards) {
     const date = postDate(card);
     items.push({
-      k: "post",
-      u: localizedPath(locale, postPath(card.id)),
+      k: card.kind === "note" ? "note" : "post",
+      u: localizedPath(locale, entryPath(card)),
       t: card.title,
       d: date,
       dt: formatDay(date, locale),
@@ -265,6 +275,20 @@ function toCard(locale: Locale, { post, translation }: LocalizedPost): PostCardD
   return translation ? { ...rest, title: translation.title, summary: translation.summary } : { ...rest, untranslated: true };
 }
 
+/**
+ * 종류를 바꾼 글의 옛 주소를 옮기는 규칙 (설계 17, _redirects 줄들). 공개 글마다 반대쪽 주소 → 지금 주소 301.
+ * 빌드 스크립트가 site-static/_redirects 뒤에 붙인다 (그 글이 처음부터 그 종류였어도 해롭지 않음)
+ */
+export function kindRedirects(posts: readonly Post[]): string[] {
+  const lines: string[] = [];
+  for (const post of posts) {
+    if (post.status !== "published" || post.deletedAt !== null) continue;
+    const [from, to] = kindOf(post) === "note" ? [postPath(post.id), notePath(post.id)] : [notePath(post.id), postPath(post.id)];
+    for (const locale of LOCALES) lines.push(`${localizedPath(locale, from)} ${localizedPath(locale, to)} 301`);
+  }
+  return lines;
+}
+
 /** 목록을 10개씩 끊어 페이지들을 만든다. 글이 없어도 1페이지는 만든다 ("아직 글이 없어요") */
 function* listPages(
   site: SiteConfig,
@@ -275,13 +299,15 @@ function* listPages(
   tag?: string,
   tagNav?: TagNav,
   browse?: ListBrowse,
+  /** 태그 페이지의 노트 (설계 17, 첫 페이지에만) */
+  notes: PostCardData[] = [],
 ): Generator<[string, Html]> {
   const totalPages = Math.ceil(cards.length / SITE_PAGE_SIZE);
   for (let page = 1; page <= Math.max(totalPages, 1); page++) {
     const items = cards.slice((page - 1) * SITE_PAGE_SIZE, page * SITE_PAGE_SIZE);
     yield [
       localizedPath(locale, pagePath(listPath, page)),
-      listPage({ site, locale, posts: items, pagination: { page, totalPages, listPath }, tag, tagNav, imageSizes, browse }),
+      listPage({ site, locale, posts: items, pagination: { page, totalPages, listPath }, tag, tagNav, imageSizes, browse, notes: page === 1 ? notes : [] }),
     ];
   }
 }

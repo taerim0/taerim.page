@@ -21,7 +21,7 @@ import type { SiteStats } from "./stats.ts";
 import { formatDate, formatDay, SITE_SCRIPT, LOCALES, localizedPath, MESSAGES, SOURCE_LOCALE } from "./i18n.ts";
 import type { Locale } from "./i18n.ts";
 import type { ImageSize } from "./images.ts";
-import { ARCHIVE_PATH, activityAnchor, pagePath, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, STATS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
+import { activityAnchor, ARCHIVE_PATH, entryPath, NOTES_PATH, pagePath, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, STATS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
 
 export { formatDate } from "./i18n.ts";
 
@@ -91,7 +91,7 @@ interface LayoutProps {
   /** <body> class (홈 page-home, 글 page-post, 목록 page-list, 제목 + 카드 한 장 page-plain (설계 16-15), 없으면 page-basic) */
   bodyClass?: string;
   /** 머리 메뉴에서 지금 표시할 칸 (설계 16-1: 초록 밑줄) */
-  section?: "posts" | "archive" | "search" | "stats";
+  section?: "posts" | "notes" | "archive" | "search" | "stats";
   /** 이 페이지에만 붙일 모듈 스크립트 (검색 페이지의 /assets/search.js) */
   moduleScript?: string;
   body: Html;
@@ -139,6 +139,7 @@ export function layout(props: LayoutProps): Html {
       <a class="site-name" href="${localizedPath(locale, "/")}"><svg class="home-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11 12 4l8.5 7"></path><path d="M5.5 9.5V20h13V9.5"></path><path d="M10 20v-5.5h4V20"></path></svg>${site.name}</a>
       <nav class="site-nav">
         ${navLink(localizedPath(locale, POSTS_PATH), m.navPosts, props.section === "posts")}
+        ${navLink(localizedPath(locale, NOTES_PATH), m.navNotes, props.section === "notes")}
         ${navLink(localizedPath(locale, ARCHIVE_PATH), m.navArchive, props.section === "archive")}
         ${navLink(localizedPath(locale, SEARCH_PATH), m.navSearch, props.section === "search")}
         ${navLink(localizedPath(locale, STATS_PATH), m.navStats, props.section === "stats")}
@@ -219,6 +220,8 @@ interface ListPageProps {
   imageSizes?: ReadonlyMap<string, ImageSize>;
   /** 왼쪽 "태그로 보기"·"해마다" (설계 16-9). 없으면 왼쪽 카드 없이 */
   browse?: ListBrowse;
+  /** 태그 페이지의 노트 (설계 17): 글 카드 아래 노트 카드(한 줄씩), 첫 페이지에만 */
+  notes?: PostCardData[];
 }
 
 /** 목록 왼쪽 카드에 쓰는 것 (설계 16-9) */
@@ -234,7 +237,7 @@ export interface ListBrowse {
 /** 태그로 보기에 보일 태그 수 */
 export const BROWSE_TAG_COUNT = 10;
 
-export function listPage({ site, locale = SOURCE_LOCALE, posts, pagination, tag, tagNav, imageSizes, browse }: ListPageProps): Html {
+export function listPage({ site, locale = SOURCE_LOCALE, posts, pagination, tag, tagNav, imageSizes, browse, notes = [] }: ListPageProps): Html {
   const m = MESSAGES[locale];
   const heading = tag === undefined ? null : `#${tag}`;
   const pageSuffix = pagination.page > 1 ? m.pageSuffix(pagination.page) : "";
@@ -258,9 +261,15 @@ export function listPage({ site, locale = SOURCE_LOCALE, posts, pagination, tag,
       </aside>
       <div class="list-main">
         ${posts.length === 0
-          ? html`<p class="empty card">${m.emptyPosts}</p>`
+          ? notes.length > 0 ? "" : html`<p class="empty card">${m.emptyPosts}</p>`
           : html`<div class="card list-card"><ul class="post-rows">${posts.map((post) => postRow(locale, post, imageSizes))}</ul></div>`}
         ${pager(locale, pagination)}
+        ${notes.length === 0
+          ? ""
+          : html`<section class="card list-card notes-card" aria-labelledby="tag-notes">
+          <h2 class="card-heading" id="tag-notes">${m.navNotes}</h2>
+          ${noteLines(locale, notes, { tags: false })}
+        </section>`}
       </div>
     </div>`;
   return layout({
@@ -274,6 +283,31 @@ export function listPage({ site, locale = SOURCE_LOCALE, posts, pagination, tag,
     bodyClass: "page-list",
     body,
   });
+}
+
+/**
+ * 노트 목록 (/notes, 설계 17): 요약·대표 이미지 없이 한 줄씩 (날짜 · 제목 · 태그), 한 페이지에 전부
+ */
+export function notesPage({ site, locale = SOURCE_LOCALE, notes }: { site: SiteConfig; locale?: Locale; notes: PostCardData[] }): Html {
+  const m = MESSAGES[locale];
+  const body = html`
+    <div class="notes-page">
+      <h1 class="list-heading">${m.noteListTitle}</h1>
+      ${notes.length === 0
+        ? html`<p class="empty card">${m.emptyNotes}</p>`
+        : html`<div class="card list-card">${noteLines(locale, notes, { tags: true })}</div>`}
+    </div>`;
+  return layout({ site, locale, title: m.noteListTitle, path: NOTES_PATH, section: "notes", bodyClass: "page-list", body });
+}
+
+/** 노트 한 줄씩 (설계 17): 날짜 · 제목 (· 태그). 노트 목록·태그 페이지·홈이 같이 씀 */
+function noteLines(locale: Locale, notes: PostCardData[], { tags }: { tags: boolean }): Html {
+  const m = MESSAGES[locale];
+  return html`<ul class="note-lines">${notes.map((note) => {
+    const korean = note.untranslated === true && locale !== SOURCE_LOCALE;
+    const date = note.publishedAt ?? note.updatedAt;
+    return html`<li><time datetime="${date}">${formatDay(formatDate(date, SOURCE_LOCALE), locale)}</time><span class="note-line-title"><a href="${localizedPath(locale, entryPath(note))}"${korean ? html` lang="ko"` : ""}>${note.title}</a>${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</span>${tags && note.tags.length > 0 ? html`<span class="note-line-tags">${note.tags.map((tag) => html`<a class="tag" href="${localizedPath(locale, tagPath(tag))}">#${tag}</a>`)}</span>` : ""}</li>`;
+  })}</ul>`;
 }
 
 /**
@@ -380,14 +414,14 @@ export function postPage({ site, locale = SOURCE_LOCALE, post, bodyHtml, toc, al
     locale,
     title: post.title,
     description: post.summary ?? undefined,
-    path: postPath(post.id),
+    path: entryPath(post),
     image: post.thumbnail,
     type: "article",
     alternates,
     math: hasMath(bodyHtml),
     moduleScript: site.giscus ? COMMENTS_SCRIPT : undefined,
     bodyClass: "page-post",
-    section: "posts",
+    section: post.kind === "note" ? "notes" : "posts",
     body: postLayout(locale, toc, html`${article(locale, post, bodyHtml, views, true)}
         ${postNav(locale, neighbors)}
         ${site.giscus ? comments(locale, site.giscus, post.id) : ""}`),
@@ -441,7 +475,7 @@ function postNav(locale: Locale, neighbors: PostPageProps["neighbors"]): Html | 
   const m = MESSAGES[locale];
   const link = (post: PostCardData, rel: "prev" | "next", label: string) => {
     const korean = post.untranslated === true && locale !== SOURCE_LOCALE;
-    return html`<a class="post-nav-${rel}" rel="${rel}" href="${localizedPath(locale, postPath(post.id))}">
+    return html`<a class="post-nav-${rel}" rel="${rel}" href="${localizedPath(locale, entryPath(post))}">
         <span class="post-nav-label">${label}</span>
         <span class="post-nav-title"${korean ? html` lang="ko"` : ""}>${post.title}${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</span>
       </a>`;
@@ -498,13 +532,13 @@ export function untranslatedPostPage({ site, locale, post, bodyHtml }: Untransla
         <section class="untranslated-dialog" role="dialog" aria-label="${m.untranslatedTitle}">
           <p class="untranslated-title">${m.untranslatedTitle}</p>
           <p class="untranslated-actions">
-            <a class="untranslated-button primary" href="${postPath(post.id)}?lang=${SOURCE_LOCALE}" hreflang="ko">${m.readInKorean}</a>
+            <a class="untranslated-button primary" href="${entryPath(post)}?lang=${SOURCE_LOCALE}" hreflang="ko">${m.readInKorean}</a>
             <a class="untranslated-button" href="${localizedPath(locale, "/")}">${m.backToPosts}</a>
           </p>
         </section>
       </div>
     </div>`;
-  return layout({ site, locale, title: post.title, path: postPath(post.id), image: post.thumbnail, noindex: true, math: hasMath(bodyHtml), bodyClass: "page-post", section: "posts", body });
+  return layout({ site, locale, title: post.title, path: entryPath(post), image: post.thumbnail, noindex: true, math: hasMath(bodyHtml), bodyClass: "page-post", section: "posts", body });
 }
 
 // ── 태그 모음 ────────────────────────────────────────
@@ -552,9 +586,14 @@ interface HomePageProps {
   tags: TagCount[];
   tree?: TagTree;
   imageSizes?: ReadonlyMap<string, ImageSize>;
+  /** 최근 노트 (설계 17, HOME_NOTE_COUNT개까지): 활동 아래 제목만. 없으면 안 보임 */
+  notes?: PostCardData[];
   /** 최근 활동 (설계 15-5, HOME_ACTIVITY_COUNT개까지). 없으면 그 부분을 안 보임 */
   activities?: ArchiveActivity[];
 }
+
+/** 홈에 보일 최근 노트 수 (설계 17) */
+export const HOME_NOTE_COUNT = 5;
 
 /** 홈에 보일 최근 활동 수 */
 export const HOME_ACTIVITY_COUNT = 10;
@@ -563,7 +602,7 @@ export const HOME_ACTIVITY_COUNT = 10;
  * 홈: 넓으면 왼쪽(소개 카드 + 태그 트리) · 오른쪽(최신 글 + 전체 글 보기), 좁으면 세로로 (CSS).
  * 태그 트리는 <details open> 하나 → 좁은 화면에서는 방문자 스크립트가 처음에 접음
  */
-export function homePage({ site, locale = SOURCE_LOCALE, profile, posts, tags, tree, imageSizes, activities = [] }: HomePageProps): Html {
+export function homePage({ site, locale = SOURCE_LOCALE, profile, posts, tags, tree, imageSizes, activities = [], notes = [] }: HomePageProps): Html {
   const m = MESSAGES[locale];
   const [first, ...rest] = posts;
   const body = html`
@@ -596,6 +635,13 @@ export function homePage({ site, locale = SOURCE_LOCALE, profile, posts, tags, t
           )}</ul>
           <p class="card-more"><a href="${localizedPath(locale, ARCHIVE_PATH)}">${m.viewArchive}</a></p>
         </section>`}
+        ${notes.length === 0
+          ? ""
+          : html`<section class="card list-card home-notes" aria-labelledby="home-notes">
+          <h2 class="card-heading" id="home-notes">${m.recentNotes}</h2>
+          ${noteLines(locale, notes, { tags: false })}
+          <p class="card-more"><a href="${localizedPath(locale, NOTES_PATH)}">${m.allNotes}</a></p>
+        </section>`}
       </section>
     </div>`;
   return layout({ site, locale, path: "/", bodyClass: "page-home", body });
@@ -608,9 +654,9 @@ function featuredCard(site: SiteConfig, locale: Locale, post: PostCardData, imag
   const size = imageSizes?.get(src);
   const korean = post.untranslated === true && locale !== SOURCE_LOCALE;
   return html`<article class="card featured">
-          <a class="featured-image" href="${localizedPath(locale, postPath(post.id))}" tabindex="-1" aria-hidden="true"><img src="${src}" alt=""${size ? html` width="${size.width}" height="${size.height}"` : ""}></a>
+          <a class="featured-image" href="${localizedPath(locale, entryPath(post))}" tabindex="-1" aria-hidden="true"><img src="${src}" alt=""${size ? html` width="${size.width}" height="${size.height}"` : ""}></a>
           <div class="featured-text">
-            <h3 class="featured-title"${korean ? html` lang="ko"` : ""}><a href="${localizedPath(locale, postPath(post.id))}">${post.title}</a>${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</h3>
+            <h3 class="featured-title"${korean ? html` lang="ko"` : ""}><a href="${localizedPath(locale, entryPath(post))}">${post.title}</a>${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</h3>
             ${post.summary ? html`<p class="summary"${korean ? html` lang="ko"` : ""}>${post.summary}</p>` : ""}
             ${postMeta(locale, post)}
           </div>
@@ -624,7 +670,7 @@ function postRow(locale: Locale, post: PostCardData, imageSizes?: ReadonlyMap<st
   const korean = post.untranslated === true && locale !== SOURCE_LOCALE;
   return html`<li class="post-row${post.thumbnail ? " has-thumb" : ""}">
             <div class="post-row-text">
-              <h3 class="post-row-title"${korean ? html` lang="ko"` : ""}><a href="${localizedPath(locale, postPath(post.id))}">${post.title}</a>${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</h3>
+              <h3 class="post-row-title"${korean ? html` lang="ko"` : ""}><a href="${localizedPath(locale, entryPath(post))}">${post.title}</a>${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</h3>
               ${post.summary ? html`<p class="summary"${korean ? html` lang="ko"` : ""}>${post.summary}</p>` : ""}
               ${postMeta(locale, post)}
             </div>
@@ -728,7 +774,7 @@ function archiveDay(locale: Locale, date: string): string {
 function archivePostLine(locale: Locale, date: string, post: PostCardData): Html {
   const m = MESSAGES[locale];
   const korean = post.untranslated === true && locale !== SOURCE_LOCALE;
-  return html`<li class="archive-post"><time datetime="${date}">${archiveDay(locale, date)}</time> <span class="archive-post-title"><a href="${localizedPath(locale, postPath(post.id))}"${korean ? html` lang="ko"` : ""}>${post.title}</a>${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</span></li>`;
+  return html`<li class="archive-post"><time datetime="${date}">${archiveDay(locale, date)}</time> <span class="archive-post-title"><a href="${localizedPath(locale, entryPath(post))}"${korean ? html` lang="ko"` : ""}>${post.title}</a>${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}${post.kind === "note" ? html` <span class="note-badge">${m.noteBadge}</span>` : ""}</span></li>`;
 }
 
 // ── 검색 (설계 15-7) ─────────────────────────────────
@@ -749,7 +795,7 @@ export function searchPage({ site, locale = SOURCE_LOCALE }: { site: SiteConfig;
       data-index="${localizedPath(locale, SEARCH_INDEX_PATH)}" data-body="${localizedPath(locale, SEARCH_BODY_PATH)}"
       data-msg-count="${m.searchCount}" data-msg-more="${m.searchMore}" data-msg-none="${m.searchNone}"
       data-msg-loading="${m.searchLoadingBody}" data-msg-failed="${m.searchFailed}"
-      data-badge-activity="${m.activityBadge}" data-badge-kr="${m.koreanOnly}" data-badge-kr-title="${m.koreanOnlyTitle}">
+      data-badge-activity="${m.activityBadge}" data-badge-note="${m.noteBadge}" data-badge-kr="${m.koreanOnly}" data-badge-kr-title="${m.koreanOnlyTitle}">
       <label class="visually-hidden" for="search-q">${m.searchLabel}</label>
       <input class="search-input" id="search-q" name="q" type="search" placeholder="${m.searchPlaceholder}" autocomplete="off" autofocus>
     </form>

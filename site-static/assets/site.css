@@ -545,3 +545,20 @@ a.pager-num:hover { border-color: var(--accent); color: var(--accent); }
 .js .lang-switch a[aria-current]::after { content: "✓"; }
 .lang-button svg { width: 18px; height: 18px; flex: none; stroke-width: 1.8; }
 @media (max-width: 599px) { .nav-link { padding: 6px 7px; } .js .lang-menu, .theme-toggle { margin-left: 4px; } }
+
+/* ── 노트 (설계 17): 한 줄씩 (날짜 · 제목 · 태그). 노트 목록·태그 페이지·홈 최근 노트가 같이 씀 ── */
+.notes-page { display: grid; gap: 16px; max-width: 816px; margin: 0 auto; }
+.notes-page .list-heading { margin: 0; }
+.note-lines { list-style: none; margin: 0; padding: 4px 0 8px; }
+.note-lines li { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; padding: 9px 0; border-bottom: 1px solid var(--line-soft); }
+.note-lines li:last-child { border-bottom: 0; }
+.note-lines time { min-width: 6.5em; color: var(--muted); font-size: .9em; font-variant-numeric: tabular-nums; }
+.note-line-title { flex: 1 1 14em; min-width: 0; }
+.note-line-title a { color: var(--text); text-decoration: none; }
+.note-line-title a:hover { color: var(--accent); }
+.note-line-tags { display: flex; flex-wrap: wrap; gap: 2px 8px; font-size: .85em; }
+.note-line-tags .tag { text-decoration: none; }
+.home-notes, .notes-card { padding-top: 18px; }
+.home-notes .note-lines li, .notes-card .note-lines li { font-size: .92em; }
+.note-badge { display: inline-block; margin-left: 6px; padding: 0 7px; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); font-size: .78em; font-weight: 600; line-height: 1.6; vertical-align: middle; }
+.search-result-head .note-badge { margin: 0; }

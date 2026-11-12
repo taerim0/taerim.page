@@ -8,6 +8,16 @@ export function postPath(id: number): string {
   return `/posts/${id}`;
 }
 
+/** 노트 주소 (설계 17). 예) 42 → "/notes/42" */
+export function notePath(id: number): string {
+  return `/notes/${id}`;
+}
+
+/** 글이든 노트든 그 종류의 주소 (설계 17). 종류가 없으면 글 */
+export function entryPath(post: { id: number; kind?: "post" | "note" }): string {
+  return post.kind === "note" ? notePath(post.id) : postPath(post.id);
+}
+
 /**
  * 태그(카테고리) 주소. 태그 이름의 특수문자를 인코딩한다.
  * 예) "react" → "/tags/react", "c/c++" → "/tags/c%2Fc%2B%2B", "개발" → "/tags/%EA%B0%9C%EB%B0%9C"
@@ -19,6 +29,9 @@ export function tagPath(tag: string): string {
 
 /** 전체 글 목록 주소 (설계 15-4: 홈에서 옮김) */
 export const POSTS_PATH = "/posts";
+
+/** 노트 목록 주소 (설계 17) */
+export const NOTES_PATH = "/notes";
 
 /** 아카이브 주소 (설계 15-5) */
 export const ARCHIVE_PATH = "/archive";

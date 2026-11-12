@@ -197,3 +197,90 @@ main {
 .gsc-pagination-button {
   border-radius: 8px;
 }
+
+/* ── 시안 C-2에 맞춤 (2026-11-12 손봄 2) ── */
+/* 위아래 간격: 반응 줄 → 댓글 → 입력 칸 */
+.gsc-main {
+  gap: 0.75rem;
+}
+.gsc-comments {
+  gap: 0;
+}
+/* 반응: "반응 N개" 제목 없이 왼쪽 한 줄 알약 */
+.gsc-reactions {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+}
+.gsc-reactions-count {
+  display: none;
+}
+.gsc-reactions > div {
+  flex: none;
+  justify-content: flex-start;
+  margin-top: 0;
+}
+/* 댓글 개수·giscus 표시: 맨 아래 오른쪽에 작고 옅게 (정렬 단추는 숨김, 오래된 순) */
+.gsc-comments > .gsc-header {
+  order: 3;
+  justify-content: flex-end;
+  padding-top: 0.5rem;
+}
+.gsc-comments > .gsc-timeline {
+  order: 1;
+}
+.gsc-comments > .gsc-comment-box {
+  order: 2;
+}
+.gsc-left-header {
+  flex: none;
+  gap: 0.375rem;
+}
+.gsc-comments-count,
+.gsc-comments-count-separator,
+.gsc-replies-count {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--color-fg-muted);
+}
+.gsc-comments-count a {
+  color: var(--color-fg-muted);
+  text-decoration: none;
+}
+.gsc-left-header em {
+  font-size: 0.75rem;
+  font-style: normal;
+}
+.gsc-right-header {
+  display: none;
+}
+/* 입력 칸: 작성/미리보기 탭 없이 옅은 바탕 칸 하나 */
+.gsc-comment-box-tabs {
+  display: none;
+}
+.gsc-comment-box-main {
+  margin: 0;
+}
+.gsc-comment-box-textarea,
+.gsc-comment-box-textarea:focus {
+  min-height: 64px;
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+.gsc-comment-box-textarea-extras {
+  display: none;
+}
+.gsc-comment-box-bottom {
+  margin: 0.5rem 0 0;
+}
+/* 로그인·댓글 단추: 테두리만 (시안 C-2), 올리면 초록 */
+.gsc-comment-box-buttons .btn-primary {
+  border: 1px solid var(--color-border-default);
+  background-color: transparent;
+  color: var(--color-fg-default);
+}
+.gsc-comment-box-buttons .btn-primary:hover:not(:disabled) {
+  border-color: var(--color-accent-fg);
+  background-color: transparent;
+  color: var(--color-accent-fg);
+}

@@ -34,6 +34,7 @@ export function checkTranslation(source: TranslationContent, result: Translation
   if (!sameList(calloutMarkers(source.body), calloutMarkers(result.body))) return "콜아웃이 원문과 달라요";
   if (!sameList(before.tables, after.tables)) return "표 모양이 원문과 달라요";
   if (!sameList(embedUrls(source.body), embedUrls(result.body))) return "임베드(!embed) 주소가 원문과 달라요";
+  if (!sameList(indents(source.body), indents(result.body))) return "들여쓰기(줄 앞 공백)가 원문과 달라요";
   return null;
 }
 
@@ -74,6 +75,16 @@ function outline(markdown: string): Outline {
   };
   visit(md.parse(markdown, {}));
   return result;
+}
+
+/** 줄 앞 공백이 있는 줄들의 공백 수 (순서대로). 들여쓰기·하위 목록 (설계 13-11). 코드 블록은 자리표라 안 셈 */
+function indents(markdown: string): string[] {
+  return markdown
+    .split(/\r?\n/)
+    .filter((line) => line.trim() !== "")
+    .map((line) => /^ */.exec(line)?.[0].length ?? 0)
+    .filter((count) => count > 0)
+    .map(String);
 }
 
 function sameList(a: readonly string[], b: readonly string[]): boolean {

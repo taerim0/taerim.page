@@ -19,6 +19,7 @@ export function buildTranslationRequest(source: TranslationContent, lang: Transl
     `- Translate into natural, fluent ${language} that a developer would enjoy reading. Keep the author's voice and tone.`,
     "- Translate everything faithfully. Do not add, remove, summarize, or explain anything.",
     "- Keep the Markdown structure exactly: headings and their levels, lists, tables, blockquotes, emphasis, blank lines, and line breaks.",
+    "- Keep the spaces at the start of each line exactly as they are. They mean indentation (two spaces per level).",
     "- Lines like [[CODE_1]] are placeholders for code blocks. Copy each one unchanged, on its own line, in the same place.",
     "- [[MATH_1]] and similar are placeholders for math formulas, either on their own line or inside a sentence. Copy each one unchanged in the matching place.",
     "- Do not change inline code (`like this`), URLs, link targets, or image addresses.",

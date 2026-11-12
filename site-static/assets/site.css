@@ -217,7 +217,15 @@ a { color: var(--accent); }
 .untranslated-button.primary { border-color: var(--accent); background: var(--accent); color: var(--card); }
 
 /* ── 본문 블록 (설계 16-2) ── */
-.post-body { color: var(--body-text); font-size: 1.06em; line-height: 1.8; overflow-wrap: break-word; }
+.post-body { color: var(--body-text); font-size: 1.06em; line-height: 1.9; overflow-wrap: break-word; }
+/* 문단 사이 (빈 줄) 조금 넓게 (설계 13-11) */
+:where(.post-body) p { margin: 1.2em 0; }
+/* 들여쓰기 (설계 13-11): 한 단계 1.5em, 위 블록과는 줄바꿈 한 줄만큼만 떨어져 붙어 보임 */
+.post-body .indent { padding-left: 1.5em; }
+:where(.post-body) .indent { margin: 0 0 1.2em; }
+.post-body :has(+ .indent) { margin-bottom: 0; }
+.post-body .indent > :first-child { margin-top: 0; }
+.post-body .indent > :last-child { margin-bottom: 0; }
 .post-body > :first-child { margin-top: 0; }
 .post-body > :last-child { margin-bottom: 0; }
 .post-body h2, .post-body h3, .post-body h4 { color: var(--text); line-height: 1.4; scroll-margin-top: 16px; }

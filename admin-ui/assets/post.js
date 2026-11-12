@@ -147,6 +147,49 @@ function idFromPath() {
   return match ? Number(match[1]) : null;
 }
 
+/** 글 종류 (설계 17). 새 글은 주소 ?kind=note면 노트로 시작 @type {"post" | "note"} */
+let kind = new URLSearchParams(location.search).get("kind") === "note" ? "note" : "post";
+/** 공개 주소 (종류에 따라 /posts·/notes) */
+const publicPath = (/** @type {number} */ id) => `${kind === "note" ? "/notes" : "/posts"}/${id}`;
+
+/** 종류 표시: 상태 줄 "노트", 팝업 라디오·안내 */
+function renderKind() {
+  $("kind-pill").hidden = kind !== "note";
+  for (const radio of /** @type {NodeListOf<HTMLInputElement>} */ (document.querySelectorAll('input[name="kind"]'))) radio.checked = radio.value === kind;
+  $("kind-help").textContent =
+    postId === null ? "저장할 때 이 종류로 만들어요." : publishedPost ? `공개 주소: ${publicPath(postId)} — 바꾸면 다음 배포부터 새 주소, 옛 주소는 자동으로 옮겨 줘요.` : "고르면 바로 바뀌어요.";
+}
+
+/** 팝업에서 종류를 고름: 새 글이면 기억만, 있는 글이면 바로 서버에 (공개 글은 한 번 더 확인) @param {"post" | "note"} next */
+async function chooseKind(next) {
+  if (next === kind) return;
+  if (postId === null) {
+    kind = next;
+    renderKind();
+    return;
+  }
+  const id = postId;
+  if (publishedPost) {
+    const label = next === "note" ? "노트" : "글";
+    const ok = await confirmDialog({
+      title: `${label}(으)로 바꿀까요?`,
+      message: `공개 주소가 ${publicPath(id)} → ${next === "note" ? "/notes" : "/posts"}/${id}로 바뀌어요 (다음 배포부터). 옛 주소로 들어오면 새 주소로 옮겨 줘요.`,
+      confirmLabel: `${label}(으)로 바꾸기`,
+    });
+    if (!ok) {
+      renderKind();
+      return;
+    }
+  }
+  await run(async () => {
+    const post = await postsApi.setKind(id, next);
+    kind = post.kind === "note" ? "note" : "post";
+    renderKind();
+    notify(kind === "note" ? "노트로 바꿨어요" : "글로 바꿨어요", "info");
+  });
+  renderKind();
+}
+
 async function load() {
   const id = idFromPath();
   try {
@@ -155,6 +198,7 @@ async function load() {
     useTagNodes(tagNodes);
     if (forEdit) {
       postId = forEdit.post.id;
+      kind = forEdit.post.kind === "note" ? "note" : "post";
       setFromServer(forEdit.post, forEdit.draft, { overwriteInputs: true });
     } else {
       setMode("new");
@@ -170,6 +214,7 @@ async function load() {
   $("loading").hidden = true;
   editor.hidden = false;
   renderTags();
+  renderKind();
   setPreviewOpen(initialPreviewState()); // 열려 있으면 전체 렌더링까지
   refresh();
   inputs.title.focus();
@@ -635,8 +680,8 @@ async function save({ quiet = false } = {}) {
 
   return run(async () => {
     if (postId === null) {
-      /** @type {Partial<PostInput>} */
-      const input = { ...sent, summary: sent.summary || null, thumbnail: sent.thumbnail || null };
+      /** @type {Partial<import("./api.js").NewPostInput>} */
+      const input = { ...sent, kind, summary: sent.summary || null, thumbnail: sent.thumbnail || null };
       const post = await postsApi.create(input);
       postId = post.id;
       // 새로고침해도 이 글이 열리게. 뒤로 가기 기록은 남기지 않는다 (/posts/new로 돌아가 같은 글을 또 만들지 않게)
@@ -851,6 +896,7 @@ function openMeta(options = {}) {
   addingUnder = null;
   renderThumb();
   renderTags();
+  renderKind();
   metaDialog.showModal();
   inputs.summary.focus();
 }
@@ -976,6 +1022,11 @@ tagSearch.addEventListener("keydown", (event) => {
   tagSearch.value = "";
   void addTag(text);
 });
+
+// 종류 고르기 (설계 17)
+for (const radio of /** @type {NodeListOf<HTMLInputElement>} */ (document.querySelectorAll('input[name="kind"]'))) {
+  radio.addEventListener("change", () => void chooseKind(radio.value === "note" ? "note" : "post"));
+}
 
 // 콜아웃 도움말 (설계 16-18)
 bindCalloutHelp("ko");

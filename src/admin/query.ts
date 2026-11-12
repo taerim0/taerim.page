@@ -1,5 +1,6 @@
 import { MAX_PAGE_SIZE } from "../posts/repository.ts";
-import type { PostListFilter, PostStatus } from "../posts/types.ts";
+import { POST_KINDS } from "../posts/types.ts";
+import type { PostKind, PostListFilter, PostStatus } from "../posts/types.ts";
 import { LIMITS, normalizeTag, normalizeTags } from "../posts/validation.ts";
 import { HttpError } from "./http-errors.ts";
 
@@ -24,6 +25,13 @@ export function parseListQuery(params: URLSearchParams): PostListFilter {
       throw badRequest("status는 draft 또는 published만 쓸 수 있어요");
     }
     filter.status = status as PostStatus;
+  }
+
+  // 설계 17: 글만 / 노트만
+  const kind = value(params, "kind");
+  if (kind !== undefined) {
+    if (!(POST_KINDS as readonly string[]).includes(kind)) throw badRequest("kind는 post 또는 note만 쓸 수 있어요");
+    filter.kind = kind as PostKind;
   }
 
   const trash = value(params, "trash");

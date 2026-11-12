@@ -40,9 +40,16 @@
         <button type="button" data-status="published">공개 <span class="seg-count" data-count="published"></span></button>
         <button type="button" data-status="edited">수정본 <span class="seg-count" data-count="edited"></span></button>
       </div>
+      <!-- 종류 (설계 17): 글 = 다른 사람이 읽는 글, 노트 = 공부 정리 -->
+      <div class="segmented" role="group" aria-label="종류">
+        <button type="button" data-kind="">전체 <span class="seg-count" data-count="all"></span></button>
+        <button type="button" data-kind="post">글 <span class="seg-count" data-count="posts"></span></button>
+        <button type="button" data-kind="note">노트 <span class="seg-count" data-count="notes"></span></button>
+      </div>
       <span class="toolbar-gap"></span>
       <input id="search" class="list-search" type="search" placeholder="제목 · #태그로 찾기" aria-label="제목으로 찾기 (#태그를 쓰면 그 태그로 거름)" autocomplete="off">
       <a class="button primary" href="/posts/new">+ 새 글</a>
+      <a class="button" href="/posts/new?kind=note">+ 새 노트</a>
     </div>
 
     <div class="list-layout">

@@ -14,7 +14,8 @@ import { clearNotice, confirmDialog, el, formatDateTime, notify, setQuery, showF
 /** @typedef {import("./api.js").PostSummary} PostSummary */
 /** @typedef {import("./api.js").TranslationListItem} TranslationListItem */
 /** @typedef {"" | "draft" | "published" | "edited"} StatusFilter */
-/** 화면 상태 = 주소의 ?… @typedef {{ status: StatusFilter, q: string, page: number, id: number | null }} ListState */
+/** @typedef {"" | "post" | "note"} KindFilter 종류 (설계 17) */
+/** 화면 상태 = 주소의 ?… @typedef {{ status: StatusFilter, kind: KindFilter, q: string, page: number, id: number | null }} ListState */
 
 /** 공개 사이트 주소 ([사이트에서 보기]) */
 const SITE_ORIGIN = "https://taerim.page";
@@ -29,6 +30,7 @@ function readState() {
   const id = Number(params.get("id"));
   return {
     status: status === "draft" || status === "published" || status === "edited" ? status : "",
+    kind: params.get("kind") === "post" || params.get("kind") === "note" ? /** @type {KindFilter} */ (params.get("kind")) : "",
     q: params.get("q") ?? "",
     page: Number.isInteger(page) && page >= 1 ? page : 1,
     id: Number.isInteger(id) && id >= 1 ? id : null,
@@ -39,6 +41,7 @@ function readState() {
 function writeState(state, options = {}) {
   const params = new URLSearchParams();
   if (state.status) params.set("status", state.status);
+  if (state.kind) params.set("kind", state.kind);
   if (state.q.trim()) params.set("q", state.q.trim());
   if (state.page > 1) params.set("page", String(state.page));
   if (state.id !== null) params.set("id", String(state.id));
@@ -90,6 +93,7 @@ async function render() {
     const [page, translations, views, counts] = await Promise.all([
       postsApi.list({
         status: state.status === "draft" || state.status === "published" ? state.status : undefined,
+        kind: state.kind || undefined,
         edited: state.status === "edited" || undefined,
         q: q || undefined,
         tags,
@@ -131,6 +135,9 @@ function renderFilters(state) {
   for (const button of document.querySelectorAll("[data-status]")) {
     button.setAttribute("aria-pressed", String(/** @type {HTMLElement} */ (button).dataset.status === state.status));
   }
+  for (const button of document.querySelectorAll("[data-kind]")) {
+    button.setAttribute("aria-pressed", String(/** @type {HTMLElement} */ (button).dataset.kind === state.kind));
+  }
   if (document.activeElement !== search) search.value = state.q;
 }
 
@@ -152,6 +159,7 @@ function englishState(t) {
 /** 상태 표시 (공개·초안 + 수정본) @param {PostSummary} post */
 function statusPills(post) {
   return [
+    post.kind === "note" ? el("span", { class: "pill note", title: "노트 (공부 정리, 설계 17)" }, "노트") : "",
     el("span", { class: `pill ${post.status}` }, post.status === "published" ? "공개" : "초안"),
     post.hasDraft ? el("span", { class: "pill editing", title: "반영하지 않은 수정본이 있어요" }, "수정본") : "",
   ];
@@ -282,6 +290,12 @@ function select(id, options = {}) {
 
 // ── 이벤트 ──────────────────────────────────────────
 
+for (const button of document.querySelectorAll("[data-kind]")) {
+  button.addEventListener("click", () => {
+    const value = /** @type {HTMLElement} */ (button).dataset.kind;
+    update({ kind: value === "post" || value === "note" ? value : "" });
+  });
+}
 for (const button of document.querySelectorAll("[data-status]")) {
   button.addEventListener("click", () => {
     const value = /** @type {HTMLElement} */ (button).dataset.status ?? "";

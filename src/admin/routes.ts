@@ -86,6 +86,11 @@ export function createApiRoutes({ service, render, deploy, images, cleanup, tran
 
   // ── 상태 바꾸기 (동작별 주소) ───────────────────────
   api.post("/posts/:id/publish", async (c) => c.json(await service.publish(idParam(c))));
+  // 종류 바꾸기 (설계 17): { kind: "post" | "note" } → 바로 바뀜 (작업본을 거치지 않음)
+  api.put("/posts/:id/kind", async (c) => {
+    const body = (await readJson(c)) as { kind?: unknown } | null;
+    return c.json(await service.setKind(idParam(c), body?.kind));
+  });
   api.post("/posts/:id/unpublish", async (c) => c.json(await service.unpublish(idParam(c))));
 
   api.post("/posts/:id/edits/apply", async (c) => c.json(await service.applyEdits(idParam(c))));

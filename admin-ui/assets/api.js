@@ -13,6 +13,7 @@
 /** @typedef {import("../../src/posts/types.ts").Page<PostSummary>} PostPage */
 /** @typedef {import("../../src/posts/validation.ts").PostPatch} PostPatch */
 /** @typedef {import("../../src/posts/validation.ts").PostInput} PostInput */
+/** @typedef {import("../../src/posts/validation.ts").NewPostInput} NewPostInput */
 /**
  * 입력 제한값 (GET /api/limits). 번역 칸 제한은 translation 아래에
  * @typedef {typeof import("../../src/posts/validation.ts").LIMITS & { translation: typeof import("../../src/translations/service.ts").TRANSLATION_LIMITS }} Limits
@@ -34,6 +35,7 @@
  * 목록 조건
  * @typedef {object} ListQuery
  * @property {PostStatus} [status]
+ * @property {"post" | "note"} [kind] 종류만 (설계 17)
  * @property {boolean} [trash]
  * @property {string[]} [tags] 모두 가진 글만 (AND)
  * @property {boolean} [edited] 반영 안 한 수정본이 있는 글만 (설계 16-11)
@@ -119,6 +121,7 @@ async function send(url, init) {
 function toSearch(query) {
   const params = new URLSearchParams();
   if (query.status) params.set("status", query.status);
+  if (query.kind) params.set("kind", query.kind);
   if (query.trash) params.set("trash", "true");
   for (const tag of query.tags ?? []) params.append("tag", tag);
   if (query.edited) params.set("edited", "true");
@@ -137,8 +140,10 @@ export const postsApi = {
   counts: () => request("GET", "/posts/counts"),
   /** @param {number} id @returns {Promise<PostForEdit>} */
   get: (id) => request("GET", `/posts/${id}`),
-  /** @param {Partial<PostInput>} input @returns {Promise<Post>} */
+  /** @param {Partial<NewPostInput>} input @returns {Promise<Post>} */
   create: (input) => request("POST", "/posts", input),
+  /** 종류 바꾸기 (설계 17): 바로 바뀜 @param {number} id @param {"post" | "note"} kind @returns {Promise<Post>} */
+  setKind: (id, kind) => request("PUT", `/posts/${id}/kind`, { kind }),
   /** 보낸 칸만 바뀐다 @param {number} id @param {PostPatch} patch @returns {Promise<SaveResult>} */
   save: (id, patch) => request("PATCH", `/posts/${id}`, patch),
   /** @param {number} id @returns {Promise<Post>} */

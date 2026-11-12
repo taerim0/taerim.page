@@ -616,3 +616,9 @@ span.tag-caret { cursor: default; }
 .help-note { margin: 0; font-size: .85em; line-height: 1.7; }
 .help-note code { padding: 1px 5px; border-radius: 4px; background: var(--hover); font-size: .95em; }
 @media (max-width: 599px) { .help-row { grid-template-columns: minmax(0, 1fr); gap: 6px; } }
+
+/* ── 글 종류 (설계 17): 노트 표시, 글 정보 팝업의 종류 고르기 ── */
+.pill.note { border-color: var(--accent-line); background: var(--accent-soft); color: var(--accent); }
+.kind-choice { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.kind-choice label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.kind-help { margin: 6px 0 0; font-size: .85em; }

@@ -42,6 +42,7 @@
     <div id="editor" hidden>
       <!-- 편집 화면 (설계 16-12·16-13, 시안 E-2·E-8): 메인은 제목·본문·미리보기. 대표 이미지·소개글·태그는 아래 [글 정보] 팝업 -->
       <div class="editor-status">
+        <span id="kind-pill" class="pill note" hidden>노트</span>
         <span id="status-pill" class="pill"></span>
         <span id="dirty-mark" class="dirty" hidden>저장 안 됨</span>
         <span id="saved-at" class="muted"></span>
@@ -111,6 +112,15 @@
             <button id="meta-close" class="meta-x" type="button" aria-label="닫기 (고친 것 버림)">×</button>
           </div>
           <div class="meta-body">
+            <!-- 종류 (설계 17): 새 글은 저장할 때, 있는 글은 고르는 즉시 바뀜 (작업본을 거치지 않음) -->
+            <section class="meta-section" aria-labelledby="meta-kind-title">
+              <h3 id="meta-kind-title">종류</h3>
+              <div class="kind-choice" role="radiogroup" aria-labelledby="meta-kind-title">
+                <label><input type="radio" name="kind" value="post"> 글 <span class="muted">다른 사람이 읽는 글</span></label>
+                <label><input type="radio" name="kind" value="note"> 노트 <span class="muted">공부 정리</span></label>
+              </div>
+              <p id="kind-help" class="muted kind-help"></p>
+            </section>
             <section class="meta-section" aria-labelledby="meta-thumb-title">
               <h3 id="meta-thumb-title">대표 이미지</h3>
               <div class="thumb-row">

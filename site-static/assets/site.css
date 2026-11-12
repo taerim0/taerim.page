@@ -184,9 +184,22 @@ a { color: var(--accent); }
 .post-views { color: var(--muted); }
 /* 목차 */
 .toc { padding: 16px 20px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); font-size: .9em; }
-.toc-title { font-weight: 700; cursor: pointer; }
-.toc[open] .toc-title { margin-bottom: 8px; }
+.toc-title { display: flex; align-items: center; justify-content: space-between; font-weight: 700; list-style: none; }
+.toc-title::-webkit-details-marker { display: none; }
+.toc nav { padding-top: 8px; }
 .toc ol { list-style: none; margin: 0; padding: 0; }
+/* 넓은 화면 (옆 칸): 늘 펼침, 접기 없음. 좁은 화면 (글 위): ▸ 눌러 스르륵 펼치기/접기 (설계 16-3 손봄) */
+@media (min-width: 900px) {
+  .toc-title { pointer-events: none; }
+}
+@media (max-width: 899px) {
+  .toc-title { cursor: pointer; }
+  .toc-title::after { content: "▸"; display: inline-block; color: var(--muted); font-size: 1.3em; line-height: 1; transition: transform .25s ease; }
+  .toc[open] .toc-title::after { transform: rotate(90deg); }
+  .toc { interpolate-size: allow-keywords; }
+  .toc::details-content { block-size: 0; overflow: hidden; opacity: 0; transition: block-size .25s ease, opacity .25s ease, content-visibility .25s allow-discrete; }
+  .toc[open]::details-content { block-size: auto; opacity: 1; }
+}
 .toc li { border-left: 2px solid var(--line); }
 .toc li a { display: block; padding: 4px 0 4px 10px; color: var(--muted); text-decoration: none; }
 .toc li a:hover { color: var(--accent); }
@@ -541,7 +554,7 @@ a.pager-num:hover { border-color: var(--accent); color: var(--accent); }
 @media (prefers-reduced-motion: reduce) {
   .enter-pending .site-main { opacity: 1; }
   .entering .enter-block, .leaving .enter-block { animation: none; }
-  .archive-activity-toggle::details-content, .archive-activity-toggle > summary::after { transition: none; }
+  .archive-activity-toggle::details-content, .archive-activity-toggle > summary::after, .toc::details-content, .toc-title::after { transition: none; }
 }
 
 /* ── 언어 메뉴 (설계 16-16, 시안 G-2): 지구본 + KO/EN 버튼 → 오른쪽 맞춤 아래 목록 (JS 있을 때만) ── */

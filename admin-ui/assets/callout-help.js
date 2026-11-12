@@ -7,6 +7,7 @@
  * - 보기 전용 (넣기 없음). ×·Esc·바깥 누르면 닫힘
  */
 import { renderMarkdown } from "./lib.js";
+import { MOD_LABEL, SHORTCUTS } from "./shortcuts.js";
 
 /** 종류 (렌더러 CALLOUT_KINDS 순서) + 예시 내용 */
 const KINDS = /** @type {const} */ (["NOTE", "TIP", "IMPORTANT", "WARNING", "CAUTION", "FOLD"]);
@@ -59,6 +60,17 @@ export function bindCalloutHelp(locale = "ko") {
       row.append(code, sample);
       rows.append(row);
     }
+    // 본문 칸 단축키 (설계 13-12): 콜아웃 설명 아래에 한 줄
+    const keys = document.createElement("p");
+    keys.className = "muted help-note";
+    keys.append("단축키 ");
+    SHORTCUTS.forEach(([key, label], i) => {
+      const kbd = document.createElement("kbd");
+      kbd.textContent = `${MOD_LABEL}+${key}`;
+      keys.append(i === 0 ? "" : " · ", kbd, ` ${label}`);
+    });
+    keys.append(" · ", Object.assign(document.createElement("kbd"), { textContent: "Tab" }), " 들여쓰기");
+    rows.parentElement?.append(keys);
   }
 
   button.addEventListener("click", () => {

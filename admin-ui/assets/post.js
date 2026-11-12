@@ -17,6 +17,7 @@ import { ApiError, getLimits, listTags, postsApi, setTagParent, translationsApi 
 import { blockIndexAt, charCount, createBlockPreview, isAllowedTag, normalizeTag, normalizeTags, renderMarkdown, TAG_CHARS_MESSAGE, TagTree } from "./lib.js";
 import { bindCodeCopy, loadEmbedsFor, loadHighlighterFor, loadMathFor } from "./code-blocks.js";
 import { bindIndent } from "./indent.js";
+import { bindShortcuts } from "./shortcuts.js";
 import { bindImageUpload, uploadImageFile } from "./image-upload.js";
 import { translationBadge } from "./translation-badge.js";
 import { clearNotice, confirmDialog, el, flash, formatDateTime, notify } from "./ui.js";
@@ -837,6 +838,7 @@ inputs.body.addEventListener("scroll", syncScroll);
 
 // 이미지 올리기: 붙여넣기·끌어놓기·[이미지] 버튼 → 본문에 ![…](/images/…) (image-upload.js)
 bindIndent(inputs.body); // Tab 들여쓰기 (설계 13-11)
+bindShortcuts(inputs.body); // Ctrl+B·I·E·K… (설계 13-12)
 bindImageUpload({
   textarea: inputs.body,
   button: /** @type {HTMLButtonElement} */ ($("image-button")),

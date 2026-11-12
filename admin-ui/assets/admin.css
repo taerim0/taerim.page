@@ -621,6 +621,8 @@ span.tag-caret { cursor: default; }
 .help-code { margin: 0; padding: 8px 10px; border-radius: 6px; background: var(--hover); font-family: ui-monospace, Consolas, monospace; font-size: .82em; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 .help-sample .callout { margin: 0; }
 .help-note { margin: 0; font-size: .85em; line-height: 1.7; }
+.help-note kbd { padding: 0 5px; border: 1px solid var(--line); border-radius: 4px; background: var(--hover); font-family: ui-monospace, Consolas, monospace; font-size: .92em; }
+.help-note + .help-note { margin-top: 6px; }
 .help-note code { padding: 1px 5px; border-radius: 4px; background: var(--hover); font-size: .95em; }
 @media (max-width: 599px) { .help-row { grid-template-columns: minmax(0, 1fr); gap: 6px; } }
 

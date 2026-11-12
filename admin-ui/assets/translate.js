@@ -12,6 +12,7 @@ import { bindCalloutHelp } from "./callout-help.js";
 import { ApiError, getLimits, postsApi, translationsApi } from "./api.js";
 import { bindCodeCopy, loadEmbedsFor, loadHighlighterFor, loadMathFor } from "./code-blocks.js";
 import { bindIndent } from "./indent.js";
+import { bindShortcuts } from "./shortcuts.js";
 import { bindImageUpload } from "./image-upload.js";
 import { charCount, renderMarkdown } from "./lib.js";
 import { clearNotice, formatDateTime, notify } from "./ui.js";
@@ -438,6 +439,7 @@ inputs.summary.addEventListener("input", () => onEdit("summary"));
 
 // 이미지 올리기: 이미지는 언어와 무관 (한글 글과 같은 주소를 써도 되고, 여기서 새로 올려도 됨)
 bindIndent(inputs.body); // Tab 들여쓰기 (설계 13-11)
+bindShortcuts(inputs.body); // Ctrl+B·I·E·K… (설계 13-12)
 bindImageUpload({ textarea: inputs.body, button: imageButton, fileInput: /** @type {HTMLInputElement} */ ($("image-file")) });
 
 bindCodeCopy(preview);

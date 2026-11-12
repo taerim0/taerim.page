@@ -215,10 +215,11 @@ main .gsc-reactions {
 main .gsc-reactions-count {
   display: none;
 }
+/* 이 칸은 giscus의 Tailwind 규칙(#__next .justify-center 등, ID가 붙어 우선순위가 높음)이라 !important */
 main .gsc-reactions > div {
-  flex: none;
-  justify-content: flex-start;
-  margin-top: 0;
+  flex: none !important;
+  justify-content: flex-start !important;
+  margin-top: 0 !important;
 }
 /* 댓글 개수·giscus 표시: 맨 아래 오른쪽에 작고 옅게 (정렬 단추는 숨김, 오래된 순) */
 main .gsc-comments > .gsc-header {
@@ -244,8 +245,8 @@ main .gsc-replies-count {
   color: var(--color-fg-muted);
 }
 main .gsc-comments-count a {
-  color: var(--color-fg-muted);
-  text-decoration: none;
+  color: var(--color-fg-muted) !important;
+  text-decoration: none !important;
 }
 main .gsc-left-header em {
   font-size: 0.75rem;

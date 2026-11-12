@@ -7,3 +7,7 @@
 # 임베드 카드 그림도 이름이 내용 해시 → 1년 캐시 (설계 13-9)
 /embeds/*
   Cache-Control: public, max-age=31536000, immutable
+
+# giscus 테마 CSS: giscus.app iframe이 crossorigin으로 불러감 → 그 출처만 허용 (설계 2-1 손봄)
+/assets/giscus-*
+  Access-Control-Allow-Origin: https://giscus.app

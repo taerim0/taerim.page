@@ -4,8 +4,9 @@
  * - giscus 로그인 후 돌아오면 주소의 ?giscus=를 떼어 localStorage에 기억 (giscus client.js와 같게)
  * - iframe이 알려 주는 높이로 맞춤, 세션이 망가졌다고 하면 지움
  * - 머리글 다크 모드 버튼(<html data-theme>)·기기 설정이 바뀌면 iframe에 테마를 보냄
+ * - 테마는 우리 색 CSS(/assets/giscus-light.css · giscus-dark.css, 시안 C-2) 주소로
  */
-import { discussionTerm, GISCUS_ORIGIN, GISCUS_SESSION_KEY, giscusWidgetUrl, splitSession } from "./comments.ts";
+import { discussionTerm, GISCUS_ORIGIN, GISCUS_SESSION_KEY, giscusThemeUrl, giscusWidgetUrl, splitSession } from "./comments.ts";
 import type { GiscusTheme } from "./comments.ts";
 
 const root = document.documentElement;
@@ -49,7 +50,7 @@ function start(box: HTMLElement): void {
     repo, repoId, category, categoryId,
     term: discussionTerm(Number(postId)),
     lang,
-    theme: theme(),
+    theme: giscusThemeUrl(canonical, theme()),
     origin: cleaned,
     session: readSession(fresh),
     description,
@@ -62,7 +63,7 @@ function start(box: HTMLElement): void {
     const next = theme();
     if (next === sent) return;
     sent = next;
-    frame.contentWindow?.postMessage({ giscus: { setConfig: { theme: next } } }, GISCUS_ORIGIN);
+    frame.contentWindow?.postMessage({ giscus: { setConfig: { theme: giscusThemeUrl(canonical, next) } } }, GISCUS_ORIGIN);
   };
   new MutationObserver(sendTheme).observe(root, { attributes: true, attributeFilter: ["data-theme"] });
   media.addEventListener("change", sendTheme);

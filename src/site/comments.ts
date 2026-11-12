@@ -27,11 +27,20 @@ export function discussionTerm(postId: number): string {
 
 export type GiscusTheme = "light" | "dark";
 
+/**
+ * 우리 색 테마 CSS 주소 (설계 2-1 손봄, 시안 C-2): giscus가 iframe 안에 이 CSS를 붙인다.
+ * 사이트 주소(canonical) 기준 → 로컬 미리보기에서도 배포된 테마를 씀 (giscus는 https라 localhost CSS를 못 읽음)
+ */
+export function giscusThemeUrl(siteBase: string, mode: GiscusTheme): string {
+  return new URL(`/assets/giscus-${mode}.css`, siteBase).href;
+}
+
 export interface WidgetOptions extends GiscusConfig {
   term: string;
   /** "ko" | "en" */
   lang: string;
-  theme: GiscusTheme;
+  /** 테마: 이름("light") 또는 CSS 주소 */
+  theme: string;
   /** 이 페이지 주소 (giscus 로그인 후 돌아올 곳, #·?giscus= 뺀 것) */
   origin: string;
   /** 로그인 세션 (없으면 "") */

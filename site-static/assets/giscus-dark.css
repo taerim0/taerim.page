@@ -1,0 +1,199 @@
+/*! giscus 테마 (dark) — taerim.page 색 (설계 2-1 손봄, 2026-11-12)
+ * 코드 색칠 색(prettylights)과 로딩 그림은 giscus dark 테마에서: GitHub Primer, MIT License,
+ * Copyright (c) 2018 GitHub Inc. https://github.com/primer/primitives/blob/main/LICENSE
+ * giscus가 iframe 안 <head> 끝에 <link crossorigin="anonymous">로 붙인다 → _headers가 giscus.app에 CORS 허용
+ * gsc-* 클래스는 giscus가 바꿀 수 있음 → 모양이 깨지면 여기를 고침
+ */
+
+main {
+  --color-prettylights-syntax-comment: #8b949e;
+  --color-prettylights-syntax-constant: #79c0ff;
+  --color-prettylights-syntax-entity: #d2a8ff;
+  --color-prettylights-syntax-storage-modifier-import: #c9d1d9;
+  --color-prettylights-syntax-entity-tag: #7ee787;
+  --color-prettylights-syntax-keyword: #ff7b72;
+  --color-prettylights-syntax-string: #a5d6ff;
+  --color-prettylights-syntax-variable: #ffa657;
+  --color-prettylights-syntax-brackethighlighter-unmatched: #f85149;
+  --color-prettylights-syntax-invalid-illegal-text: #f0f6fc;
+  --color-prettylights-syntax-invalid-illegal-bg: #8e1519;
+  --color-prettylights-syntax-carriage-return-text: #f0f6fc;
+  --color-prettylights-syntax-carriage-return-bg: #b62324;
+  --color-prettylights-syntax-string-regexp: #7ee787;
+  --color-prettylights-syntax-markup-list: #f2cc60;
+  --color-prettylights-syntax-markup-heading: #1f6feb;
+  --color-prettylights-syntax-markup-italic: #c9d1d9;
+  --color-prettylights-syntax-markup-bold: #c9d1d9;
+  --color-prettylights-syntax-markup-deleted-text: #ffdcd7;
+  --color-prettylights-syntax-markup-deleted-bg: #67060c;
+  --color-prettylights-syntax-markup-inserted-text: #aff5b4;
+  --color-prettylights-syntax-markup-inserted-bg: #033a16;
+  --color-prettylights-syntax-markup-changed-text: #ffdfb6;
+  --color-prettylights-syntax-markup-changed-bg: #5a1e02;
+  --color-prettylights-syntax-markup-ignored-text: #c9d1d9;
+  --color-prettylights-syntax-markup-ignored-bg: #1158c7;
+  --color-prettylights-syntax-meta-diff-range: #d2a8ff;
+  --color-prettylights-syntax-brackethighlighter-angle: #8b949e;
+  --color-prettylights-syntax-sublimelinter-gutter-mark: #484f58;
+  --color-prettylights-syntax-constant-other-reference-link: #a5d6ff;
+  --color-btn-text: #e5e7eb;
+  --color-btn-bg: #18211c;
+  --color-btn-border: #1f2a24;
+  --color-btn-shadow: 0 0 transparent;
+  --color-btn-inset-shadow: 0 0 transparent;
+  --color-btn-hover-bg: #1f2a24;
+  --color-btn-hover-border: #2c3a32;
+  --color-btn-active-bg: #24302a;
+  --color-btn-active-border: #2c3a32;
+  --color-btn-selected-bg: #1f2a24;
+  --color-btn-primary-text: #0b0f0d;
+  --color-btn-primary-bg: #86efac;
+  --color-btn-primary-border: transparent;
+  --color-btn-primary-shadow: 0 0 transparent;
+  --color-btn-primary-inset-shadow: 0 0 transparent;
+  --color-btn-primary-hover-bg: #bbf7d0;
+  --color-btn-primary-hover-border: transparent;
+  --color-btn-primary-selected-bg: #bbf7d0;
+  --color-btn-primary-selected-shadow: 0 0 transparent;
+  --color-btn-primary-disabled-text: rgb(11 15 13 / 70%);
+  --color-btn-primary-disabled-bg: rgb(134 239 172 / 40%);
+  --color-btn-primary-disabled-border: transparent;
+  --color-action-list-item-default-hover-bg: rgb(229 231 235 / 6%);
+  --color-segmented-control-bg: #18211c;
+  --color-segmented-control-button-bg: #111714;
+  --color-segmented-control-button-selected-border: #1f2a24;
+  --color-fg-default: #d1d5db;
+  --color-fg-muted: #9ca3af;
+  --color-fg-subtle: #6b7280;
+  --color-canvas-default: #111714;
+  --color-canvas-overlay: #111714;
+  --color-canvas-inset: #0b100d;
+  --color-canvas-subtle: #18211c;
+  --color-border-default: #1f2a24;
+  --color-border-muted: #18211c;
+  --color-neutral-muted: rgb(156 163 175 / 15%);
+  --color-accent-fg: #86efac;
+  --color-accent-emphasis: #4ade80;
+  --color-accent-muted: #14532d;
+  --color-accent-subtle: #0f2418;
+  --color-success-fg: #4ade80;
+  --color-attention-fg: #fbbf24;
+  --color-attention-muted: rgb(251 191 36 / 30%);
+  --color-attention-subtle: rgb(251 191 36 / 12%);
+  --color-danger-fg: #f87171;
+  --color-danger-muted: rgb(248 113 113 / 30%);
+  --color-danger-subtle: rgb(248 113 113 / 12%);
+  --color-primer-shadow-inset: 0 0 transparent;
+  --color-social-reaction-bg-hover: #1f2a24;
+  --color-social-reaction-bg-reacted-hover: #14532d;
+}
+
+main .pagination-loader-container {
+  background-image: url("https://github.com/images/modules/pulls/progressive-disclosure-line-dark.svg");
+}
+
+main .gsc-loading-image {
+  background-image: url("https://github.githubassets.com/images/mona-loading-dark.gif");
+}
+
+/*! taerim.page — C-2: 테두리 없이 평평하게, 줄로만 나누기 (설계 2-1 손봄, 2026-11-12) */
+main {
+  font-family: system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+
+/* 반응: 테두리 없는 알약, 누른 것은 초록 */
+.gsc-reactions-count {
+  font-weight: 400;
+  color: var(--color-fg-muted);
+}
+.gsc-social-reaction-summary-item,
+.gsc-direct-reaction-button {
+  border-color: transparent;
+  background-color: var(--color-canvas-subtle);
+}
+.gsc-social-reaction-summary-item.has-reacted {
+  border-color: transparent;
+  background-color: var(--color-accent-subtle);
+  color: var(--color-accent-fg);
+}
+
+/* 댓글: 바깥 상자·바탕 없이 위 줄로만 나눔 */
+.gsc-comment > div {
+  border: 0;
+  border-top: 1px solid var(--color-border-default);
+  border-radius: 0;
+  background-color: transparent;
+}
+.gsc-comment-header {
+  padding-left: 0;
+  padding-right: 0;
+}
+.gsc-comment-content {
+  padding: 0.5rem 0 0.75rem;
+}
+.gsc-comment-reactions {
+  margin-left: 0;
+}
+.gsc-comment-replies-count {
+  margin-right: 0;
+}
+/* 답글: 왼쪽 줄 하나로 묶음 */
+.gsc-replies {
+  border-top: 0;
+  border-left: 2px solid var(--color-border-default);
+  border-radius: 0;
+  background-color: transparent;
+  margin-left: 4px;
+  padding-left: 12px;
+}
+.gsc-reply-box {
+  border-top: 0;
+  background-color: transparent;
+  padding-left: 0;
+}
+
+/* 입력 칸: 바깥 상자 없이 옅은 바탕 칸 */
+.gsc-comment-box:not(.gsc-comment-box-is-reply) {
+  border: 0;
+  border-top: 1px solid var(--color-border-default);
+  border-radius: 0;
+  padding-top: 0.75rem;
+}
+.gsc-comment-box-tabs,
+.gsc-comment .gsc-comment-box-tabs {
+  border: 0;
+  background-color: transparent;
+}
+.gsc-comment-box-main {
+  margin: 0.5rem 0;
+}
+.gsc-comment-box-write {
+  border-radius: 10px;
+}
+.gsc-comment-box-write:focus-within {
+  box-shadow: 0 0 0 2px var(--color-accent-muted);
+}
+.gsc-comment-box-textarea,
+.gsc-comment-box-textarea:focus {
+  border: 0;
+  border-radius: 10px 10px 0 0;
+  background-color: var(--color-canvas-subtle);
+}
+.gsc-comment-box-textarea-extras {
+  border: 0;
+  border-radius: 0 0 10px 10px;
+  background-color: var(--color-canvas-subtle);
+}
+.gsc-comment-box-preview {
+  border-bottom: 0;
+}
+.gsc-comment-box-bottom {
+  margin: 0.5rem 0 0;
+}
+.btn {
+  border-radius: 8px;
+  box-shadow: none;
+}
+.gsc-pagination-button {
+  border-radius: 8px;
+}

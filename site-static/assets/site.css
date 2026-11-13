@@ -375,13 +375,13 @@ a { color: var(--accent); }
 .archive-years a.is-latest { color: var(--accent); font-weight: 700; }
 .archive-year { overflow: hidden; scroll-margin-top: 16px; }
 .archive-year-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 0; padding: 18px 28px; border-bottom: 1px solid var(--line); font-size: 1.5em; font-weight: 800; }
-.archive-month { display: grid; grid-template-columns: 140px minmax(0, 1fr); border-bottom: 1px solid var(--line-soft); }
-.archive-month:last-child { border-bottom: 0; }
-.archive-month-name { margin: 0; padding: 18px 28px; color: var(--accent); font-size: 1em; font-weight: 700; }
-.archive-list { list-style: none; margin: 0; padding: 8px 28px 8px 0; }
-.archive-list > li { padding: 10px 0; border-bottom: 1px solid var(--line-soft); }
-.archive-list > li:last-child { border-bottom: 0; }
-.archive-post { display: grid; grid-template-columns: 48px auto minmax(0, 1fr); gap: 12px; align-items: center; }
+/* 설계 16-21 (시안 R-3): 달 칸 없이 연도 카드 하나에 월.일 한 줄씩. 마우스를 올리면 줄이 떠오르듯 테두리 + 오른쪽으로 살짝 */
+.archive-list { list-style: none; margin: 0; padding: 12px 18px 16px; display: grid; gap: 2px; }
+.archive-post, .archive-activity-head { display: grid; grid-template-columns: 52px auto minmax(0, 1fr) auto; gap: 12px; align-items: center; margin: 0; min-height: 44px; box-sizing: border-box; padding: 6px 12px; border: 1px solid transparent; border-radius: 10px; transition: border-color .2s ease, background-color .2s ease, transform .2s ease; }
+.archive-post:hover, .archive-activity-head:hover { border-color: var(--accent-line); background-color: var(--surface); transform: translateX(4px); }
+.archive-post-title a, .archive-activity-title { transition: color .2s ease; }
+.archive-post:hover .archive-post-title a, .archive-activity-head:hover .archive-activity-title { color: var(--accent); }
+.archive-tags { color: var(--muted); font-size: .85em; white-space: nowrap; }
 /* 글·노트 꼬리표 (설계 16-20, 시안 A-3): 글은 칠한 초록 + 굵은 제목, 노트는 옅은 회색. 활동은 테두리 꼬리표 */
 .kind-badge { display: inline-flex; align-items: center; gap: 4px; padding: 0 7px 0 5px; border-radius: 6px; font-size: .8em; font-weight: 600; line-height: 1.6; white-space: nowrap; }
 .kind-badge svg { width: 13px; height: 13px; flex: none; }
@@ -393,15 +393,14 @@ a { color: var(--accent); }
 .archive-post a:hover { color: var(--accent); }
 @media (max-width: 599px) {
   .archive-year-head { padding: 16px 20px; }
-  .archive-month { grid-template-columns: 1fr; }
-  .archive-month-name { padding: 14px 20px 0; }
-  .archive-list { padding: 4px 20px 8px; }
+  .archive-list { padding: 8px 8px 12px; }
+  .archive-post, .archive-activity-head { grid-template-columns: 44px auto minmax(0, 1fr) auto; gap: 8px; padding: 6px 8px; }
+  .archive-tags { display: none; }
 }
 /* 활동 줄: 꼬리표 + 굵은 제목, 내용이 있으면 ▸ 눌러 펼침 (테두리 상자) */
 .archive-activity { scroll-margin-top: 16px; }
 .archive-activity:target .archive-activity-title { color: var(--accent); }
 /* 일 · 꼬리표 · 제목 · (접기 표시) */
-.archive-activity-head { display: grid; grid-template-columns: 48px auto minmax(0, 1fr) auto; gap: 12px; align-items: center; margin: 0; }
 .archive-activity-title { font-weight: 700; }
 .archive-activity-toggle > summary { cursor: pointer; list-style: none; }
 .archive-activity-toggle > summary::-webkit-details-marker { display: none; }
@@ -412,10 +411,10 @@ a { color: var(--accent); }
 .archive-activity-toggle { interpolate-size: allow-keywords; }
 .archive-activity-toggle::details-content { block-size: 0; overflow: hidden; opacity: 0; transition: block-size .25s ease, opacity .25s ease, content-visibility .25s allow-discrete; }
 .archive-activity-toggle[open]::details-content { block-size: auto; opacity: 1; }
-.archive-activity-body { margin: 10px 0 0 60px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 10px; font-size: .95em; }
+.archive-activity-body { margin: 6px 12px 8px 76px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 10px; font-size: .95em; }
 .archive-activity-body > :first-child { margin-top: 0; }
 .archive-activity-body > :last-child { margin-bottom: 0; }
-@media (max-width: 599px) { .archive-activity-body { margin-left: 0; } }
+@media (max-width: 599px) { .archive-activity-body { margin-left: 8px; margin-right: 8px; } }
 
 /* ── 검색 (설계 15-7). 배치는 시안을 정할 때 다시 ── */
 .search-form { margin: 0 0 8px; }
@@ -564,6 +563,7 @@ html.wave-down::view-transition-old(root) { z-index: 1; }
   .enter-pending .site-main { opacity: 1; }
   .entering .enter-block, .leaving .enter-block { animation: none; }
   .archive-activity-toggle::details-content, .archive-activity-toggle > summary::after, .toc::details-content, .toc-title::after { transition: none; }
+  .archive-post:hover, .archive-activity-head:hover { transform: none; }
 }
 
 /* ── 언어 메뉴 (설계 16-16, 시안 G-2): 지구본 + KO/EN 버튼 → 오른쪽 맞춤 아래 목록 (JS 있을 때만) ── */

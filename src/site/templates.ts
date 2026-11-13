@@ -707,7 +707,8 @@ function profileCard(locale: Locale, p: SiteSettings): Html {
  */
 export function archivePage({ site, locale = SOURCE_LOCALE, years }: { site: SiteConfig; locale?: Locale; years: ArchiveYear[] }): Html {
   const m = MESSAGES[locale];
-  // 설계 16-6 (시안 A-4): 위에 제목·개수와 연도 바로 가기, 해마다 큰 카드, 카드 안 왼쪽 칸에 달
+  // 설계 16-6 (시안 A-4): 위에 제목과 연도 바로 가기, 해마다 큰 카드
+  // 설계 16-21 (시안 R-3): 카드 안은 달 칸 없이 한 목록, 날짜는 월.일 (마우스를 올리면 줄이 떠오름 = CSS)
   const body = html`
     <div class="archive">
       <div class="archive-top">
@@ -725,16 +726,11 @@ export function archivePage({ site, locale = SOURCE_LOCALE, years }: { site: Sit
         : years.map(
             (y) => html`<section class="archive-year card" aria-labelledby="year-${y.year}">
         <h2 class="archive-year-head" id="year-${y.year}">${y.year}</h2>
-        ${y.months.map(
-          (month) => html`<div class="archive-month">
-          <h3 class="archive-month-name">${m.monthName(month.month)}</h3>
-          <ul class="archive-list">${month.entries.map((entry) =>
-            entry.kind === "post"
-              ? archivePostLine(locale, entry.date, entry.post)
-              : archiveActivityLine(locale, entry.activity),
-          )}</ul>
-        </div>`,
-        )}
+        <ul class="archive-list">${y.months.flatMap((month) => month.entries).map((entry) =>
+          entry.kind === "post"
+            ? archivePostLine(locale, entry.date, entry.post)
+            : archiveActivityLine(locale, entry.activity),
+        )}</ul>
       </section>`,
           )}
     </div>`;
@@ -756,7 +752,7 @@ function activityBadge(locale: Locale, activity: Pick<ArchiveActivity, "label" |
 
 /** 아카이브의 활동 한 줄: 내용이 있으면 <details>(닫힘) 안에, 없으면 한 줄 (설계 15-8) */
 function archiveActivityLine(locale: Locale, activity: ArchiveActivity): Html {
-  const head = html`<time datetime="${activity.date}">${archiveDay(locale, activity.date)}</time> ${activityBadge(locale, activity)} <span class="archive-activity-title"><span${activity.titleLang ? html` lang="${activity.titleLang}"` : ""}>${activity.title}</span>${activityKr(locale, activity)}</span>`;
+  const head = html`<time datetime="${activity.date}">${archiveDate(activity.date)}</time> ${activityBadge(locale, activity)} <span class="archive-activity-title"><span${activity.titleLang ? html` lang="${activity.titleLang}"` : ""}>${activity.title}</span>${activityKr(locale, activity)}</span>`;
   const id = activityAnchor(activity.id);
   if (!activity.bodyHtml) return html`<li class="archive-activity" id="${id}"><p class="archive-activity-head">${head}</p></li>`;
   return html`<li class="archive-activity has-body" id="${id}"><details class="archive-activity-toggle">
@@ -765,9 +761,9 @@ function archiveActivityLine(locale: Locale, activity: ArchiveActivity): Html {
           </details></li>`;
 }
 
-/** 아카이브의 날짜: 달은 왼쪽 칸에 있으니 일만 ("11일" / "11") */
-function archiveDay(locale: Locale, date: string): string {
-  return MESSAGES[locale].dayOfMonth(Number(date.slice(8, 10)));
+/** 아카이브의 날짜: 연도 카드 안이라 월.일 ("11.08", 한·영 같음, 설계 16-21) */
+function archiveDate(date: string): string {
+  return `${date.slice(5, 7)}.${date.slice(8, 10)}`;
 }
 
 /** 아카이브 꼬리표 아이콘 (설계 16-20, 직접 그림): 글 = 모서리 접힌 종이 + 글줄, 노트 = 왼쪽 스프링 공책 */
@@ -784,7 +780,7 @@ function archivePostLine(locale: Locale, date: string, post: PostCardData): Html
   const korean = post.untranslated === true && locale !== SOURCE_LOCALE;
   const note = post.kind === "note";
   const badge = html`<span class="kind-badge ${note ? "kind-note" : "kind-post"}">${raw(note ? NOTE_ICON : POST_ICON)}${note ? m.noteBadge : m.postBadge}</span>`;
-  return html`<li class="archive-post${note ? " is-note" : ""}"><time datetime="${date}">${archiveDay(locale, date)}</time> ${badge} <span class="archive-post-title"><a href="${localizedPath(locale, entryPath(post))}"${korean ? html` lang="ko"` : ""}>${post.title}</a>${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</span></li>`;
+  return html`<li class="archive-post${note ? " is-note" : ""}"><time datetime="${date}">${archiveDate(date)}</time> ${badge} <span class="archive-post-title"><a href="${localizedPath(locale, entryPath(post))}"${korean ? html` lang="ko"` : ""}>${post.title}</a>${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</span>${post.tags.length > 0 ? html`<span class="archive-tags">${post.tags.slice(0, 2).map((tag) => `#${tag}`).join(" ")}</span>` : ""}</li>`;
 }
 
 // ── 검색 (설계 15-7) ─────────────────────────────────

@@ -77,6 +77,8 @@ export interface Messages {
   recentNotes: string;
   allNotes: string;
   noteBadge: string;
+  /** 아카이브 글 꼬리표 (설계 16-20) */
+  postBadge: string;
   emptyNotes: string;
   statsHeading: string;
   statPosts: string;
@@ -172,6 +174,7 @@ export const MESSAGES: Record<Locale, Messages> = {
     recentNotes: "최근 노트",
     allNotes: "노트 전체 보기 →",
     noteBadge: "노트",
+    postBadge: "글",
     emptyNotes: "아직 노트가 없어요.",
     statsHeading: "통계",
     statPosts: "글",
@@ -258,6 +261,7 @@ export const MESSAGES: Record<Locale, Messages> = {
     recentNotes: "Recent notes",
     allNotes: "All notes →",
     noteBadge: "Note",
+    postBadge: "Post",
     emptyNotes: "No notes yet.",
     statsHeading: "Stats",
     statPosts: "Posts",

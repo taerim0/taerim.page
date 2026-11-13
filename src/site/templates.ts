@@ -770,11 +770,21 @@ function archiveDay(locale: Locale, date: string): string {
   return MESSAGES[locale].dayOfMonth(Number(date.slice(8, 10)));
 }
 
-/** 아카이브의 글 한 줄: 일 + 제목 (번역 언어의 미번역 글은 한글 제목 + KR) */
+/** 아카이브 꼬리표 아이콘 (설계 16-20, 직접 그림): 글 = 모서리 접힌 종이 + 글줄, 노트 = 왼쪽 스프링 공책 */
+const POST_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.5h5.5L13 5v9.5H4z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M9.5 1.5V5H13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6.3 8.2h4.4M6.3 11h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+const NOTE_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="1.5" width="9.5" height="13" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M2.5 4.5h3M2.5 8h3M2.5 11.5h3M8 5.5h3.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+
+/**
+ * 아카이브의 글·노트 한 줄: 일 + 꼬리표(아이콘 + 글/노트) + 제목 (설계 16-20, 시안 A-3)
+ * 글은 칠한 꼬리표 + 굵은 제목 → 테두리 꼬리표인 활동보다 눈에 띔. 노트는 옅은 꼬리표.
+ * (번역 언어의 미번역 글은 한글 제목 + KR)
+ */
 function archivePostLine(locale: Locale, date: string, post: PostCardData): Html {
   const m = MESSAGES[locale];
   const korean = post.untranslated === true && locale !== SOURCE_LOCALE;
-  return html`<li class="archive-post"><time datetime="${date}">${archiveDay(locale, date)}</time> <span class="archive-post-title"><a href="${localizedPath(locale, entryPath(post))}"${korean ? html` lang="ko"` : ""}>${post.title}</a>${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}${post.kind === "note" ? html` <span class="note-badge">${m.noteBadge}</span>` : ""}</span></li>`;
+  const note = post.kind === "note";
+  const badge = html`<span class="kind-badge ${note ? "kind-note" : "kind-post"}">${raw(note ? NOTE_ICON : POST_ICON)}${note ? m.noteBadge : m.postBadge}</span>`;
+  return html`<li class="archive-post${note ? " is-note" : ""}"><time datetime="${date}">${archiveDay(locale, date)}</time> ${badge} <span class="archive-post-title"><a href="${localizedPath(locale, entryPath(post))}"${korean ? html` lang="ko"` : ""}>${post.title}</a>${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</span></li>`;
 }
 
 // ── 검색 (설계 15-7) ─────────────────────────────────

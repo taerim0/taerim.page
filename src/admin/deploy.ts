@@ -36,7 +36,7 @@ export class DeployError extends Error {
 export interface GitHubDeployOptions {
   /** fine-grained 토큰 (이 저장소만, Actions: 읽기·쓰기). Worker 시크릿에 둔다 */
   token: string;
-  /** "taerim0/taerim.page" */
+  /** 예) "worud8457/portfolio" */
   repository: string;
   /** 워크플로 파일 이름. 예) "deploy-site.yml" */
   workflow: string;
@@ -57,7 +57,7 @@ export function githubDeployTrigger(options: GitHubDeployOptions): DeployTrigger
     Authorization: `Bearer ${options.token}`,
     "X-GitHub-Api-Version": "2022-11-28",
     // GitHub API는 User-Agent가 없으면 거절한다
-    "User-Agent": "taerim-page-admin",
+    "User-Agent": "blog-admin",
   };
 
   /** GitHub에 요청. 실패하면 DeployError (토큰 등 자세한 내용은 메시지에 넣지 않는다) */

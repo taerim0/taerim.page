@@ -1,5 +1,5 @@
 /**
- * 공개 사이트(taerim.page) 페이지 틀. 빌드가 이 함수들로 정적 HTML을 만든다.
+ * 공개 사이트 페이지 틀. 빌드가 이 함수들로 정적 HTML을 만든다.
  *
  * - Hono `html` 태그 템플릿: ${…}로 넣는 값은 자동으로 이스케이프된다 (제목에 <b>가 있어도 글자로)
  * - 본문만 `raw(…)`: 렌더러가 HTML을 막고 안전하게 만든 결과이기 때문
@@ -32,7 +32,7 @@ export type Html = HtmlEscapedString | Promise<HtmlEscapedString>;
 export interface SiteConfig {
   /** 사이트 이름 (머리말·제목 뒤에 붙음) */
   name: string;
-  /** 사이트 주소 (끝에 / 없이). 절대 주소가 필요한 곳(대표 이미지 공유, canonical)에 쓴다. 예) https://taerim.page */
+  /** 사이트 주소 (끝에 / 없이). 절대 주소가 필요한 곳(대표 이미지 공유, canonical)에 쓴다. 예) https://example.com */
   url: string;
   /** 짧은 소개 (홈의 description, 한국어) */
   description: string;
@@ -922,7 +922,7 @@ export function notFoundPage({ site }: { site: SiteConfig }): Html {
 
 // ── 도우미 ──────────────────────────────────────────
 
-/** "/posts/1" → "https://taerim.page/posts/1". 이미 절대 주소면 그대로 */
+/** "/posts/1" → "https://example.com/posts/1". 이미 절대 주소면 그대로 */
 export function absoluteUrl(site: SiteConfig, path: string): string {
   return /^https?:\/\//.test(path) ? path : `${site.url}${path}`;
 }

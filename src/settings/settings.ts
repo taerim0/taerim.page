@@ -28,12 +28,12 @@ export interface SiteSettings {
 
 /** 저장한 적 없을 때 */
 export const DEFAULT_SETTINGS: SiteSettings = {
-  name: "taerim",
+  name: "블로그",
   photo: null,
   tagline: null,
   taglineEn: null,
-  description: "taerim의 블로그",
-  descriptionEn: "taerim's blog",
+  description: "내 블로그",
+  descriptionEn: "My blog",
   github: null,
   email: null,
   linkedin: null,

@@ -196,7 +196,7 @@ function refresh() {
   $("dirty-mark").hidden = !dirty;
   // [글 정보] 단추의 점: 요약에 저장 안 한 변경
   metaDot.hidden = inputs.summary.value.trim() === saved.summary;
-  document.title = `${now.title || "번역"} (${lang.toUpperCase()}) · taerim.page 관리자`;
+  document.title = `${now.title || "번역"} (${lang.toUpperCase()}) · 블로그 관리자`;
   if (paneTab === "preview") previewTitle.textContent = now.title;
 
   const blocked = busy || now.title === "" || over;

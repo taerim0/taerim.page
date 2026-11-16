@@ -13,7 +13,8 @@ export interface RendererOptions {
   siteHost?: string;
 }
 
-const DEFAULT_SITE_HOST = "taerim.page";
+// 내 도메인으로 바꾼다 (이 도메인 링크는 같은 탭, 나머지는 새 탭)
+const DEFAULT_SITE_HOST = "example.com";
 
 /**
  * core 문법 규칙. markdown-it의 "zero" 프리셋(모두 꺼진 상태)에서 이것만 켠다.

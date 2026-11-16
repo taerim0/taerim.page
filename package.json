@@ -1,8 +1,8 @@
 {
-  "name": "taerim.page",
+  "name": "portfolio",
   "version": "0.1.0",
   "private": true,
-  "description": "taerim.page 개인 블로그",
+  "description": "개인 블로그",
   "type": "module",
   "scripts": {
     "test": "vitest run",
@@ -14,14 +14,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/taerim0/taerim.page.git"
+    "url": "git+https://github.com/worud8457/portfolio.git"
   },
-  "author": "taerim0",
+  "author": "worud8457",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/taerim0/taerim.page/issues"
+    "url": "https://github.com/worud8457/portfolio/issues"
   },
-  "homepage": "https://taerim.page",
+  "homepage": "https://example.com",
   "dependencies": {
     "hono": "^4.13.17",
     "jose": "^6.2.15",

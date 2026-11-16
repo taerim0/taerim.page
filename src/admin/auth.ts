@@ -26,7 +26,7 @@ const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
 /**
  * 로컬 개발용: 내 컴퓨터(localhost)로 들어온 요청만 관리자로 본다.
- * 배포된 Worker는 주소가 admin.taerim.page 등이므로, 실수로 이 방법을 써도 통과되지 않는다.
+ * 배포된 Worker는 주소가 admin.example.com 등이므로, 실수로 이 방법을 써도 통과되지 않는다.
  */
 export function localDevAuthenticator(): AdminAuthenticator {
   return {
@@ -39,7 +39,7 @@ export function localDevAuthenticator(): AdminAuthenticator {
 
 /** Cloudflare Access 설정 */
 export interface AccessConfig {
-  /** Access 팀 도메인. 예) "taerim.cloudflareaccess.com" 또는 "https://taerim.cloudflareaccess.com" */
+  /** Access 팀 도메인. 예) "myteam.cloudflareaccess.com" 또는 "https://myteam.cloudflareaccess.com" */
   teamDomain: string;
   /** Access 앱의 AUD 태그 (앱마다 고유. Zero Trust > Access > Applications에서 확인) */
   audience: string;
@@ -100,7 +100,7 @@ const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 /**
  * 출처 확인 (CSRF 방지).
  * 조회가 아닌 요청(POST·PUT·DELETE)은 관리자 화면과 같은 주소에서 보낸 것만 받는다.
- * - Origin 헤더가 이 서버 주소(예: https://admin.taerim.page)와 같으면 통과
+ * - Origin 헤더가 이 서버 주소(예: https://admin.example.com)와 같으면 통과
  * - Origin이 없으면 브라우저의 Sec-Fetch-Site가 same-origin일 때만 통과
  * - 그 밖에는 403
  */

@@ -18,7 +18,8 @@ import { clearNotice, confirmDialog, el, formatDateTime, notify, setQuery, showF
 /** 화면 상태 = 주소의 ?… @typedef {{ status: StatusFilter, kind: KindFilter, q: string, page: number, id: number | null }} ListState */
 
 /** 공개 사이트 주소 ([사이트에서 보기]) */
-const SITE_ORIGIN = "https://taerim.page";
+// 공개 사이트 주소 (src/site/config.ts의 url과 같게)
+const SITE_ORIGIN = "https://example.com";
 /** 이 폭 이상이면 오른쪽 상세 (CSS의 .list-layout과 같게) */
 const WIDE = matchMedia("(min-width: 1000px)");
 

@@ -1,4 +1,4 @@
-/*! giscus 테마 (light) — taerim.page 색 (설계 2-1 손봄, 2026-11-12)
+/*! giscus 테마 (light) — 사이트 색 (설계 2-1 손봄, 2026-11-12)
  * 코드 색칠 색(prettylights)과 로딩 그림은 giscus light 테마에서: GitHub Primer, MIT License,
  * Copyright (c) 2018 GitHub Inc. https://github.com/primer/primitives/blob/main/LICENSE
  * giscus가 iframe 안 <head> 끝에 <link crossorigin="anonymous">로 붙인다 → _headers가 giscus.app에 CORS 허용
@@ -96,7 +96,7 @@ main .gsc-loading-image {
   background-image: url("https://github.githubassets.com/images/mona-loading-default.gif");
 }
 
-/*! taerim.page — C-2: 테두리 없이 평평하게, 줄로만 나누기 (설계 2-1 손봄, 2026-11-12) */
+/*! C-2: 테두리 없이 평평하게, 줄로만 나누기 (설계 2-1 손봄, 2026-11-12) */
 main {
   font-family: system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
 }

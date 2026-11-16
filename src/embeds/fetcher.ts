@@ -19,7 +19,7 @@ export interface EmbedFetchDeps {
 
 const TIMEOUT_MS = 5000;
 const MAX_HTML_BYTES = 1024 * 1024;
-const USER_AGENT = "taerim.page link preview (+https://taerim.page)";
+const USER_AGENT = "blog link preview";
 
 export async function fetchEmbed(url: string, deps: EmbedFetchDeps = {}): Promise<EmbedInfo> {
   const fetchFn = deps.fetch ?? globalThis.fetch;

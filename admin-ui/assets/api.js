@@ -63,7 +63,7 @@ export class ApiError extends Error {
 
 /**
  * API 한 번 부르기. 성공하면 결과 JSON(204면 null), 실패하면 ApiError를 던진다.
- * 같은 주소(admin.taerim.page)라서 로그인 정보·Origin은 브라우저가 알아서 붙인다.
+ * 같은 주소(관리자 주소)라서 로그인 정보·Origin은 브라우저가 알아서 붙인다.
  * @param {"GET" | "POST" | "PUT" | "PATCH" | "DELETE"} method
  * @param {string} path "/posts" 처럼 /api 뒤 경로
  * @param {unknown} [body] 보낼 JSON

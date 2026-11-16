@@ -304,7 +304,7 @@ function refresh() {
   metaDot.hidden = !(changed.includes("summary") || changed.includes("thumbnail") || changed.includes("tags"));
   $("saved-at").textContent = savedAt ? `저장 ${formatDateTime(savedAt)}` : "";
   previewTitle.textContent = now.title;
-  document.title = `${now.title || "새 글"} · taerim.page 관리자`;
+  document.title = `${now.title || "새 글"} · 블로그 관리자`;
 
   // 제목이 비었거나 넘친 칸이 있으면 저장·공개 모두 불가 (서버도 거절할 내용)
   const blocked = busy || now.title === "" || over;

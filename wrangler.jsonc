@@ -1,28 +1,28 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  // 관리자 Worker (admin.taerim.page). 공개 사이트와는 별도
-  "name": "taerim-page-admin",
+  // 관리자 Worker (admin.example.com). 공개 사이트와는 별도
+  "name": "blog-admin",
   "main": "src/worker/admin.ts",
   "compatibility_date": "2026-11-01",
 
-  // 주소: admin.taerim.page (Cloudflare가 DNS·인증서를 알아서 만든다)
-  // *.workers.dev·미리보기 주소는 끈다 → 관리자 화면은 Access가 걸린 admin.taerim.page로만
-  "routes": [{ "pattern": "admin.taerim.page", "custom_domain": true }],
+  // 주소: admin.example.com → 내 도메인으로 바꾼다 (Cloudflare가 DNS·인증서를 알아서 만든다)
+  // *.workers.dev·미리보기 주소는 끈다 → 관리자 화면은 Access가 걸린 관리자 주소로만
+  "routes": [{ "pattern": "admin.example.com", "custom_domain": true }],
   "workers_dev": false,
   "preview_urls": false,
-  // wrangler dev는 기본으로 요청 주소를 위 route(admin.taerim.page)로 바꾼다
+  // wrangler dev는 기본으로 요청 주소를 위 route(admin.example.com)로 바꾼다
   // → 로컬 로그인 확인(localhost만 허용)이 막히므로 개발 중에는 localhost 그대로 둔다 (배포에는 영향 없음)
   "dev": { "host": "localhost" },
 
   // 배포용 설정값 (비밀 아님). 비어 있으면 관리자 확인이 "모두 막음"이 된다 (설정을 잊어도 열리지 않게)
-  // - ACCESS_TEAM_DOMAIN: Zero Trust > Settings > Team domain / ACCESS_AUD: Access 앱(admin.taerim.page) > Additional settings > AUD tag
+  // - ACCESS_TEAM_DOMAIN: Zero Trust > Settings > Team domain / ACCESS_AUD: Access 앱(관리자 주소) > Additional settings > AUD tag
   // - ADMIN_EMAILS: 들어올 수 있는 이메일 (쉼표로 여러 개)
   // 비밀값 GITHUB_DEPLOY_TOKEN은 여기 넣지 않고 `npx wrangler secret put GITHUB_DEPLOY_TOKEN`으로
   "vars": {
-    "ACCESS_TEAM_DOMAIN": "taerim0.cloudflareaccess.com",
-    "ACCESS_AUD": "b157487e544c9860603839ed8ce37cf0d6f3bb9056a05ed367da28fc9a23bde8",
-    "ADMIN_EMAILS": "taerim.be@gmail.com",
-    "GITHUB_REPOSITORY": "taerim0/taerim.page"
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUD": "",
+    "ADMIN_EMAILS": "",
+    "GITHUB_REPOSITORY": "worud8457/portfolio"
   },
   // 주의: ENVIRONMENT 같은 개발용 값은 여기 넣지 않는다 (배포에도 적용되므로).
   // 로컬 개발용 값은 .dev.vars 에만 둔다.
@@ -30,7 +30,7 @@
   // wrangler dev·deploy 전에 관리자 화면용 번들을 만든다 (admin-ui/assets/lib.js: 렌더러·태그 정리·글자 수)
   // src 를 고치면 wrangler dev 가 다시 묶는다
   "build": {
-    // wrangler는 레포 폴더(repository/taerim.page)에서 실행한다 (npx wrangler dev)
+    // wrangler는 레포 폴더에서 실행한다 (npx wrangler dev)
     "command": "npm run build:admin",
     "watch_dir": "src"
   },
@@ -39,20 +39,20 @@
     {
       // 코드에서 env.DB 로 쓴다
       "binding": "DB",
-      "database_name": "taerim-page-db",
-      // 2026-11-07 생성 (위치: APAC). 비밀값이 아니라 커밋해도 됨
-      "database_id": "790dc115-59f4-4a28-a219-55138e4d816e",
+      "database_name": "blog-db",
+      // `npx wrangler d1 create blog-db`가 알려 주는 id를 넣는다. 비밀값이 아니라 커밋해도 됨
+      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID",
       "migrations_dir": "migrations"
     }
   ],
 
   // 이미지 파일 (R2, 공개 주소 없음). 코드에서 env.IMAGES 로 쓴다
   // 방문자는 R2에 닿지 않는다: 공개 사이트 빌드가 글에 쓰인 이미지만 정적 파일로 복사한다
-  // 주의: 배포 전에 버킷을 먼저 만들어야 한다 (npx wrangler r2 bucket create taerim-page-images)
+  // 주의: 배포 전에 버킷을 먼저 만들어야 한다 (npx wrangler r2 bucket create blog-images)
   "r2_buckets": [
     {
       "binding": "IMAGES",
-      "bucket_name": "taerim-page-images"
+      "bucket_name": "blog-images"
     }
   ],
 

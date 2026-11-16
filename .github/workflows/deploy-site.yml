@@ -1,4 +1,4 @@
-# 공개 사이트(taerim.page) 빌드·배포
+# 공개 사이트 빌드·배포
 # - 관리자 [배포] 버튼: 관리자 Worker가 GitHub API로 이 워크플로를 실행 (workflow_dispatch)
 # - main에 사이트 관련 코드가 바뀌면 자동
 # - 매일 04:00 (한국): 조회수 모으기(Web Analytics → D1, 설계 2-2) 후 다시 빌드 → 글 페이지 숫자가 하루 한 번 바뀜
@@ -58,5 +58,5 @@ jobs:
         env:
           # 통계 잔디의 GitHub 기여 (설계 15-9). Actions가 원래 주는 토큰 — 새 비밀값 없음, 공개 기여만
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: 배포 (taerim.page)
+      - name: 배포 (공개 사이트)
         run: npx wrangler deploy -c wrangler.site.jsonc

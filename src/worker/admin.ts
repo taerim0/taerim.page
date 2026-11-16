@@ -1,5 +1,5 @@
 /**
- * 관리자 Worker 시작 파일 (admin.taerim.page).
+ * 관리자 Worker 시작 파일 (관리자 주소).
  * 실제 저장소·설정으로 관리자 앱을 조립한다.
  *
  * 저장소: D1 (env.DB), 이미지 파일은 R2 (env.IMAGES).
@@ -40,13 +40,13 @@ interface AdminWorkerEnv {
   IMAGES?: R2Bucket;
   /** 로컬 개발이면 "development" (.dev.vars에만 넣는다. 배포 설정에는 넣지 않는다) */
   ENVIRONMENT?: string;
-  /** Cloudflare Access 팀 도메인 (예: taerim.cloudflareaccess.com). 배포 설정(vars)에 넣는다 */
+  /** Cloudflare Access 팀 도메인 (예: myteam.cloudflareaccess.com). 배포 설정(vars)에 넣는다 */
   ACCESS_TEAM_DOMAIN?: string;
   /** Access 앱의 AUD 태그 */
   ACCESS_AUD?: string;
   /** 관리자 이메일 (여러 개면 쉼표로) */
   ADMIN_EMAILS?: string;
-  /** 배포 워크플로가 있는 저장소. 예) "taerim0/taerim.page" (vars) */
+  /** 배포 워크플로가 있는 저장소. 예) "worud8457/portfolio" (vars) */
   GITHUB_REPOSITORY?: string;
   /** 배포 워크플로 실행용 GitHub 토큰 (시크릿: wrangler secret put GITHUB_DEPLOY_TOKEN) */
   GITHUB_DEPLOY_TOKEN?: string;

@@ -53,7 +53,7 @@ export function parseContributions(body: CalendarResponse): Map<string, number> 
 export async function fetchContributions(login: string, token: string, fetchFn: typeof fetch = fetch): Promise<Map<string, number>> {
   const response = await fetchFn(ENDPOINT, {
     method: "POST",
-    headers: { Authorization: `bearer ${token}`, "Content-Type": "application/json", "User-Agent": "taerim.page-build" },
+    headers: { Authorization: `bearer ${token}`, "Content-Type": "application/json", "User-Agent": "blog-build" },
     body: JSON.stringify({ query: QUERY, variables: { login } }),
     signal: AbortSignal.timeout(15_000),
   });

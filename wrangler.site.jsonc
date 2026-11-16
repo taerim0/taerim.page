@@ -1,12 +1,12 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  // 공개 사이트 Worker (taerim.page). 관리자 Worker(wrangler.jsonc)와는 별도
+  // 공개 사이트 Worker (example.com). 관리자 Worker(wrangler.jsonc)와는 별도
   // 코드 없이 정적 파일만 내보낸다 → 방문자 요청은 Worker 실행·요청 한도에 잡히지 않음
   // 파일은 npm run build:site 로 만든 dist/site
-  "name": "taerim-page-site",
+  "name": "blog-site",
   "compatibility_date": "2026-11-01",
-  // 주소: taerim.page (www.taerim.page → taerim.page 이동은 Cloudflare 리다이렉트 규칙으로, 대시보드에서)
-  "routes": [{ "pattern": "taerim.page", "custom_domain": true }],
+  // 주소: example.com → 내 도메인으로 바꾼다 (www → 맨 도메인 이동은 Cloudflare 리다이렉트 규칙으로, 대시보드에서)
+  "routes": [{ "pattern": "example.com", "custom_domain": true }],
   "workers_dev": false,
   "preview_urls": false,
   "assets": {

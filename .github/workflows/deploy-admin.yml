@@ -1,6 +1,6 @@
-# 관리자 Worker(admin.taerim.page) 배포
+# 관리자 Worker 배포
 # main에 관리자 관련 코드가 바뀌면 자동. 손으로 다시 배포할 때는 Actions 탭에서 실행
-# D1 마이그레이션(테이블 변경)은 자동으로 하지 않는다 → 필요할 때 직접 `npx wrangler d1 migrations apply taerim-page-db --remote`
+# D1 마이그레이션(테이블 변경)은 자동으로 하지 않는다 → 필요할 때 직접 `npx wrangler d1 migrations apply blog-db --remote`
 name: 관리자 배포
 
 on:
@@ -38,5 +38,5 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       # wrangler.jsonc의 build 설정이 관리자 화면 번들(npm run build:admin)을 먼저 만든다
-      - name: 배포 (admin.taerim.page)
+      - name: 배포 (관리자)
         run: npx wrangler deploy

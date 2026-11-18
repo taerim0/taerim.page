@@ -622,3 +622,35 @@ html.wave-down::view-transition-old(root) { z-index: 1; }
 .project-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; font-size: .85em; }
 .project-tags .tag { padding: 1px 9px; border: 1px solid var(--accent-line); border-radius: 999px; color: var(--accent); text-decoration: none; }
 .project-tags a.tag:hover { background: var(--accent-soft); }
+
+/* ── 태그 갈래 (설계 19) ── */
+/* 탭 안 태그 페이지 제목 아래: 모두 보기로 */
+.tag-all-link { margin: -8px 0 12px; font-size: .85em; }
+.tag-all-link a { color: var(--muted); }
+.tag-all-link a:hover { color: var(--accent); }
+/* 모두 보기 /tags/{태그}: 글 → 노트 → 프로젝트 카드 */
+.tag-all-section { margin-bottom: 16px; }
+.tag-all-section .card-heading .count { margin-left: 4px; color: var(--muted); font-weight: 400; font-size: .85em; }
+.tag-project-lines { list-style: none; margin: 0; padding: 0; }
+.tag-project-lines li { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line-soft, var(--line)); font-size: .95em; }
+.tag-project-lines li:first-child { border-top: 0; }
+.tag-project-thumb { position: relative; flex: none; width: 84px; aspect-ratio: 3 / 1; overflow: hidden; border-radius: 6px; background: var(--surface); }
+.tag-project-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.tag-project-name { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tag-project-name a { color: var(--text); text-decoration: none; }
+.tag-project-name a:hover { color: var(--accent); }
+.tag-project-lines .project-status { font-size: .8em; }
+.tag-project-lines .project-period { color: var(--muted); font-size: .85em; white-space: nowrap; }
+@media (max-width: 599px) { .tag-project-lines .project-period { display: none; } }
+/* 홈 최근 프로젝트 (H-3): 큰 블록 안에 카드 2개 */
+.card-heading-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.card-heading-more { font-size: .85em; text-decoration: none; white-space: nowrap; }
+.card-heading-more:hover { text-decoration: underline; }
+.home-projects { padding-top: 18px; padding-bottom: 18px; }
+.tag-all-section { padding-top: 18px; }
+.home-project-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 4px; }
+@media (max-width: 599px) { .home-project-grid { grid-template-columns: minmax(0, 1fr); } }
+.project-card.is-small .project-text { padding: 12px 14px 14px; gap: 6px; }
+.project-card.is-small .project-title { font-size: 1em; }
+.project-card.is-small .project-summary { font-size: .88em; -webkit-line-clamp: 1; }
+.project-card.is-small .project-meta { font-size: .8em; }

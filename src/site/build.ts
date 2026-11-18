@@ -27,8 +27,8 @@ import { computeStats } from "./stats.ts";
 import type { SiteStats } from "./stats.ts";
 import type { SearchBodies, SearchIndex, SearchItem } from "./search.ts";
 import type { ArchiveActivity } from "./archive.ts";
-import { ARCHIVE_PATH, activityAnchor, entryPath, NOTES_PATH, notePath, pagePath, PROJECTS_PATH, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, STATS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
-import { absoluteUrl, archivePage, projectsPage, searchPage, statsPage, HOME_ACTIVITY_COUNT, HOME_NOTE_COUNT, HOME_POST_COUNT, homePage, listPage, notesPage, notFoundPage, postPage, tagsPage, untranslatedPostPage } from "./templates.ts";
+import { ARCHIVE_PATH, activityAnchor, entryPath, NOTES_PATH, notePath, pagePath, PROJECTS_PATH, scopedTagPath, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, STATS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
+import { absoluteUrl, archivePage, HOME_PROJECT_COUNT, projectsPage, searchPage, tagAllPage, TAG_ALL_POST_COUNT, statsPage, HOME_ACTIVITY_COUNT, HOME_NOTE_COUNT, HOME_POST_COUNT, homePage, listPage, notesPage, notFoundPage, postPage, tagsPage, untranslatedPostPage } from "./templates.ts";
 import type { Html, ListBrowse, PostCardData, SiteConfig, TagNav } from "./templates.ts";
 
 /** 목록 한 페이지의 글 수 (관리자 목록과 같은 10개) */
@@ -111,19 +111,33 @@ export async function buildSite({ site: baseSite, settings, activities = [], pro
   }
   /** 이 글이 있는 언어들 (hreflang) */
   const localesOf = (id: number) => LOCALES.filter((l) => l === SOURCE_LOCALE || byLocale.get(l)?.has(id));
+  /** 통계(설계 15-9)의 태그 수·순위: 글 + 노트 (지금과 같게) */
   const tags = countTags(published);
-  /** 글 목록·태그 페이지 왼쪽 카드 (설계 16-9) */
+  // 프로젝트 (설계 18): 숨김·휴지통 빼고 순서대로, 태그는 글처럼 상위 태그까지
+  const shownProjects = projects
+    .filter((project) => project.visible && project.deletedAt === null)
+    .map((project) => ({ ...project, tags: tree.withAncestors(project.tags) }))
+    .sort(byProjectOrder);
+  // 설계 19: 갈래별 태그 수 (탭 안 왼쪽 카드·태그 페이지) + 모두 합친 수 (홈 태그 카드·태그 모음·모두 보기)
+  const postTags = countTags(publishedPosts);
+  const noteTags = countTags(publishedNotes);
+  const projectTags = countTags(shownProjects);
+  const allTags = mergeTagCounts([postTags, noteTags, projectTags]);
+  /** 태그 페이지 위아래 길잡이: 하위 태그는 그 갈래에 있는 것만 */
+  const navOf = (name: string, scopeTags: readonly TagCount[]): TagNav => ({ ancestors: tree.ancestorsOf(name), children: scopeTags.filter((tag) => tree.parentOf(tag.name) === name) });
+  /** 글 목록·태그 페이지 왼쪽 카드 (설계 16-9) — 글만 셈 (설계 19) */
   const browse: ListBrowse = {
+    scope: "posts",
     total: publishedPosts.length,
-    tags,
+    tags: postTags,
     years: [...new Set(publishedPosts.map((post) => Number(formatDate(post.publishedAt!, SOURCE_LOCALE).slice(0, 4))))].sort((a, b) => b - a),
   };
   /** 통계 (설계 15-9): 한국어 본문 글자는 한국어 차례에서 모으고, 수치는 언어와 상관없이 한 번만 셈 */
   const koreanTexts = new Map<number, string>();
   let stats: SiteStats | null = null;
   const sortedActivities = [...activities].sort(byNewestActivity);
-  const shownProjects = projects.filter((project) => project.visible && project.deletedAt === null).sort(byProjectOrder);
-  const tagPages = new Set(tags.map((tag) => tag.name));
+  /** 노트 탭 왼쪽 카드 (설계 19): 노트만 셈, 해마다 카드 없음 */
+  const notesBrowse: ListBrowse = { scope: "notes", total: publishedNotes.length, tags: noteTags, years: [] };
 
   for (const locale of LOCALES) {
     const localized: LocalizedPost[] = published.map((post) => ({ post, translation: byLocale.get(locale)?.get(post.id) }));
@@ -135,15 +149,15 @@ export async function buildSite({ site: baseSite, settings, activities = [], pro
     const archiveActivities = sortedActivities.map((activity) => localizeActivity(activity, locale, imageSizes));
     await add(
       localizedPath(locale, "/"),
-      homePage({ site, locale, profile, posts: cardsOf(publishedPosts.slice(0, HOME_POST_COUNT)), tags, tree, imageSizes, activities: archiveActivities.slice(0, HOME_ACTIVITY_COUNT), notes: cardsOf(publishedNotes.slice(0, HOME_NOTE_COUNT)) }),
+      homePage({ site, locale, profile, posts: cardsOf(publishedPosts.slice(0, HOME_POST_COUNT)), tags: allTags, tree, imageSizes, activities: archiveActivities.slice(0, HOME_ACTIVITY_COUNT), notes: cardsOf(publishedNotes.slice(0, HOME_NOTE_COUNT)), projects: shownProjects.slice(0, HOME_PROJECT_COUNT) }),
     );
     // 아카이브 (설계 15-5): 글 + 활동을 연 → 월로
     await add(localizedPath(locale, ARCHIVE_PATH), archivePage({ site, locale, years: groupArchive(cardsOf(published), archiveActivities) }));
     for (const [path, page] of listPages(site, locale, cardsOf(publishedPosts), POSTS_PATH, imageSizes, undefined, undefined, browse)) await add(path, page);
     // 노트 목록 (설계 17): 한 줄씩, 한 페이지
-    await add(localizedPath(locale, NOTES_PATH), notesPage({ site, locale, notes: cardsOf(publishedNotes) }));
+    await add(localizedPath(locale, NOTES_PATH), notesPage({ site, locale, notes: cardsOf(publishedNotes), browse: notesBrowse }));
     // 프로젝트 (설계 18): 카드 목록
-    await add(localizedPath(locale, PROJECTS_PATH), projectsPage({ site, locale, projects: shownProjects, tagPages, imageSizes }));
+    await add(localizedPath(locale, PROJECTS_PATH), projectsPage({ site, locale, projects: shownProjects, imageSizes }));
 
     // 글: 한국어 / 번역본 / 미번역(한글을 흐리게 + 안내)
     /** 검색용 본문 HTML (글 id → 이 언어 페이지에 보이는 본문) */
@@ -173,14 +187,38 @@ export async function buildSite({ site: baseSite, settings, activities = [], pro
       }
     }
 
-    // 태그 모음 + 태그별 목록 (태그 이름은 번역하지 않음)
-    await add(localizedPath(locale, TAGS_PATH), tagsPage({ site, locale, tags, tree }));
-    for (const { name } of tags) {
+    // 태그 모음 + 태그 페이지 (태그 이름은 번역하지 않음, 설계 19)
+    await add(localizedPath(locale, TAGS_PATH), tagsPage({ site, locale, tags: allTags, tree }));
+    // 모두 보기 /tags/{태그}: 글(최신 몇 개) → 노트 → 프로젝트
+    for (const { name } of allTags) {
+      const taggedPosts = publishedPosts.filter((post) => post.tags.includes(name));
+      await add(
+        localizedPath(locale, tagPath(name)),
+        tagAllPage({
+          site,
+          locale,
+          tag: name,
+          tagNav: navOf(name, allTags),
+          posts: cardsOf(taggedPosts.slice(0, TAG_ALL_POST_COUNT)),
+          postTotal: taggedPosts.length,
+          notes: cardsOf(publishedNotes.filter((post) => post.tags.includes(name))),
+          projects: shownProjects.filter((project) => project.tags.includes(name)),
+          imageSizes,
+        }),
+      );
+    }
+    // 탭 안 태그 페이지: 글 /posts/tags/… (10개씩) · 노트 /notes/tags/… · 프로젝트 /projects/tags/…
+    for (const { name } of postTags) {
       const tagged = publishedPosts.filter((post) => post.tags.includes(name));
-      const taggedNotes = publishedNotes.filter((post) => post.tags.includes(name));
-      // 태그 페이지 위: 상위 경로 / 아래: 하위 태그 (글이 있는 것만)
-      const nav = { ancestors: tree.ancestorsOf(name), children: tags.filter((tag) => tree.parentOf(tag.name) === name) };
-      for (const [path, page] of listPages(site, locale, cardsOf(tagged), tagPath(name), imageSizes, name, nav, browse, cardsOf(taggedNotes))) await add(path, page);
+      for (const [path, page] of listPages(site, locale, cardsOf(tagged), scopedTagPath("posts", name), imageSizes, name, navOf(name, postTags), browse)) await add(path, page);
+    }
+    for (const { name } of noteTags) {
+      const tagged = publishedNotes.filter((post) => post.tags.includes(name));
+      await add(localizedPath(locale, scopedTagPath("notes", name)), notesPage({ site, locale, notes: cardsOf(tagged), tag: name, tagNav: navOf(name, noteTags), browse: notesBrowse }));
+    }
+    for (const { name } of projectTags) {
+      const tagged = shownProjects.filter((project) => project.tags.includes(name));
+      await add(localizedPath(locale, scopedTagPath("projects", name)), projectsPage({ site, locale, projects: tagged, imageSizes, tag: name, tagNav: navOf(name, projectTags) }));
     }
 
     // 통계 (설계 15-9): 첫 차례(한국어)에서 본문 글자를 모은 뒤 셈
@@ -320,10 +358,17 @@ function* listPages(
   }
 }
 
-/** 공개 글 기준 태그별 개수, 이름순 (관리자 태그 목록과 같은 순서) */
-function countTags(posts: Post[]): TagCount[] {
+/** 태그별 개수, 이름순 (관리자 태그 목록과 같은 순서). 글·노트·프로젝트 무엇이든 tags만 봄 */
+function countTags(items: readonly { tags: readonly string[] }[]): TagCount[] {
   const counts = new Map<string, number>();
-  for (const post of posts) for (const tag of post.tags) counts.set(tag, (counts.get(tag) ?? 0) + 1);
+  for (const item of items) for (const tag of item.tags) counts.set(tag, (counts.get(tag) ?? 0) + 1);
+  return [...counts].map(([name, count]) => ({ name, count })).sort((a, b) => compareTagNames(a.name, b.name));
+}
+
+/** 갈래별 개수를 더함 (설계 19: 홈 태그 카드·태그 모음·모두 보기) */
+function mergeTagCounts(lists: readonly (readonly TagCount[])[]): TagCount[] {
+  const counts = new Map<string, number>();
+  for (const list of lists) for (const { name, count } of list) counts.set(name, (counts.get(name) ?? 0) + count);
   return [...counts].map(([name, count]) => ({ name, count })).sort((a, b) => compareTagNames(a.name, b.name));
 }
 

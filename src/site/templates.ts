@@ -21,8 +21,9 @@ import type { SiteStats } from "./stats.ts";
 import type { Project } from "../projects/projects.ts";
 import { formatDate, formatDay, SITE_SCRIPT, LOCALES, localizedPath, MESSAGES, SOURCE_LOCALE } from "./i18n.ts";
 import type { Locale } from "./i18n.ts";
+import type { TagScope } from "./paths.ts";
 import type { ImageSize } from "./images.ts";
-import { activityAnchor, ARCHIVE_PATH, entryPath, NOTES_PATH, pagePath, PROJECTS_PATH, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, STATS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
+import { activityAnchor, ARCHIVE_PATH, entryPath, NOTES_PATH, pagePath, PROJECTS_PATH, SCOPE_PATHS, scopedTagPath, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, STATS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
 
 export { formatDate } from "./i18n.ts";
 
@@ -228,7 +229,9 @@ interface ListPageProps {
 
 /** 목록 왼쪽 카드에 쓰는 것 (설계 16-9) */
 export interface ListBrowse {
-  /** 공개 글 전체 수 ("전체 n") */
+  /** 어느 탭의 카드인지 (설계 19): 태그 링크·"전체" 링크가 그 탭 안으로 */
+  scope: "posts" | "notes";
+  /** 그 탭 전체 수 ("전체 n") */
   total: number;
   /** 태그별 글 수 (태그 페이지와 같은 셈) */
   tags: TagCount[];
@@ -246,19 +249,7 @@ export function listPage({ site, locale = SOURCE_LOCALE, posts, pagination, tag,
   const body = html`
     <div class="list-layout">
       <aside class="list-side">
-        <div class="list-head">
-          ${tagNav && tagNav.ancestors.length > 0
-            ? html`<nav class="tag-path" aria-label="${m.tagsHeading}">${tagNav.ancestors.map(
-                (name) => html`<a class="tag" href="${localizedPath(locale, tagPath(name))}">#${name}</a> › `,
-              )}</nav>`
-            : ""}
-          <h1 class="list-heading">${heading ?? m.navPosts}</h1>
-          ${tagNav && tagNav.children.length > 0
-            ? html`<ul class="tag-children">${tagNav.children.map(
-                (child) => html`<li><a class="tag" href="${localizedPath(locale, tagPath(child.name))}">#${child.name} <span class="count">${child.count}</span></a></li>`,
-              )}</ul>`
-            : ""}
-        </div>
+        ${tagHead(locale, "posts", m.navPosts, tag, tagNav)}
         ${browse ? browseCards(locale, browse, tag) : ""}
       </aside>
       <div class="list-main">
@@ -288,18 +279,69 @@ export function listPage({ site, locale = SOURCE_LOCALE, posts, pagination, tag,
 }
 
 /**
- * 노트 목록 (/notes, 설계 17): 요약·대표 이미지 없이 한 줄씩 (날짜 · 제목 · 태그), 한 페이지에 전부
+ * 목록 왼쪽 위: (상위 경로 ›) 제목 (+ 모두 보기 링크) (+ 하위 태그). 설계 14·19
+ * scope가 있으면 태그 링크는 그 탭 안(/posts/tags/…), null이면 모두 보기(/tags/…)
  */
-export function notesPage({ site, locale = SOURCE_LOCALE, notes }: { site: SiteConfig; locale?: Locale; notes: PostCardData[] }): Html {
+function tagHead(locale: Locale, scope: TagScope | null, title: string, tag: string | undefined, tagNav?: TagNav): Html {
+  const m = MESSAGES[locale];
+  const href = (name: string) => localizedPath(locale, scope ? scopedTagPath(scope, name) : tagPath(name));
+  return html`<div class="list-head">
+          ${tagNav && tagNav.ancestors.length > 0
+            ? html`<nav class="tag-path" aria-label="${m.tagsHeading}">${tagNav.ancestors.map((name) => html`<a class="tag" href="${href(name)}">#${name}</a> › `)}</nav>`
+            : ""}
+          <h1 class="list-heading">${tag === undefined ? title : `#${tag}`}</h1>
+          ${tag !== undefined && scope ? html`<p class="tag-all-link"><a href="${localizedPath(locale, tagPath(tag))}">${m.viewAllKinds}</a></p>` : ""}
+          ${tagNav && tagNav.children.length > 0
+            ? html`<ul class="tag-children">${tagNav.children.map(
+                (child) => html`<li><a class="tag" href="${href(child.name)}">#${child.name} <span class="count">${child.count}</span></a></li>`,
+              )}</ul>`
+            : ""}
+        </div>`;
+}
+
+/**
+ * 노트 목록 (/notes, 설계 17): 요약·대표 이미지 없이 한 줄씩 (날짜 · 제목 · 태그), 한 페이지에 전부
+ * 설계 19: 왼쪽 "태그로 보기" 카드(노트만 셈), 노트 탭 안 태그 페이지(/notes/tags/…)도 이 모양
+ */
+export function notesPage({
+  site,
+  locale = SOURCE_LOCALE,
+  notes,
+  tag,
+  tagNav,
+  browse,
+}: {
+  site: SiteConfig;
+  locale?: Locale;
+  notes: PostCardData[];
+  tag?: string;
+  tagNav?: TagNav;
+  browse?: ListBrowse;
+}): Html {
   const m = MESSAGES[locale];
   const body = html`
-    <div class="notes-page">
-      <h1 class="list-heading">${m.noteListTitle}</h1>
-      ${notes.length === 0
-        ? html`<p class="empty card">${m.emptyNotes}</p>`
-        : html`<div class="card list-card">${noteLines(locale, notes, { tags: true })}</div>`}
+    <div class="list-layout">
+      <aside class="list-side">
+        ${tagHead(locale, "notes", m.noteListTitle, tag, tagNav)}
+        ${browse ? browseCards(locale, browse, tag) : ""}
+      </aside>
+      <div class="list-main">
+        ${notes.length === 0
+          ? html`<p class="empty card">${m.emptyNotes}</p>`
+          : html`<div class="card list-card">${noteLines(locale, notes, { tags: true })}</div>`}
+      </div>
     </div>`;
-  return layout({ site, locale, title: m.noteListTitle, path: NOTES_PATH, section: "notes", bodyClass: "page-list", body });
+  const heading = tag === undefined ? null : `#${tag}`;
+  return layout({
+    site,
+    locale,
+    title: heading ?? m.noteListTitle,
+    description: heading === null ? undefined : m.tagDescription(heading),
+    path: tag === undefined ? NOTES_PATH : scopedTagPath("notes", tag),
+    section: "notes",
+    bodyClass: "page-list",
+    body,
+  });
 }
 
 /** 노트 한 줄씩 (설계 17): 날짜 · 제목 (· 태그). 노트 목록·태그 페이지·홈이 같이 씀 */
@@ -308,7 +350,7 @@ function noteLines(locale: Locale, notes: PostCardData[], { tags }: { tags: bool
   return html`<ul class="note-lines">${notes.map((note) => {
     const korean = note.untranslated === true && locale !== SOURCE_LOCALE;
     const date = note.publishedAt ?? note.updatedAt;
-    return html`<li><time datetime="${date}">${formatDay(formatDate(date, SOURCE_LOCALE), locale)}</time><span class="note-line-title"><a href="${localizedPath(locale, entryPath(note))}"${korean ? html` lang="ko"` : ""}>${note.title}</a>${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</span>${tags && note.tags.length > 0 ? html`<span class="note-line-tags">${note.tags.map((tag) => html`<a class="tag" href="${localizedPath(locale, tagPath(tag))}">#${tag}</a>`)}</span>` : ""}</li>`;
+    return html`<li><time datetime="${date}">${formatDay(formatDate(date, SOURCE_LOCALE), locale)}</time><span class="note-line-title"><a href="${localizedPath(locale, entryPath(note))}"${korean ? html` lang="ko"` : ""}>${note.title}</a>${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</span>${tags && note.tags.length > 0 ? html`<span class="note-line-tags">${note.tags.map((tag) => html`<a class="tag" href="${localizedPath(locale, scopedTagPath("notes", tag))}">#${tag}</a>`)}</span>` : ""}</li>`;
   })}</ul>`;
 }
 
@@ -329,8 +371,8 @@ function browseCards(locale: Locale, browse: ListBrowse, current: string | undef
   return html`<section class="card browse-card" aria-labelledby="browse-tags">
           <h2 class="card-heading" id="browse-tags">${m.browseByTag}</h2>
           <ul class="browse-list">
-            ${link(localizedPath(locale, POSTS_PATH), m.allShort, browse.total, current === undefined)}
-            ${shown.map((t) => link(localizedPath(locale, tagPath(t.name)), `#${t.name}`, t.count, t.name === current))}
+            ${link(localizedPath(locale, SCOPE_PATHS[browse.scope]), m.allShort, browse.total, current === undefined)}
+            ${shown.map((t) => link(localizedPath(locale, scopedTagPath(browse.scope, t.name)), `#${t.name}`, t.count, t.name === current))}
           </ul>
           ${sorted.length > shown.length ? html`<p class="browse-more"><a href="${localizedPath(locale, TAGS_PATH)}">${m.allTags}</a></p>` : ""}
         </section>
@@ -348,7 +390,7 @@ function postMeta(locale: Locale, post: PostCardData, views?: number): Html {
   return html`<p class="post-meta">
         ${post.publishedAt ? html`<time datetime="${post.publishedAt}">${formatDate(post.publishedAt, locale)}</time>` : ""}
         ${views ? html` <span class="post-views">${MESSAGES[locale].views(views)}</span>` : ""}
-        ${post.tags.map((tag) => html` <a class="tag" href="${localizedPath(locale, tagPath(tag))}">#${tag}</a>`)}
+        ${post.tags.map((tag) => html` <a class="tag" href="${localizedPath(locale, scopedTagPath(post.kind === "note" ? "notes" : "posts", tag))}">#${tag}</a>`)}
       </p>`;
 }
 
@@ -592,7 +634,12 @@ interface HomePageProps {
   notes?: PostCardData[];
   /** 최근 활동 (설계 15-5, HOME_ACTIVITY_COUNT개까지). 없으면 그 부분을 안 보임 */
   activities?: ArchiveActivity[];
+  /** 최근 프로젝트 (설계 19, HOME_PROJECT_COUNT개까지): 노트 아래 큰 블록에 카드로. 없으면 안 보임 */
+  projects?: readonly Project[];
 }
+
+/** 홈에 보일 최근 프로젝트 수 (설계 19) */
+export const HOME_PROJECT_COUNT = 2;
 
 /** 홈에 보일 최근 노트 수 (설계 17) */
 export const HOME_NOTE_COUNT = 5;
@@ -604,7 +651,7 @@ export const HOME_ACTIVITY_COUNT = 10;
  * 홈: 넓으면 왼쪽(소개 카드 + 태그 트리) · 오른쪽(최신 글 + 전체 글 보기), 좁으면 세로로 (CSS).
  * 태그 트리는 <details open> 하나 → 좁은 화면에서는 방문자 스크립트가 처음에 접음
  */
-export function homePage({ site, locale = SOURCE_LOCALE, profile, posts, tags, tree, imageSizes, activities = [], notes = [] }: HomePageProps): Html {
+export function homePage({ site, locale = SOURCE_LOCALE, profile, posts, tags, tree, imageSizes, activities = [], notes = [], projects = [] }: HomePageProps): Html {
   const m = MESSAGES[locale];
   const [first, ...rest] = posts;
   const body = html`
@@ -643,6 +690,15 @@ export function homePage({ site, locale = SOURCE_LOCALE, profile, posts, tags, t
           <h2 class="card-heading" id="home-notes">${m.recentNotes}</h2>
           ${noteLines(locale, notes, { tags: false })}
           <p class="card-more"><a href="${localizedPath(locale, NOTES_PATH)}">${m.allNotes}</a></p>
+        </section>`}
+        ${projects.length === 0
+          ? ""
+          : html`<section class="card list-card home-projects" aria-labelledby="home-projects">
+          <div class="card-heading-row">
+            <h2 class="card-heading" id="home-projects">${m.recentProjects}</h2>
+            <a class="card-heading-more" href="${localizedPath(locale, PROJECTS_PATH)}">${m.allProjects}</a>
+          </div>
+          <div class="home-project-grid">${projects.map((project) => projectCard(site, locale, project, imageSizes, { small: true }))}</div>
         </section>`}
       </section>
     </div>`;
@@ -939,27 +995,40 @@ export function projectsPage({
   site,
   locale = SOURCE_LOCALE,
   projects,
-  tagPages,
   imageSizes,
+  tag,
+  tagNav,
 }: {
   site: SiteConfig;
   locale?: Locale;
   /** 보일 것만, 보일 순서대로 */
   projects: readonly Project[];
-  /** 태그 페이지가 있는 태그 (글이 있는 태그). 없으면 꼬리표만, 링크 없음 */
-  tagPages: ReadonlySet<string>;
   imageSizes?: ReadonlyMap<string, ImageSize>;
+  /** 프로젝트 탭 안 태그 페이지 (설계 19, /projects/tags/…) */
+  tag?: string;
+  tagNav?: TagNav;
 }): Html {
   const m = MESSAGES[locale];
   const body = html`
-    <h1 class="list-heading">${m.projectsHeading}</h1>
+    ${tag === undefined ? html`<h1 class="list-heading">${m.projectsHeading}</h1>` : tagHead(locale, "projects", m.projectsHeading, tag, tagNav)}
     ${projects.length === 0
       ? html`<div class="card page-card"><p class="empty">${m.emptyProjects}</p></div>`
-      : html`<div class="project-grid">${projects.map((project) => projectCard(site, locale, project, tagPages, imageSizes))}</div>`}`;
-  return layout({ site, locale, title: m.projectsHeading, path: PROJECTS_PATH, section: "projects", bodyClass: "page-projects", body });
+      : html`<div class="project-grid">${projects.map((project) => projectCard(site, locale, project, imageSizes))}</div>`}`;
+  const heading = tag === undefined ? null : `#${tag}`;
+  return layout({
+    site,
+    locale,
+    title: heading ?? m.projectsHeading,
+    description: heading === null ? undefined : m.tagDescription(heading),
+    path: tag === undefined ? PROJECTS_PATH : scopedTagPath("projects", tag),
+    section: "projects",
+    bodyClass: "page-projects",
+    body,
+  });
 }
 
-function projectCard(site: SiteConfig, locale: Locale, project: Project, tagPages: ReadonlySet<string>, imageSizes?: ReadonlyMap<string, ImageSize>): Html {
+/** 프로젝트 카드 (설계 18). small = 홈 최근 프로젝트 블록 안 (제목 h3) */
+function projectCard(site: SiteConfig, locale: Locale, project: Project, imageSizes?: ReadonlyMap<string, ImageSize>, { small = false }: { small?: boolean } = {}): Html {
   const m = MESSAGES[locale];
   const src = project.thumbnail || site.defaultThumbnail;
   const size = imageSizes?.get(src);
@@ -970,10 +1039,11 @@ function projectCard(site: SiteConfig, locale: Locale, project: Project, tagPage
   const main = project.siteUrl ?? project.repoUrl;
   const external = (href: string, label: string, icon: string) =>
     html`<a class="project-link" href="${href}" target="_blank" rel="noopener" aria-label="${project.title} ${label}" title="${label}">${raw(icon)}</a>`;
-  return html`<article class="card project-card">
+  const name = html`${main ? html`<a href="${main}" target="_blank" rel="noopener">${project.title}</a>` : project.title}${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}`;
+  return html`<article class="card project-card${small ? " is-small" : ""}">
         <div class="project-image"><img src="${src}" alt=""${size ? html` width="${size.width}" height="${size.height}"` : ""} loading="lazy"></div>
         <div class="project-text">
-          <h2 class="project-title"${lang}>${main ? html`<a href="${main}" target="_blank" rel="noopener">${project.title}</a>` : project.title}${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</h2>
+          ${small ? html`<h3 class="project-title"${lang}>${name}</h3>` : html`<h2 class="project-title"${lang}>${name}</h2>`}
           ${project.summary ? html`<p class="project-summary"${lang}>${project.summary}</p>` : ""}
           <div class="project-meta">
             <span class="project-status is-${project.status}">${m.projectStatus[project.status]}</span>
@@ -981,10 +1051,82 @@ function projectCard(site: SiteConfig, locale: Locale, project: Project, tagPage
             <span class="project-links">${project.repoUrl ? external(project.repoUrl, "GitHub", GITHUB_ICON) : ""}${project.siteUrl ? external(project.siteUrl, m.projectSite, SITE_ICON) : ""}</span>
           </div>
           ${project.tags.length > 0
-            ? html`<p class="project-tags">${project.tags.map((tag) =>
-                tagPages.has(tag) ? html`<a class="tag" href="${localizedPath(locale, tagPath(tag))}">#${tag}</a>` : html`<span class="tag">#${tag}</span>`,
-              )}</p>`
+            ? html`<p class="project-tags">${project.tags.map((tag) => html`<a class="tag" href="${localizedPath(locale, scopedTagPath("projects", tag))}">#${tag}</a>`)}</p>`
             : ""}
         </div>
       </article>`;
+}
+
+// ── 태그 모두 보기 (설계 19, 시안 T-1) ──────────────────
+
+/** 모두 보기에 보일 글 수 (넘치면 글 탭 태그 페이지로) */
+export const TAG_ALL_POST_COUNT = 10;
+
+/**
+ * /tags/{태그}: 글 → 노트 → 프로젝트 (있는 것만). 홈 태그 카드·태그 모음에서 옴.
+ * 태그 링크는 모두 보기끼리 (상위·하위), 각 항목의 태그는 그 항목의 탭 안으로
+ */
+export function tagAllPage({
+  site,
+  locale = SOURCE_LOCALE,
+  tag,
+  tagNav,
+  posts,
+  postTotal,
+  notes,
+  projects,
+  imageSizes,
+}: {
+  site: SiteConfig;
+  locale?: Locale;
+  tag: string;
+  tagNav?: TagNav;
+  /** 글 최신 TAG_ALL_POST_COUNT개까지 */
+  posts: PostCardData[];
+  /** 그 태그 글 전체 수 */
+  postTotal: number;
+  notes: PostCardData[];
+  projects: readonly Project[];
+  imageSizes?: ReadonlyMap<string, ImageSize>;
+}): Html {
+  const m = MESSAGES[locale];
+  const heading = `#${tag}`;
+  const count = (n: number) => html` <span class="count">${n}</span>`;
+  const body = html`
+    ${tagHead(locale, null, heading, tag, tagNav)}
+    ${posts.length === 0
+      ? ""
+      : html`<section class="card list-card tag-all-section" aria-labelledby="tag-all-posts">
+      <h2 class="card-heading" id="tag-all-posts">${m.navPosts}${count(postTotal)}</h2>
+      <ul class="post-rows">${posts.map((post) => postRow(locale, post, imageSizes))}</ul>
+      ${postTotal > posts.length ? html`<p class="card-more"><a href="${localizedPath(locale, scopedTagPath("posts", tag))}">${m.morePostsInTab(tag)}</a></p>` : ""}
+    </section>`}
+    ${notes.length === 0
+      ? ""
+      : html`<section class="card list-card tag-all-section" aria-labelledby="tag-all-notes">
+      <h2 class="card-heading" id="tag-all-notes">${m.navNotes}${count(notes.length)}</h2>
+      ${noteLines(locale, notes, { tags: false })}
+    </section>`}
+    ${projects.length === 0
+      ? ""
+      : html`<section class="card list-card tag-all-section" aria-labelledby="tag-all-projects">
+      <h2 class="card-heading" id="tag-all-projects">${m.navProjects}${count(projects.length)}</h2>
+      <ul class="tag-project-lines">${projects.map((project) => tagProjectLine(site, locale, project, imageSizes))}</ul>
+    </section>`}`;
+  return layout({ site, locale, title: heading, description: m.tagDescription(heading), path: tagPath(tag), bodyClass: "page-plain", body });
+}
+
+/** 모두 보기의 프로젝트 한 줄: 작은 3:1 그림 · 이름 · 상태 · 기간 */
+function tagProjectLine(site: SiteConfig, locale: Locale, project: Project, imageSizes?: ReadonlyMap<string, ImageSize>): Html {
+  const m = MESSAGES[locale];
+  const src = project.thumbnail || site.defaultThumbnail;
+  const size = imageSizes?.get(src);
+  const korean = locale !== SOURCE_LOCALE;
+  const main = project.siteUrl ?? project.repoUrl;
+  return html`<li>
+        <span class="tag-project-thumb"><img src="${src}" alt=""${size ? html` width="${size.width}" height="${size.height}"` : ""} loading="lazy"></span>
+        <span class="tag-project-name"${korean ? html` lang="ko"` : ""}>${main ? html`<a href="${main}" target="_blank" rel="noopener">${project.title}</a>` : project.title}${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</span>
+        <span class="project-status is-${project.status}">${m.projectStatus[project.status]}</span>
+        <span class="project-period">${m.projectPeriod(project.startedOn, project.endedOn)}</span>
+      </li>`;
 }

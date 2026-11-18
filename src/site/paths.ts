@@ -36,6 +36,17 @@ export const NOTES_PATH = "/notes";
 /** 프로젝트 목록 주소 (설계 18) */
 export const PROJECTS_PATH = "/projects";
 
+/** 태그 갈래 (설계 19): 탭 안의 태그는 그 탭 것만 */
+export type TagScope = "posts" | "notes" | "projects";
+
+/** 갈래의 목록 주소 */
+export const SCOPE_PATHS: Readonly<Record<TagScope, string>> = { posts: POSTS_PATH, notes: NOTES_PATH, projects: PROJECTS_PATH };
+
+/** 탭 안 태그 페이지 (설계 19). 예) ("posts", "개발") → "/posts/tags/개발". 모두 보기는 tagPath */
+export function scopedTagPath(scope: TagScope, tag: string): string {
+  return `${SCOPE_PATHS[scope]}${tagPath(tag)}`;
+}
+
 /** 아카이브 주소 (설계 15-5) */
 export const ARCHIVE_PATH = "/archive";
 

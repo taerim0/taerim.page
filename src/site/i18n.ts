@@ -81,6 +81,13 @@ export interface Messages {
   projectSite: string;
   /** 기간 "2026.11 ~" / "Nov 2026 ~" (끝이 없으면 진행 중) */
   projectPeriod: (start: string, end: string | null) => string;
+  /** 홈 최근 프로젝트 (설계 19) */
+  recentProjects: string;
+  allProjects: string;
+  /** 탭 안 태그 페이지 → 모두 보기 (설계 19) */
+  viewAllKinds: string;
+  /** 모두 보기 페이지: 글이 넘칠 때 글 탭으로 */
+  morePostsInTab: (tag: string) => string;
   noteListTitle: string;
   recentNotes: string;
   allNotes: string;
@@ -183,6 +190,10 @@ export const MESSAGES: Record<Locale, Messages> = {
     emptyProjects: "아직 프로젝트가 없어요.",
     projectStatus: { active: "진행 중", done: "끝남", paused: "쉬는 중" },
     projectSite: "사이트",
+    recentProjects: "최근 프로젝트",
+    allProjects: "프로젝트 전체 보기 →",
+    viewAllKinds: "글·노트·프로젝트 모두 보기 →",
+    morePostsInTab: (tag) => `글 탭에서 #${tag} 더 보기 →`,
     projectPeriod: (start, end) => {
       const dot = (month: string) => month.replace("-", ".");
       if (!end) return `${dot(start)} ~`;
@@ -280,6 +291,10 @@ export const MESSAGES: Record<Locale, Messages> = {
     emptyProjects: "No projects yet.",
     projectStatus: { active: "Active", done: "Done", paused: "Paused" },
     projectSite: "Site",
+    recentProjects: "Recent projects",
+    allProjects: "All projects →",
+    viewAllKinds: "See posts, notes and projects →",
+    morePostsInTab: (tag) => `More #${tag} posts →`,
     projectPeriod: (start, end) => {
       const name = (month: string) => new Intl.DateTimeFormat("en-US", { month: "short", timeZone: "UTC" }).format(new Date(Date.UTC(2000, Number(month.slice(5)) - 1, 1)));
       if (!end) return `${name(start)} ${start.slice(0, 4)} ~`;

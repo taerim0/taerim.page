@@ -15,6 +15,7 @@ import type { ImageInfo } from "./types.ts";
 export type ImageOwner =
   | { kind: "post"; id: number; title: string }
   | { kind: "activity"; id: number; title: string }
+  | { kind: "project"; id: number; title: string }
   | { kind: "settings" };
 
 /** 이미지를 쓸 수 있는 글자 하나 (본문·대표 이미지 등) + 그 주인 */
@@ -124,12 +125,14 @@ export class D1ImageUseSource implements ImageUseSource {
   async texts(): Promise<ImageUseText[]> {
     const all = async <Row>(sql: string) => (await this.#db.prepare(sql).all<Row>()).results;
     type PostText = { id: number; title: string; body: string; thumbnail: string | null };
-    const [posts, drafts, translations, translationDrafts, activities, settings] = await Promise.all([
+    const [posts, drafts, translations, translationDrafts, activities, projects, settings] = await Promise.all([
       all<PostText>("SELECT id, title, body, thumbnail FROM posts"),
       all<PostText>("SELECT p.id, p.title, d.body, d.thumbnail FROM post_drafts d JOIN posts p ON p.id = d.post_id"),
       all<PostText>("SELECT p.id, p.title, t.body, NULL AS thumbnail FROM post_translations t JOIN posts p ON p.id = t.post_id"),
       all<PostText>("SELECT p.id, p.title, t.body, NULL AS thumbnail FROM post_translation_drafts t JOIN posts p ON p.id = t.post_id"),
       all<{ id: number; title: string; body: string; body_en: string | null }>("SELECT id, title, body, body_en FROM activities"),
+      // 프로젝트 (설계 18): 휴지통 것도 쓰임으로 (되살릴 수 있으니)
+      all<{ id: number; title: string; body: string; thumbnail: string | null }>("SELECT id, title, body, thumbnail FROM projects"),
       all<{ data: string }>("SELECT data FROM site_settings"),
     ]);
     const texts: ImageUseText[] = [];
@@ -138,6 +141,10 @@ export class D1ImageUseSource implements ImageUseSource {
     }
     for (const row of activities) {
       texts.push({ owner: { kind: "activity", id: row.id, title: row.title }, text: `${row.body}\n${row.body_en ?? ""}` });
+    }
+    for (const row of projects) {
+      texts.push({ owner: { kind: "project", id: row.id, title: row.title }, text: `${row.body}
+${row.thumbnail ?? ""}` });
     }
     // 설정은 JSON 통째로 (사진 칸 말고 다른 칸에 적힌 주소도 쓰임으로 → 안전한 쪽)
     for (const row of settings) texts.push({ owner: { kind: "settings" }, text: row.data });

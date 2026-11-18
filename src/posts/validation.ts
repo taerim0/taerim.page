@@ -218,7 +218,7 @@ function optionalText(
 }
 
 /** 블로그 이미지 경로(/images/…) 또는 https 주소인지 */
-function isAllowedImageUrl(value: string): boolean {
+export function isAllowedImageUrl(value: string): boolean {
   if (value.startsWith("/images/")) return true;
   try {
     return new URL(value).protocol === "https:";

@@ -86,6 +86,8 @@ export interface Messages {
   allProjects: string;
   /** 탭 안 태그 페이지 → 모두 보기 (설계 19) */
   viewAllKinds: string;
+  /** 프로젝트 상세 페이지 아래 같은 태그 글·노트 (설계 18-7) */
+  relatedEntries: string;
   /** 모두 보기 페이지: 글이 넘칠 때 글 탭으로 */
   morePostsInTab: (tag: string) => string;
   noteListTitle: string;
@@ -192,7 +194,8 @@ export const MESSAGES: Record<Locale, Messages> = {
     projectSite: "사이트",
     recentProjects: "최근 프로젝트",
     allProjects: "프로젝트 전체 보기 →",
-    viewAllKinds: "글·노트·프로젝트 모두 보기 →",
+    viewAllKinds: "전체 보기 →",
+    relatedEntries: "관련 글·노트",
     morePostsInTab: (tag) => `글 탭에서 #${tag} 더 보기 →`,
     projectPeriod: (start, end) => {
       const dot = (month: string) => month.replace("-", ".");
@@ -293,7 +296,8 @@ export const MESSAGES: Record<Locale, Messages> = {
     projectSite: "Site",
     recentProjects: "Recent projects",
     allProjects: "All projects →",
-    viewAllKinds: "See posts, notes and projects →",
+    viewAllKinds: "View all →",
+    relatedEntries: "Related posts and notes",
     morePostsInTab: (tag) => `More #${tag} posts →`,
     projectPeriod: (start, end) => {
       const name = (month: string) => new Intl.DateTimeFormat("en-US", { month: "short", timeZone: "UTC" }).format(new Date(Date.UTC(2000, Number(month.slice(5)) - 1, 1)));

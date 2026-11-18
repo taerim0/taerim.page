@@ -624,10 +624,11 @@ html.wave-down::view-transition-old(root) { z-index: 1; }
 .project-tags a.tag:hover { background: var(--accent-soft); }
 
 /* ── 태그 갈래 (설계 19) ── */
-/* 탭 안 태그 페이지 제목 아래: 모두 보기로 */
-.tag-all-link { margin: -8px 0 12px; font-size: .85em; }
-.tag-all-link a { color: var(--muted); }
-.tag-all-link a:hover { color: var(--accent); }
+/* 탭 안 태그 페이지: 제목 줄 오른쪽 끝에 "전체 보기 →" (모두 보기로) */
+.tag-head-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.tag-all-link { flex: none; color: var(--muted); font-size: .85em; text-decoration: none; white-space: nowrap; }
+.tag-all-link:hover { color: var(--accent); text-decoration: underline; }
+.page-projects .list-head { margin-bottom: 16px; }
 /* 모두 보기 /tags/{태그}: 글 → 노트 → 프로젝트 카드 */
 .tag-all-section { margin-bottom: 16px; }
 .tag-all-section .card-heading .count { margin-left: 4px; color: var(--muted); font-weight: 400; font-size: .85em; }
@@ -648,9 +649,20 @@ html.wave-down::view-transition-old(root) { z-index: 1; }
 .card-heading-more:hover { text-decoration: underline; }
 .home-projects { padding-top: 18px; padding-bottom: 18px; }
 .tag-all-section { padding-top: 18px; }
+/* 아래 "더 보기" 줄이 없으면 위와 비슷하게 아래 여백 */
+.tag-all-section > ul:last-child { padding-bottom: 12px; }
 .home-project-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 4px; }
 @media (max-width: 599px) { .home-project-grid { grid-template-columns: minmax(0, 1fr); } }
 .project-card.is-small .project-text { padding: 12px 14px 14px; gap: 6px; }
 .project-card.is-small .project-title { font-size: 1em; }
 .project-card.is-small .project-summary { font-size: .88em; -webkit-line-clamp: 1; }
 .project-card.is-small .project-meta { font-size: .8em; }
+
+/* ── 프로젝트 상세 (설계 18-7): 글 페이지 틀 + 위 3:1 그림 + 정보 줄 ── */
+a.project-image { display: block; }
+.project-detail .project-image { border-radius: var(--radius) var(--radius) 0 0; }
+.project-detail .project-meta { margin-top: 12px; font-size: .9em; }
+.project-detail .project-tags { margin-top: 10px; }
+.project-link.has-label { width: auto; gap: 5px; padding: 0 10px; font-size: .9em; text-decoration: none; }
+.project-related { margin-top: 16px; padding-top: 18px; }
+.project-related .note-lines:last-child { padding-bottom: 12px; }

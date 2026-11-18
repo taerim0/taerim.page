@@ -23,7 +23,7 @@ import { formatDate, formatDay, SITE_SCRIPT, LOCALES, localizedPath, MESSAGES, S
 import type { Locale } from "./i18n.ts";
 import type { TagScope } from "./paths.ts";
 import type { ImageSize } from "./images.ts";
-import { activityAnchor, ARCHIVE_PATH, entryPath, NOTES_PATH, pagePath, PROJECTS_PATH, SCOPE_PATHS, scopedTagPath, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, STATS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
+import { activityAnchor, ARCHIVE_PATH, entryPath, NOTES_PATH, pagePath, projectPath, PROJECTS_PATH, SCOPE_PATHS, scopedTagPath, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, STATS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
 
 export { formatDate } from "./i18n.ts";
 
@@ -289,8 +289,10 @@ function tagHead(locale: Locale, scope: TagScope | null, title: string, tag: str
           ${tagNav && tagNav.ancestors.length > 0
             ? html`<nav class="tag-path" aria-label="${m.tagsHeading}">${tagNav.ancestors.map((name) => html`<a class="tag" href="${href(name)}">#${name}</a> › `)}</nav>`
             : ""}
-          <h1 class="list-heading">${tag === undefined ? title : `#${tag}`}</h1>
-          ${tag !== undefined && scope ? html`<p class="tag-all-link"><a href="${localizedPath(locale, tagPath(tag))}">${m.viewAllKinds}</a></p>` : ""}
+          <div class="tag-head-row">
+            <h1 class="list-heading">${tag === undefined ? title : `#${tag}`}</h1>
+            ${tag !== undefined && scope ? html`<a class="tag-all-link" href="${localizedPath(locale, tagPath(tag))}">${m.viewAllKinds}</a>` : ""}
+          </div>
           ${tagNav && tagNav.children.length > 0
             ? html`<ul class="tag-children">${tagNav.children.map(
                 (child) => html`<li><a class="tag" href="${href(child.name)}">#${child.name} <span class="count">${child.count}</span></a></li>`,
@@ -1035,13 +1037,15 @@ function projectCard(site: SiteConfig, locale: Locale, project: Project, imageSi
   // 번역은 아직 없음 → 영어 페이지는 한글 그대로 + KR
   const korean = locale !== SOURCE_LOCALE;
   const lang = korean ? html` lang="ko"` : "";
-  // 상세 페이지 전까지 이름 링크 = 사이트, 없으면 GitHub
+  // 본문이 있으면 상세 페이지 (설계 18-7), 없으면 이름 링크 = 사이트, 없으면 GitHub
+  const detail = hasProjectDetail(project) ? localizedPath(locale, projectPath(project.id)) : null;
   const main = project.siteUrl ?? project.repoUrl;
   const external = (href: string, label: string, icon: string) =>
     html`<a class="project-link" href="${href}" target="_blank" rel="noopener" aria-label="${project.title} ${label}" title="${label}">${raw(icon)}</a>`;
-  const name = html`${main ? html`<a href="${main}" target="_blank" rel="noopener">${project.title}</a>` : project.title}${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}`;
+  const name = html`${detail ? html`<a href="${detail}">${project.title}</a>` : main ? html`<a href="${main}" target="_blank" rel="noopener">${project.title}</a>` : project.title}${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}`;
+  const image = html`<img src="${src}" alt=""${size ? html` width="${size.width}" height="${size.height}"` : ""} loading="lazy">`;
   return html`<article class="card project-card${small ? " is-small" : ""}">
-        <div class="project-image"><img src="${src}" alt=""${size ? html` width="${size.width}" height="${size.height}"` : ""} loading="lazy"></div>
+        ${detail ? html`<a class="project-image" href="${detail}" tabindex="-1" aria-hidden="true">${image}</a>` : html`<div class="project-image">${image}</div>`}
         <div class="project-text">
           ${small ? html`<h3 class="project-title"${lang}>${name}</h3>` : html`<h2 class="project-title"${lang}>${name}</h2>`}
           ${project.summary ? html`<p class="project-summary"${lang}>${project.summary}</p>` : ""}
@@ -1122,11 +1126,90 @@ function tagProjectLine(site: SiteConfig, locale: Locale, project: Project, imag
   const src = project.thumbnail || site.defaultThumbnail;
   const size = imageSizes?.get(src);
   const korean = locale !== SOURCE_LOCALE;
-  const main = project.siteUrl ?? project.repoUrl;
+  const main = hasProjectDetail(project) ? localizedPath(locale, projectPath(project.id)) : (project.siteUrl ?? project.repoUrl);
+  const external = !hasProjectDetail(project);
   return html`<li>
         <span class="tag-project-thumb"><img src="${src}" alt=""${size ? html` width="${size.width}" height="${size.height}"` : ""} loading="lazy"></span>
-        <span class="tag-project-name"${korean ? html` lang="ko"` : ""}>${main ? html`<a href="${main}" target="_blank" rel="noopener">${project.title}</a>` : project.title}${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</span>
+        <span class="tag-project-name"${korean ? html` lang="ko"` : ""}>${main ? html`<a href="${main}"${external ? html` target="_blank" rel="noopener"` : ""}>${project.title}</a>` : project.title}${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</span>
         <span class="project-status is-${project.status}">${m.projectStatus[project.status]}</span>
         <span class="project-period">${m.projectPeriod(project.startedOn, project.endedOn)}</span>
       </li>`;
+}
+
+// ── 프로젝트 상세 (설계 18-7) ─────────────────────────
+
+/** 본문이 있으면 상세 페이지가 있음 */
+export function hasProjectDetail(project: Project): boolean {
+  return project.body.trim() !== "";
+}
+
+/**
+ * /projects/{id}: 위 정보(3:1 그림 · 이름 · 소개 · 상태·기간·링크 · 태그) + 본문(목차) + 같은 태그 글·노트.
+ * 번역은 아직 없음 → 영어 페이지는 한글 그대로(lang="ko") + KR, 검색 엔진 제외는 빌드가 정함
+ */
+export function projectPage({
+  site,
+  locale = SOURCE_LOCALE,
+  project,
+  bodyHtml,
+  toc,
+  related,
+  imageSizes,
+}: {
+  site: SiteConfig;
+  locale?: Locale;
+  project: Project;
+  bodyHtml: string;
+  toc: TocItem[];
+  /** 같은 태그의 공개 글·노트 (최신부터) */
+  related: PostCardData[];
+  imageSizes?: ReadonlyMap<string, ImageSize>;
+}): Html {
+  const m = MESSAGES[locale];
+  const korean = locale !== SOURCE_LOCALE;
+  const src = project.thumbnail || site.defaultThumbnail;
+  const size = imageSizes?.get(src);
+  const link = (href: string, label: string, icon: string) =>
+    html`<a class="project-link has-label" href="${href}" target="_blank" rel="noopener">${raw(icon)}<span>${label}</span></a>`;
+  const main = html`<article class="post card project-detail"${korean ? html` lang="ko"` : ""}>
+        <div class="project-image"><img src="${src}" alt=""${size ? html` width="${size.width}" height="${size.height}"` : ""}></div>
+        <div class="post-inner">
+          <header class="post-header">
+            <h1 class="post-title">${project.title}${korean ? html` <span class="lang-badge" lang="${locale}" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</h1>
+            ${project.summary ? html`<p class="post-summary">${project.summary}</p>` : ""}
+            <div class="project-meta">
+              <span class="project-status is-${project.status}"${korean ? html` lang="${locale}"` : ""}>${m.projectStatus[project.status]}</span>
+              <span class="project-period"${korean ? html` lang="${locale}"` : ""}>${m.projectPeriod(project.startedOn, project.endedOn)}</span>
+              <span class="project-links">${project.repoUrl ? link(project.repoUrl, "GitHub", GITHUB_ICON) : ""}${project.siteUrl ? link(project.siteUrl, m.projectSite, SITE_ICON) : ""}</span>
+            </div>
+            ${project.tags.length > 0 ? html`<p class="project-tags">${project.tags.map((tag) => html`<a class="tag" href="${localizedPath(locale, scopedTagPath("projects", tag))}">#${tag}</a>`)}</p>` : ""}
+          </header>
+          <div class="post-body">
+${raw(bodyHtml)}
+          </div>
+        </div>
+      </article>
+      ${related.length === 0
+        ? ""
+        : html`<section class="card list-card project-related" aria-labelledby="project-related">
+        <h2 class="card-heading" id="project-related">${m.relatedEntries}</h2>
+        ${noteLines(locale, related, { tags: false })}
+      </section>`}`;
+  return layout({
+    site,
+    locale,
+    title: project.title,
+    description: project.summary ?? undefined,
+    path: projectPath(project.id),
+    image: project.thumbnail,
+    type: "article",
+    math: hasMath(bodyHtml),
+    // 번역이 없어 영어 페이지는 한글 그대로 → 검색 엔진 제외 (미번역 글과 같음)
+    noindex: korean,
+    // 한국어 페이지도 영어본이 없다고 알림 (hreflang 안 넣음)
+    alternates: [SOURCE_LOCALE],
+    bodyClass: "page-post",
+    section: "projects",
+    body: postLayout(locale, toc, main),
+  });
 }

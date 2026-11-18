@@ -36,6 +36,11 @@ export const NOTES_PATH = "/notes";
 /** 프로젝트 목록 주소 (설계 18) */
 export const PROJECTS_PATH = "/projects";
 
+/** 프로젝트 상세 페이지 (설계 18-7). 예) 3 → "/projects/3" */
+export function projectPath(id: number): string {
+  return `${PROJECTS_PATH}/${id}`;
+}
+
 /** 태그 갈래 (설계 19): 탭 안의 태그는 그 탭 것만 */
 export type TagScope = "posts" | "notes" | "projects";
 

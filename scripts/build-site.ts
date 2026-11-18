@@ -245,19 +245,19 @@ async function main(): Promise<void> {
     // 활동 (설계 15-5): 내용의 이미지·임베드도 글처럼 (id 0 = 글이 아님)
     const activities = await source.activities.list();
     const activityBodies = activities.flatMap((activity) => [activity.body, activity.bodyEn ?? ""]);
-    // 프로젝트 (설계 18): 공개 카드의 대표 이미지도 복사 (본문은 상세 페이지 때)
+    // 프로젝트 (설계 18·18-7): 공개 카드의 대표 이미지 + 상세 페이지 본문의 이미지도 복사
     const projects = await readProjects(source);
     const imageUsers = [
       ...posts,
       ...translations.map((t) => ({ id: t.postId, body: t.body, thumbnail: null })),
       ...(settings.photo ? [{ id: 0, body: "", thumbnail: settings.photo }] : []),
       ...activityBodies.map((body) => ({ id: 0, body, thumbnail: null })),
-      ...projects.map((project) => ({ id: 0, body: "", thumbnail: project.thumbnail })),
+      ...projects.map((project) => ({ id: 0, body: project.body, thumbnail: project.thumbnail })),
     ];
     const images = await readImages(source, imageUsers);
     // 태그 상하관계 (설계 14): 글의 태그에 상위 태그를 붙이고 태그 모음을 트리로
     const tagParents = await source.posts.listTagParents();
-    const embeds = await readEmbeds(source, [...posts.map((p) => p.body), ...translations.map((t) => t.body), ...activityBodies]);
+    const embeds = await readEmbeds(source, [...posts.map((p) => p.body), ...translations.map((t) => t.body), ...activityBodies, ...projects.map((p) => p.body)]);
     const views = await readViews(source);
     const github = await readGithub(settings.github);
     const files = await buildSite({ site: SITE_CONFIG, settings, activities, projects, posts, translations, tagParents, views, github, images: images.map((image) => image.info) });

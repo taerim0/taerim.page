@@ -27,8 +27,8 @@ import { computeStats } from "./stats.ts";
 import type { SiteStats } from "./stats.ts";
 import type { SearchBodies, SearchIndex, SearchItem } from "./search.ts";
 import type { ArchiveActivity } from "./archive.ts";
-import { ARCHIVE_PATH, activityAnchor, entryPath, NOTES_PATH, notePath, pagePath, PROJECTS_PATH, scopedTagPath, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, STATS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
-import { absoluteUrl, archivePage, HOME_PROJECT_COUNT, projectsPage, searchPage, tagAllPage, TAG_ALL_POST_COUNT, statsPage, HOME_ACTIVITY_COUNT, HOME_NOTE_COUNT, HOME_POST_COUNT, homePage, listPage, notesPage, notFoundPage, postPage, tagsPage, untranslatedPostPage } from "./templates.ts";
+import { ARCHIVE_PATH, activityAnchor, entryPath, NOTES_PATH, notePath, pagePath, projectPath, PROJECTS_PATH, scopedTagPath, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, STATS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
+import { absoluteUrl, archivePage, hasProjectDetail, HOME_PROJECT_COUNT, projectPage, projectsPage, searchPage, tagAllPage, TAG_ALL_POST_COUNT, statsPage, HOME_ACTIVITY_COUNT, HOME_NOTE_COUNT, HOME_POST_COUNT, homePage, listPage, notesPage, notFoundPage, postPage, tagsPage, untranslatedPostPage } from "./templates.ts";
 import type { Html, ListBrowse, PostCardData, SiteConfig, TagNav } from "./templates.ts";
 
 /** 목록 한 페이지의 글 수 (관리자 목록과 같은 10개) */
@@ -158,6 +158,15 @@ export async function buildSite({ site: baseSite, settings, activities = [], pro
     await add(localizedPath(locale, NOTES_PATH), notesPage({ site, locale, notes: cardsOf(publishedNotes), browse: notesBrowse }));
     // 프로젝트 (설계 18): 카드 목록
     await add(localizedPath(locale, PROJECTS_PATH), projectsPage({ site, locale, projects: shownProjects, imageSizes }));
+    // 프로젝트 상세 (설계 18-7): 본문이 있는 것만. 번역 없음 → 영어 페이지는 한글 그대로, 검색 엔진 제외
+    for (const project of shownProjects.filter(hasProjectDetail)) {
+      const path = localizedPath(locale, projectPath(project.id));
+      const { html: bodyHtml, toc } = renderDocument(project.body, { imageSizes });
+      const related = published.filter((post) => post.tags.some((tag) => project.tags.includes(tag))).slice(0, RELATED_COUNT);
+      await add(path, projectPage({ site, locale, project, bodyHtml, toc, related: cardsOf(related), imageSizes }));
+      if (locale === SOURCE_LOCALE) lastmod.set(path, project.updatedAt);
+      else noindex.add(path);
+    }
 
     // 글: 한국어 / 번역본 / 미번역(한글을 흐리게 + 안내)
     /** 검색용 본문 HTML (글 id → 이 언어 페이지에 보이는 본문) */
@@ -357,6 +366,9 @@ function* listPages(
     ];
   }
 }
+
+/** 프로젝트 상세 아래 관련 글·노트 수 (설계 18-7) */
+const RELATED_COUNT = 6;
 
 /** 태그별 개수, 이름순 (관리자 태그 목록과 같은 순서). 글·노트·프로젝트 무엇이든 tags만 봄 */
 function countTags(items: readonly { tags: readonly string[] }[]): TagCount[] {

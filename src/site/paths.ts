@@ -33,6 +33,9 @@ export const POSTS_PATH = "/posts";
 /** 노트 목록 주소 (설계 17) */
 export const NOTES_PATH = "/notes";
 
+/** 프로젝트 목록 주소 (설계 18) */
+export const PROJECTS_PATH = "/projects";
+
 /** 아카이브 주소 (설계 15-5) */
 export const ARCHIVE_PATH = "/archive";
 

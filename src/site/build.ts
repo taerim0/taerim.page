@@ -8,6 +8,8 @@ import { DEFAULT_SETTINGS } from "../settings/settings.ts";
 import type { SiteSettings } from "../settings/settings.ts";
 import type { Activity } from "../activities/activities.ts";
 import { byNewestActivity } from "../activities/activities.ts";
+import type { Project } from "../projects/projects.ts";
+import { byProjectOrder } from "../projects/projects.ts";
 import { renderDocument, renderMarkdown } from "../markdown/index.ts";
 import { compareTagNames } from "../posts/tag-order.ts";
 import { TagTree } from "../posts/tag-tree.ts";
@@ -25,8 +27,8 @@ import { computeStats } from "./stats.ts";
 import type { SiteStats } from "./stats.ts";
 import type { SearchBodies, SearchIndex, SearchItem } from "./search.ts";
 import type { ArchiveActivity } from "./archive.ts";
-import { ARCHIVE_PATH, activityAnchor, entryPath, NOTES_PATH, notePath, pagePath, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, STATS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
-import { absoluteUrl, archivePage, searchPage, statsPage, HOME_ACTIVITY_COUNT, HOME_NOTE_COUNT, HOME_POST_COUNT, homePage, listPage, notesPage, notFoundPage, postPage, tagsPage, untranslatedPostPage } from "./templates.ts";
+import { ARCHIVE_PATH, activityAnchor, entryPath, NOTES_PATH, notePath, pagePath, PROJECTS_PATH, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, STATS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
+import { absoluteUrl, archivePage, projectsPage, searchPage, statsPage, HOME_ACTIVITY_COUNT, HOME_NOTE_COUNT, HOME_POST_COUNT, homePage, listPage, notesPage, notFoundPage, postPage, tagsPage, untranslatedPostPage } from "./templates.ts";
 import type { Html, ListBrowse, PostCardData, SiteConfig, TagNav } from "./templates.ts";
 
 /** 목록 한 페이지의 글 수 (관리자 목록과 같은 10개) */
@@ -42,6 +44,8 @@ export interface BuildInput {
   settings?: SiteSettings;
   /** 활동 (설계 15-5): 아카이브에 글과 섞이고 홈에 최근 몇 개 */
   activities?: Activity[];
+  /** 프로젝트 (설계 18): 숨김·휴지통 것은 여기서 거름 */
+  projects?: readonly Project[];
   /** 공개 글들 (본문 포함). 초안·휴지통 글이 섞여 있어도 여기서 한 번 더 걸러낸다 */
   posts: Post[];
   /** 공개된 번역본들 (언어 섞여도 됨). 공개된 한글 글의 것만 쓴다 (설계 12-11) */
@@ -79,7 +83,7 @@ export function applySettings(site: SiteConfig, settings: SiteSettings | undefin
   };
 }
 
-export async function buildSite({ site: baseSite, settings, activities = [], posts, translations = [], images = [], tagParents = [], views, github = null, today = formatDate(new Date().toISOString(), SOURCE_LOCALE) }: BuildInput): Promise<Map<string, string>> {
+export async function buildSite({ site: baseSite, settings, activities = [], projects = [], posts, translations = [], images = [], tagParents = [], views, github = null, today = formatDate(new Date().toISOString(), SOURCE_LOCALE) }: BuildInput): Promise<Map<string, string>> {
   const site = applySettings(baseSite, settings);
   const imageSizes = imageSizeMap(images);
   const tree = new TagTree(tagParents);
@@ -118,6 +122,8 @@ export async function buildSite({ site: baseSite, settings, activities = [], pos
   const koreanTexts = new Map<number, string>();
   let stats: SiteStats | null = null;
   const sortedActivities = [...activities].sort(byNewestActivity);
+  const shownProjects = projects.filter((project) => project.visible && project.deletedAt === null).sort(byProjectOrder);
+  const tagPages = new Set(tags.map((tag) => tag.name));
 
   for (const locale of LOCALES) {
     const localized: LocalizedPost[] = published.map((post) => ({ post, translation: byLocale.get(locale)?.get(post.id) }));
@@ -136,6 +142,8 @@ export async function buildSite({ site: baseSite, settings, activities = [], pos
     for (const [path, page] of listPages(site, locale, cardsOf(publishedPosts), POSTS_PATH, imageSizes, undefined, undefined, browse)) await add(path, page);
     // 노트 목록 (설계 17): 한 줄씩, 한 페이지
     await add(localizedPath(locale, NOTES_PATH), notesPage({ site, locale, notes: cardsOf(publishedNotes) }));
+    // 프로젝트 (설계 18): 카드 목록
+    await add(localizedPath(locale, PROJECTS_PATH), projectsPage({ site, locale, projects: shownProjects, tagPages, imageSizes }));
 
     // 글: 한국어 / 번역본 / 미번역(한글을 흐리게 + 안내)
     /** 검색용 본문 HTML (글 id → 이 언어 페이지에 보이는 본문) */

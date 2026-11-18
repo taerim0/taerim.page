@@ -73,6 +73,14 @@ export interface Messages {
   navStats: string;
   /** 노트 (설계 17) */
   navNotes: string;
+  /** 프로젝트 (설계 18) */
+  navProjects: string;
+  projectsHeading: string;
+  emptyProjects: string;
+  projectStatus: Record<"active" | "done" | "paused", string>;
+  projectSite: string;
+  /** 기간 "2026.11 ~" / "Nov 2026 ~" (끝이 없으면 진행 중) */
+  projectPeriod: (start: string, end: string | null) => string;
   noteListTitle: string;
   recentNotes: string;
   allNotes: string;
@@ -170,6 +178,16 @@ export const MESSAGES: Record<Locale, Messages> = {
     dayOfMonth: (day) => `${day}일`,
     navStats: "통계",
     navNotes: "노트",
+    navProjects: "프로젝트",
+    projectsHeading: "프로젝트",
+    emptyProjects: "아직 프로젝트가 없어요.",
+    projectStatus: { active: "진행 중", done: "끝남", paused: "쉬는 중" },
+    projectSite: "사이트",
+    projectPeriod: (start, end) => {
+      const dot = (month: string) => month.replace("-", ".");
+      if (!end) return `${dot(start)} ~`;
+      return start.slice(0, 4) === end.slice(0, 4) ? `${dot(start)} ~ ${end.slice(5)}` : `${dot(start)} ~ ${dot(end)}`;
+    },
     noteListTitle: "노트",
     recentNotes: "최근 노트",
     allNotes: "노트 전체 보기 →",
@@ -257,6 +275,16 @@ export const MESSAGES: Record<Locale, Messages> = {
     dayOfMonth: (day) => String(day),
     navStats: "Stats",
     navNotes: "Notes",
+    navProjects: "Projects",
+    projectsHeading: "Projects",
+    emptyProjects: "No projects yet.",
+    projectStatus: { active: "Active", done: "Done", paused: "Paused" },
+    projectSite: "Site",
+    projectPeriod: (start, end) => {
+      const name = (month: string) => new Intl.DateTimeFormat("en-US", { month: "short", timeZone: "UTC" }).format(new Date(Date.UTC(2000, Number(month.slice(5)) - 1, 1)));
+      if (!end) return `${name(start)} ${start.slice(0, 4)} ~`;
+      return start.slice(0, 4) === end.slice(0, 4) ? `${name(start)} ~ ${name(end)} ${end.slice(0, 4)}` : `${name(start)} ${start.slice(0, 4)} ~ ${name(end)} ${end.slice(0, 4)}`;
+    },
     noteListTitle: "Notes",
     recentNotes: "Recent notes",
     allNotes: "All notes →",

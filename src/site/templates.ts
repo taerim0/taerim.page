@@ -18,10 +18,11 @@ import type { TagTree } from "../posts/tag-tree.ts";
 import type { Post, TagCount } from "../posts/types.ts";
 import type { ArchiveActivity, ArchiveYear } from "./archive.ts";
 import type { SiteStats } from "./stats.ts";
+import type { Project } from "../projects/projects.ts";
 import { formatDate, formatDay, SITE_SCRIPT, LOCALES, localizedPath, MESSAGES, SOURCE_LOCALE } from "./i18n.ts";
 import type { Locale } from "./i18n.ts";
 import type { ImageSize } from "./images.ts";
-import { activityAnchor, ARCHIVE_PATH, entryPath, NOTES_PATH, pagePath, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, STATS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
+import { activityAnchor, ARCHIVE_PATH, entryPath, NOTES_PATH, pagePath, PROJECTS_PATH, postPath, POSTS_PATH, SEARCH_BODY_PATH, SEARCH_INDEX_PATH, SEARCH_PATH, STATS_PATH, tagPath, TAGS_PATH } from "./paths.ts";
 
 export { formatDate } from "./i18n.ts";
 
@@ -91,7 +92,7 @@ interface LayoutProps {
   /** <body> class (홈 page-home, 글 page-post, 목록 page-list, 제목 + 카드 한 장 page-plain (설계 16-15), 없으면 page-basic) */
   bodyClass?: string;
   /** 머리 메뉴에서 지금 표시할 칸 (설계 16-1: 초록 밑줄) */
-  section?: "posts" | "notes" | "archive" | "search" | "stats";
+  section?: "posts" | "notes" | "projects" | "archive" | "search" | "stats";
   /** 이 페이지에만 붙일 모듈 스크립트 (검색 페이지의 /assets/search.js) */
   moduleScript?: string;
   body: Html;
@@ -140,6 +141,7 @@ export function layout(props: LayoutProps): Html {
       <nav class="site-nav">
         ${navLink(localizedPath(locale, POSTS_PATH), m.navPosts, props.section === "posts")}
         ${navLink(localizedPath(locale, NOTES_PATH), m.navNotes, props.section === "notes")}
+        ${navLink(localizedPath(locale, PROJECTS_PATH), m.navProjects, props.section === "projects")}
         ${navLink(localizedPath(locale, ARCHIVE_PATH), m.navArchive, props.section === "archive")}
         ${navLink(localizedPath(locale, SEARCH_PATH), m.navSearch, props.section === "search")}
         ${navLink(localizedPath(locale, STATS_PATH), m.navStats, props.section === "stats")}
@@ -925,4 +927,64 @@ export function notFoundPage({ site }: { site: SiteConfig }): Html {
 /** "/posts/1" → "https://taerim.page/posts/1". 이미 절대 주소면 그대로 */
 export function absoluteUrl(site: SiteConfig, path: string): string {
   return /^https?:\/\//.test(path) ? path : `${site.url}${path}`;
+}
+
+// ── 프로젝트 (설계 18, 시안 P-1) ──────────────────────
+
+const GITHUB_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"></path></svg>';
+const SITE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"></path></svg>';
+
+/** 공개 사이트 프로젝트 목록: 카드 2열(좁으면 1열), 카드 = 그림(3:1) → 이름 → 소개 → 상태·기간·링크 → 태그 */
+export function projectsPage({
+  site,
+  locale = SOURCE_LOCALE,
+  projects,
+  tagPages,
+  imageSizes,
+}: {
+  site: SiteConfig;
+  locale?: Locale;
+  /** 보일 것만, 보일 순서대로 */
+  projects: readonly Project[];
+  /** 태그 페이지가 있는 태그 (글이 있는 태그). 없으면 꼬리표만, 링크 없음 */
+  tagPages: ReadonlySet<string>;
+  imageSizes?: ReadonlyMap<string, ImageSize>;
+}): Html {
+  const m = MESSAGES[locale];
+  const body = html`
+    <h1 class="list-heading">${m.projectsHeading}</h1>
+    ${projects.length === 0
+      ? html`<div class="card page-card"><p class="empty">${m.emptyProjects}</p></div>`
+      : html`<div class="project-grid">${projects.map((project) => projectCard(site, locale, project, tagPages, imageSizes))}</div>`}`;
+  return layout({ site, locale, title: m.projectsHeading, path: PROJECTS_PATH, section: "projects", bodyClass: "page-projects", body });
+}
+
+function projectCard(site: SiteConfig, locale: Locale, project: Project, tagPages: ReadonlySet<string>, imageSizes?: ReadonlyMap<string, ImageSize>): Html {
+  const m = MESSAGES[locale];
+  const src = project.thumbnail || site.defaultThumbnail;
+  const size = imageSizes?.get(src);
+  // 번역은 아직 없음 → 영어 페이지는 한글 그대로 + KR
+  const korean = locale !== SOURCE_LOCALE;
+  const lang = korean ? html` lang="ko"` : "";
+  // 상세 페이지 전까지 이름 링크 = 사이트, 없으면 GitHub
+  const main = project.siteUrl ?? project.repoUrl;
+  const external = (href: string, label: string, icon: string) =>
+    html`<a class="project-link" href="${href}" target="_blank" rel="noopener" aria-label="${project.title} ${label}" title="${label}">${raw(icon)}</a>`;
+  return html`<article class="card project-card">
+        <div class="project-image"><img src="${src}" alt=""${size ? html` width="${size.width}" height="${size.height}"` : ""} loading="lazy"></div>
+        <div class="project-text">
+          <h2 class="project-title"${lang}>${main ? html`<a href="${main}" target="_blank" rel="noopener">${project.title}</a>` : project.title}${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</h2>
+          ${project.summary ? html`<p class="project-summary"${lang}>${project.summary}</p>` : ""}
+          <div class="project-meta">
+            <span class="project-status is-${project.status}">${m.projectStatus[project.status]}</span>
+            <span class="project-period">${m.projectPeriod(project.startedOn, project.endedOn)}</span>
+            <span class="project-links">${project.repoUrl ? external(project.repoUrl, "GitHub", GITHUB_ICON) : ""}${project.siteUrl ? external(project.siteUrl, m.projectSite, SITE_ICON) : ""}</span>
+          </div>
+          ${project.tags.length > 0
+            ? html`<p class="project-tags">${project.tags.map((tag) =>
+                tagPages.has(tag) ? html`<a class="tag" href="${localizedPath(locale, tagPath(tag))}">#${tag}</a>` : html`<span class="tag">#${tag}</span>`,
+              )}</p>`
+            : ""}
+        </div>
+      </article>`;
 }

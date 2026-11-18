@@ -36,6 +36,8 @@ import type { EmbedView } from "../src/markdown/index.ts";
 import { copyKatex } from "./copy-katex.ts";
 import { buildSite, kindRedirects } from "../src/site/build.ts";
 import { D1ActivityRepository } from "../src/activities/activities.ts";
+import { D1ProjectRepository } from "../src/projects/projects.ts";
+import type { ProjectRepository } from "../src/projects/projects.ts";
 import { D1ViewsRepository, viewsByPost } from "../src/stats/views.ts";
 import type { ActivityRepository } from "../src/activities/activities.ts";
 import { DEFAULT_SETTINGS, D1SettingsRepository } from "../src/settings/settings.ts";
@@ -69,6 +71,7 @@ interface Source {
   images: ImageRepository;
   settings: SettingsRepository;
   activities: ActivityRepository;
+  projects: ProjectRepository;
   views: D1ViewsRepository;
   files: ImageStore;
   close(): Promise<void>;
@@ -99,6 +102,7 @@ async function openRemote(): Promise<Source> {
     images: new D1ImageRepository(db),
     settings: new D1SettingsRepository(db),
     activities: new D1ActivityRepository(db),
+    projects: new D1ProjectRepository(db),
     views: new D1ViewsRepository(db),
     files: new R2ImageStore(bucket),
     close: async () => {},
@@ -116,10 +120,21 @@ async function openLocal(): Promise<Source> {
     images: new D1ImageRepository(proxy.env.DB),
     settings: new D1SettingsRepository(proxy.env.DB),
     activities: new D1ActivityRepository(proxy.env.DB),
+    projects: new D1ProjectRepository(proxy.env.DB),
     views: new D1ViewsRepository(proxy.env.DB),
     files: new R2ImageStore(proxy.env.IMAGES),
     close: () => proxy.dispose(),
   };
+}
+
+/** 공개할 프로젝트 (설계 18). 표가 아직 없으면(원격 마이그레이션 전) 프로젝트 없이 빌드 */
+async function readProjects(source: Source) {
+  try {
+    return (await source.projects.list()).filter((project) => project.visible);
+  } catch (error) {
+    console.warn(`⚠ 프로젝트를 못 읽었어요 → 프로젝트 없이 빌드: ${error instanceof Error ? error.message : String(error)}`);
+    return [];
+  }
 }
 
 /** 글별 조회 수. 조회수 표가 아직 없거나 못 읽어도 빌드는 계속 (숫자만 안 보임) */
@@ -230,11 +245,14 @@ async function main(): Promise<void> {
     // 활동 (설계 15-5): 내용의 이미지·임베드도 글처럼 (id 0 = 글이 아님)
     const activities = await source.activities.list();
     const activityBodies = activities.flatMap((activity) => [activity.body, activity.bodyEn ?? ""]);
+    // 프로젝트 (설계 18): 공개 카드의 대표 이미지도 복사 (본문은 상세 페이지 때)
+    const projects = await readProjects(source);
     const imageUsers = [
       ...posts,
       ...translations.map((t) => ({ id: t.postId, body: t.body, thumbnail: null })),
       ...(settings.photo ? [{ id: 0, body: "", thumbnail: settings.photo }] : []),
       ...activityBodies.map((body) => ({ id: 0, body, thumbnail: null })),
+      ...projects.map((project) => ({ id: 0, body: "", thumbnail: project.thumbnail })),
     ];
     const images = await readImages(source, imageUsers);
     // 태그 상하관계 (설계 14): 글의 태그에 상위 태그를 붙이고 태그 모음을 트리로
@@ -242,7 +260,7 @@ async function main(): Promise<void> {
     const embeds = await readEmbeds(source, [...posts.map((p) => p.body), ...translations.map((t) => t.body), ...activityBodies]);
     const views = await readViews(source);
     const github = await readGithub(settings.github);
-    const files = await buildSite({ site: SITE_CONFIG, settings, activities, posts, translations, tagParents, views, github, images: images.map((image) => image.info) });
+    const files = await buildSite({ site: SITE_CONFIG, settings, activities, projects, posts, translations, tagParents, views, github, images: images.map((image) => image.info) });
 
     // 지난 빌드의 파일(지운 글 등)이 남지 않게 통째로 비우고 다시 쓴다
     await rm(OUT_DIR, { recursive: true, force: true });

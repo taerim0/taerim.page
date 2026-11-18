@@ -631,3 +631,23 @@ span.tag-caret { cursor: default; }
 .kind-choice { display: flex; flex-wrap: wrap; gap: 8px 20px; }
 .kind-choice label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
 .kind-help { margin: 6px 0 0; font-size: .85em; }
+
+/* ── 프로젝트 화면 (projects.html, 설계 18): 활동 화면 틀 + ▲▼ 순서 + 휴지통 ── */
+.project-row { display: flex; align-items: center; gap: 4px; }
+.project-item { flex: 1; min-width: 0; flex-direction: column; gap: 0; }
+.project-item .activity-item-title { max-width: 100%; }
+.project-item-meta { color: var(--muted); font-size: .8em; font-weight: 400; }
+.project-moves { display: inline-flex; flex-direction: column; }
+.project-move { width: 24px; height: 18px; padding: 0; border: 0; border-radius: 4px; background: none; color: var(--muted); font-size: 10px; line-height: 1; cursor: pointer; }
+.project-move:hover:not(:disabled) { background: var(--hover); color: var(--accent); }
+.project-move:disabled { opacity: .3; cursor: default; }
+.project-visible { display: inline-flex; align-items: center; gap: 6px; align-self: center; margin-top: 8px; white-space: nowrap; }
+.project-thumb { margin-top: 8px; max-width: 360px; aspect-ratio: 3 / 1; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: var(--hover); }
+.project-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.project-trash { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+.project-trash summary { cursor: pointer; color: var(--muted); }
+.project-trash-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.project-trash-row { display: flex; align-items: center; gap: 6px; font-size: .9em; }
+.project-trash-row .activity-item-title { flex: 1; min-width: 0; }
+.project-trash-row .button { padding: 2px 8px; font-size: .85em; }
+#project-form select { min-height: 36px; }

@@ -253,6 +253,27 @@ export const activitiesApi = {
   remove: (id) => request("DELETE", `/activities/${id}`),
 };
 
+/** @typedef {import("../../src/projects/projects.ts").Project} Project */
+/** @typedef {import("../../src/projects/projects.ts").ProjectInput} ProjectInput */
+
+/** 프로젝트 (설계 18): 공개 사이트 /projects 카드 */
+export const projectsApi = {
+  /** 보이는 순서 (deleted면 휴지통, 최근 순) @param {{ deleted?: boolean }} [options] @returns {Promise<Project[]>} */
+  list: (options = {}) => request("GET", options.deleted ? "/projects?deleted=1" : "/projects"),
+  /** @param {ProjectInput} input @returns {Promise<Project>} */
+  create: (input) => request("POST", "/projects", input),
+  /** @param {number} id @param {ProjectInput} input @returns {Promise<Project>} */
+  update: (id, input) => request("PUT", `/projects/${id}`, input),
+  /** 지금 프로젝트 번호 전부를 새 순서로 @param {number[]} ids @returns {Promise<Project[]>} */
+  reorder: (ids) => request("PUT", "/projects/order", { ids }),
+  /** 휴지통으로 @param {number} id @returns {Promise<void>} */
+  remove: (id) => request("DELETE", `/projects/${id}`),
+  /** @param {number} id @returns {Promise<Project>} */
+  restore: (id) => request("POST", `/projects/${id}/restore`),
+  /** 완전 삭제 @param {number} id @returns {Promise<void>} */
+  purge: (id) => request("DELETE", `/projects/${id}/purge`),
+};
+
 /** 임베드 카드 정보 (설계 13-9). 임베드 대상이 아니면 ApiError(not_found) */
 export const embedsApi = {
   /** @param {string} url @returns {Promise<import("../../src/embeds/types.ts").EmbedInfo>} */

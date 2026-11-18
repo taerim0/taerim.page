@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import type { EmbedService } from "../embeds/service.ts";
 import type { ActivityService } from "../activities/activities.ts";
+import type { ProjectService } from "../projects/projects.ts";
 import type { SettingsService } from "../settings/settings.ts";
 import type { ImageCleanupService } from "../images/cleanup.ts";
 import type { ImageService } from "../images/service.ts";
@@ -37,6 +38,8 @@ export interface ApiDeps {
   settings?: SettingsService;
   /** 활동 (설계 15-5). 없으면 활동 API는 503 */
   activities?: ActivityService;
+  /** 프로젝트 (설계 18). 없으면 프로젝트 API는 503 */
+  projects?: ProjectService;
   /** 임베드 카드 정보 (설계 13-9). 없으면 임베드 API는 503 */
   embeds?: EmbedService;
   /** 조회 수 합계 (설계 2-3). 없으면 조회 수 API는 빈 값 */
@@ -53,7 +56,7 @@ export const MAX_BODY_BYTES = 1024 * 1024;
  * 여기서는 요청을 읽어 서비스에 넘기고 결과를 JSON으로 돌려주기만 한다.
  * 실패하면 오류를 던지고, 응답 변환은 app.ts의 오류 처리가 맡는다.
  */
-export function createApiRoutes({ service, render, deploy, images, cleanup, translations, embeds, settings, activities, views }: ApiDeps): Hono<AdminEnv> {
+export function createApiRoutes({ service, render, deploy, images, cleanup, translations, embeds, settings, activities, projects, views }: ApiDeps): Hono<AdminEnv> {
   const api = new Hono<AdminEnv>();
 
   // ── 글 ─────────────────────────────────────────────
@@ -201,6 +204,26 @@ export function createApiRoutes({ service, render, deploy, images, cleanup, tran
     return c.body(null, 204);
   });
 
+  // ── 프로젝트 (설계 18) ──────────────────────────────
+  /** 목록 (보이는 순서). ?deleted=1이면 휴지통(지운 것, 최근 순) */
+  api.get("/projects", async (c) => c.json(await requireProjects(projects).list({ deleted: c.req.query("deleted") === "1" })));
+  api.post("/projects", async (c) => c.json(await requireProjects(projects).create(await readJson(c)), 201));
+  /** 순서 바꾸기 { ids: [...] } → 새 목록 */
+  api.put("/projects/order", async (c) => c.json(await requireProjects(projects).reorder(await readJson(c))));
+  api.get("/projects/:id", async (c) => c.json(await requireProjects(projects).get(projectIdParam(c))));
+  api.put("/projects/:id", async (c) => c.json(await requireProjects(projects).update(projectIdParam(c), await readJson(c))));
+  /** 휴지통으로 */
+  api.delete("/projects/:id", async (c) => {
+    await requireProjects(projects).remove(projectIdParam(c));
+    return c.body(null, 204);
+  });
+  api.post("/projects/:id/restore", async (c) => c.json(await requireProjects(projects).restore(projectIdParam(c))));
+  /** 완전 삭제 (휴지통에 있는 것만) */
+  api.delete("/projects/:id/purge", async (c) => {
+    await requireProjects(projects).purge(projectIdParam(c));
+    return c.body(null, 204);
+  });
+
   // ── 임베드 (설계 13-9) ──────────────────────────────
   /** 카드 정보: 저장된 게 새것이면 그대로, 아니면 받아서 저장. 임베드 대상 주소가 아니면 404 */
   api.get("/embeds", async (c) => {
@@ -237,6 +260,18 @@ function requireActivities(activities: ActivityService | undefined): ActivitySer
 function activityIdParam(c: Context<AdminEnv>): number {
   const raw = c.req.param("id") ?? "";
   if (!/^[1-9]\d*$/.test(raw) || !Number.isSafeInteger(Number(raw))) throw new HttpError("not_found", "활동을 찾을 수 없어요");
+  return Number(raw);
+}
+
+function requireProjects(projects: ProjectService | undefined): ProjectService {
+  if (!projects) throw new HttpError("unavailable", "프로젝트 기능이 설정되지 않았어요");
+  return projects;
+}
+
+/** 주소의 프로젝트 :id. 숫자가 아니면 404 */
+function projectIdParam(c: Context<AdminEnv>): number {
+  const raw = c.req.param("id") ?? "";
+  if (!/^[1-9]\d*$/.test(raw) || !Number.isSafeInteger(Number(raw))) throw new HttpError("not_found", "프로젝트를 찾을 수 없어요");
   return Number(raw);
 }
 

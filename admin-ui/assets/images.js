@@ -37,6 +37,7 @@ function formatSize(bytes) {
 function ownerLink(owner) {
   if (owner.kind === "post") return el("a", { href: `/posts/edit/${owner.id}` }, owner.title);
   if (owner.kind === "activity") return el("a", { href: "/activities" }, `활동: ${owner.title}`);
+  if (owner.kind === "project") return el("a", { href: "/projects" }, `프로젝트: ${owner.title}`);
   return el("a", { href: "/settings" }, "사이트 설정");
 }
 

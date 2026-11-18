@@ -8,6 +8,7 @@
 import { D1ViewsRepository } from "../stats/views.ts";
 import { D1ImageUseSource, ImageCleanupService } from "../images/cleanup.ts";
 import { D1ActivityRepository, ActivityService } from "../activities/activities.ts";
+import { D1ProjectRepository, ProjectService } from "../projects/projects.ts";
 import type { Hono } from "hono";
 import { createAdminApp } from "../admin/app.ts";
 import { accessAuthenticator, denyAllAuthenticator, localDevAuthenticator } from "../admin/auth.ts";
@@ -97,6 +98,7 @@ function buildApp(env: AdminWorkerEnv): Hono<AdminEnv> {
     cleanup: env.IMAGES ? new ImageCleanupService(new D1ImageRepository(env.DB), new R2ImageStore(env.IMAGES), new D1ImageUseSource(env.DB)) : undefined,
     settings: new SettingsService(new D1SettingsRepository(env.DB)),
     activities: new ActivityService(new D1ActivityRepository(env.DB)),
+    projects: new ProjectService(new D1ProjectRepository(env.DB)),
     views: new D1ViewsRepository(env.DB),
     // 임베드 카드: 정보는 D1, 대표 그림은 R2(이미지와 같은 버킷), GitHub API는 배포 토큰이 있으면 같이 (요청 한도용)
     embeds: new EmbedService(new D1EmbedRepository(env.DB), { bucket: env.IMAGES, githubToken: env.GITHUB_DEPLOY_TOKEN }),

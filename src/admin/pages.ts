@@ -23,6 +23,7 @@ export interface AssetFetcher {
  *   /tags             → tags.html    태그
  *   /settings         → settings.html 사이트 설정 (설계 15-3)
  *   /activities           → activities.html 활동 쓰기 (설계 15-5)
+ *   /projects             → projects.html   프로젝트 (설계 18)
  *   /trash            → trash.html   휴지통
  *   /assets/…         → 그대로       CSS·JS
  */
@@ -40,6 +41,7 @@ export function createPageRoutes(assets: AssetFetcher): Hono<AdminEnv> {
   pages.get("/tags", serve("/tags.html"));
   pages.get("/settings", serve("/settings.html"));
   pages.get("/activities", serve("/activities.html"));
+  pages.get("/projects", serve("/projects.html"));
   pages.get("/images", serve("/images.html"));
   pages.get("/trash", serve("/trash.html"));
   pages.get("/assets/*", (c) => serveFile(c, assets, c.req.path));

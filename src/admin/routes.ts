@@ -212,6 +212,8 @@ export function createApiRoutes({ service, render, deploy, images, cleanup, tran
   api.put("/projects/order", async (c) => c.json(await requireProjects(projects).reorder(await readJson(c))));
   api.get("/projects/:id", async (c) => c.json(await requireProjects(projects).get(projectIdParam(c))));
   api.put("/projects/:id", async (c) => c.json(await requireProjects(projects).update(projectIdParam(c), await readJson(c))));
+  /** 본문만 저장 { body } (설계 18-7 본문 편집 화면) */
+  api.put("/projects/:id/body", async (c) => c.json(await requireProjects(projects).updateBody(projectIdParam(c), await readJson(c))));
   /** 휴지통으로 */
   api.delete("/projects/:id", async (c) => {
     await requireProjects(projects).remove(projectIdParam(c));

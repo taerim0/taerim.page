@@ -24,6 +24,7 @@ export interface AssetFetcher {
  *   /settings         → settings.html 사이트 설정 (설계 15-3)
  *   /activities           → activities.html 활동 쓰기 (설계 15-5)
  *   /projects             → projects.html   프로젝트 (설계 18)
+ *   /projects/edit/:id    → project-edit.html 프로젝트 본문 편집 (설계 18-7)
  *   /trash            → trash.html   휴지통
  *   /assets/…         → 그대로       CSS·JS
  */
@@ -42,6 +43,7 @@ export function createPageRoutes(assets: AssetFetcher): Hono<AdminEnv> {
   pages.get("/settings", serve("/settings.html"));
   pages.get("/activities", serve("/activities.html"));
   pages.get("/projects", serve("/projects.html"));
+  pages.get("/projects/edit/:id{[1-9][0-9]*}", serve("/project-edit.html"));
   pages.get("/images", serve("/images.html"));
   pages.get("/trash", serve("/trash.html"));
   pages.get("/assets/*", (c) => serveFile(c, assets, c.req.path));

@@ -651,3 +651,5 @@ span.tag-caret { cursor: default; }
 .project-trash-row .activity-item-title { flex: 1; min-width: 0; }
 .project-trash-row .button { padding: 2px 8px; font-size: .85em; }
 #project-form select { min-height: 36px; }
+.project-body-field { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 0; }
+.project-body-label { font-weight: 600; }

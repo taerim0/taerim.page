@@ -264,6 +264,10 @@ export const projectsApi = {
   create: (input) => request("POST", "/projects", input),
   /** @param {number} id @param {ProjectInput} input @returns {Promise<Project>} */
   update: (id, input) => request("PUT", `/projects/${id}`, input),
+  /** @param {number} id @returns {Promise<Project>} */
+  get: (id) => request("GET", `/projects/${id}`),
+  /** 본문만 저장 @param {number} id @param {string} body @returns {Promise<Project>} */
+  updateBody: (id, body) => request("PUT", `/projects/${id}/body`, { body }),
   /** 지금 프로젝트 번호 전부를 새 순서로 @param {number[]} ids @returns {Promise<Project[]>} */
   reorder: (ids) => request("PUT", "/projects/order", { ids }),
   /** 휴지통으로 @param {number} id @returns {Promise<void>} */

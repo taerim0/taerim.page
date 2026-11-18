@@ -160,6 +160,8 @@ export interface ProjectRepository {
   create(input: ProjectInput, at: string): Promise<Project>;
   /** 없거나 지운 것이면 null */
   update(id: number, input: ProjectInput, at: string): Promise<Project | null>;
+  /** 본문만 바꿈 (설계 18-7 본문 편집 화면). 없거나 지운 것이면 null */
+  updateBody(id: number, body: string, at: string): Promise<Project | null>;
   /** 순서를 이 id 목록대로 0, 1, 2 …로 다시 매김 (지우지 않은 것만) */
   reorder(ids: readonly number[]): Promise<void>;
   /** 지움 표시 / 되살리기. 없으면 false */
@@ -195,6 +197,14 @@ export class MemoryProjectRepository implements ProjectRepository {
     const project = { ...row, ...input, tags: sortTagNames(input.tags), updatedAt: at };
     this.#rows.set(id, project);
     return copy(project);
+  }
+
+  async updateBody(id: number, body: string, at: string) {
+    const row = this.#rows.get(id);
+    if (!row || row.deletedAt !== null) return null;
+    row.body = body;
+    row.updatedAt = at;
+    return copy(row);
   }
 
   async reorder(ids: readonly number[]) {
@@ -320,6 +330,11 @@ export class D1ProjectRepository implements ProjectRepository {
     return this.get(id);
   }
 
+  async updateBody(id: number, body: string, at: string) {
+    const result = await this.#db.prepare("UPDATE projects SET body = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL").bind(body, at, id).run();
+    return result.meta.changes > 0 ? this.get(id) : null;
+  }
+
   async reorder(ids: readonly number[]) {
     if (ids.length === 0) return;
     await this.#db.batch(ids.map((id, index) => this.#db.prepare("UPDATE projects SET sort_order = ? WHERE id = ? AND deleted_at IS NULL").bind(index, id)));
@@ -364,6 +379,17 @@ export class ProjectService {
 
   async update(id: number, raw: unknown): Promise<Project> {
     const project = await this.#repo.update(id, validateProject(raw), this.#now().toISOString());
+    if (!project) throw new NotFoundError("프로젝트를 찾을 수 없어요 (휴지통에 있으면 먼저 되살려 주세요)");
+    return project;
+  }
+
+  /** 본문만 저장 { body } (설계 18-7). 끝 공백 정리, 길이 제한 */
+  async updateBody(id: number, raw: unknown): Promise<Project> {
+    const body = typeof raw === "object" && raw !== null && "body" in raw ? (raw as { body: unknown }).body : undefined;
+    if (typeof body !== "string") throw new ValidationError([{ field: "body", message: "본문은 글자여야 해요" }]);
+    const cleaned = body.replace(/\s+$/, "");
+    if (charCount(cleaned) > PROJECT_LIMITS.body) throw new ValidationError([{ field: "body", message: `${PROJECT_LIMITS.body.toLocaleString("ko-KR")}자까지예요` }]);
+    const project = await this.#repo.updateBody(id, cleaned, this.#now().toISOString());
     if (!project) throw new NotFoundError("프로젝트를 찾을 수 없어요 (휴지통에 있으면 먼저 되살려 주세요)");
     return project;
   }

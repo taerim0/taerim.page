@@ -6,6 +6,7 @@
  * - 저장 = 새 것이면 POST, 있던 거면 PUT. 칸별 오류는 칸 아래. 공개 사이트는 [배포]해야 바뀜
  * - 태그는 글·노트와 같은 태그 (이미 있는 태그는 datalist로 고르기). 상하관계는 태그 화면에서
  * - [휴지통으로] → 왼쪽 아래 휴지통에서 되살리기·완전 삭제
+ * - 본문은 [본문 편집 →] 따로 화면 (설계 18-7, /projects/edit/:id)
  * - 저장 안 하고 다른 프로젝트로 가거나 떠나면 확인
  */
 import { ApiError, listTags, projectsApi } from "./api.js";
@@ -16,9 +17,9 @@ import { clearNotice, confirmDialog, el, formatDateTime, notify } from "./ui.js"
 /** @typedef {import("./api.js").Project} Project */
 /** @typedef {import("./api.js").ProjectInput} ProjectInput */
 
-const TEXT_FIELDS = /** @type {const} */ (["title", "summary", "startedOn", "endedOn", "status", "repoUrl", "siteUrl", "thumbnail", "body"]);
+const TEXT_FIELDS = /** @type {const} */ (["title", "summary", "startedOn", "endedOn", "status", "repoUrl", "siteUrl", "thumbnail"]);
 /** 서버 제한과 같게 (src/projects/projects.ts PROJECT_LIMITS) */
-const LIMITS = { title: 100, summary: 200, body: 50000 };
+const LIMITS = { title: 100, summary: 200 };
 const TAG_COUNT = 10;
 const STATUS_NAMES = { active: "진행 중", done: "끝남", paused: "쉬는 중" };
 
@@ -58,7 +59,8 @@ function currentInput() {
     status: /** @type {ProjectInput["status"]} */ (inputs.status.value),
     repoUrl: optional(inputs.repoUrl.value),
     siteUrl: optional(inputs.siteUrl.value),
-    body: inputs.body.value,
+    // 본문은 본문 편집 화면에서 (설계 18-7). 여기서는 있던 그대로 보냄
+    body: current?.body ?? "",
     tags: [...tags],
     visible: visibleBox.checked,
   };
@@ -80,7 +82,15 @@ function fill(project) {
   inputs.repoUrl.value = project?.repoUrl ?? "";
   inputs.siteUrl.value = project?.siteUrl ?? "";
   inputs.thumbnail.value = project?.thumbnail ?? "";
-  inputs.body.value = project?.body ?? "";
+  const bodyLink = /** @type {HTMLAnchorElement} */ ($("body-link"));
+  bodyLink.hidden = project === null;
+  if (project) bodyLink.href = `/projects/edit/${project.id}`;
+  const length = charCount(project?.body ?? "");
+  $("body-state").textContent = project === null
+    ? "먼저 저장하면 본문을 쓸 수 있어요"
+    : length === 0
+      ? "비어 있음 (비어 있으면 카드 이름은 사이트·GitHub로)"
+      : `${length.toLocaleString("ko-KR")}자 (카드를 누르면 상세 페이지)`;
   visibleBox.checked = project?.visible ?? true;
   tags = [...(project?.tags ?? [])];
   saved = snapshot();

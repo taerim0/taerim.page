@@ -17,7 +17,7 @@ import { kindOf } from "../posts/types.ts";
 import type { Post, TagCount, TagParent } from "../posts/types.ts";
 import type { ImageInfo } from "../images/types.ts";
 import type { PublishedTranslation } from "../translations/types.ts";
-import { formatDate, formatDay, LOCALES, localizedPath, SOURCE_LOCALE } from "./i18n.ts";
+import { formatDate, formatDay, LOCALES, localizedPath, MESSAGES, SOURCE_LOCALE } from "./i18n.ts";
 import type { Locale } from "./i18n.ts";
 import { imageSizeMap } from "./images.ts";
 import type { ImageSize } from "./images.ts";
@@ -123,6 +123,10 @@ export async function buildSite({ site: baseSite, settings, activities = [], pro
   const noteTags = countTags(publishedNotes);
   const projectTags = countTags(shownProjects);
   const allTags = mergeTagCounts([postTags, noteTags, projectTags]);
+  // 설계 20-2: 항목의 태그 순서 = 많이 쓰인 순(글 + 노트 + 프로젝트), 같으면 이름순. 카드·줄·페이지·RSS가 모두 이 순서
+  const usage = new Map(allTags.map((tag) => [tag.name, tag.count]));
+  const byUsage = (a: string, b: string) => (usage.get(b) ?? 0) - (usage.get(a) ?? 0) || compareTagNames(a, b);
+  for (const item of [...published, ...shownProjects]) item.tags = [...item.tags].sort(byUsage);
   /** 태그 페이지 위아래 길잡이: 하위 태그는 그 갈래에 있는 것만 */
   const navOf = (name: string, scopeTags: readonly TagCount[]): TagNav => ({ ancestors: tree.ancestorsOf(name), children: scopeTags.filter((tag) => tree.parentOf(tag.name) === name) });
   /** 글 목록·태그 페이지 왼쪽 카드 (설계 16-9) — 글만 셈 (설계 19) */
@@ -152,7 +156,7 @@ export async function buildSite({ site: baseSite, settings, activities = [], pro
       homePage({ site, locale, profile, posts: cardsOf(publishedPosts.slice(0, HOME_POST_COUNT)), tags: allTags, tree, imageSizes, activities: archiveActivities.slice(0, HOME_ACTIVITY_COUNT), notes: cardsOf(publishedNotes.slice(0, HOME_NOTE_COUNT)), projects: shownProjects.slice(0, HOME_PROJECT_COUNT) }),
     );
     // 아카이브 (설계 15-5): 글 + 활동을 연 → 월로
-    await add(localizedPath(locale, ARCHIVE_PATH), archivePage({ site, locale, years: groupArchive(cardsOf(published), archiveActivities) }));
+    await add(localizedPath(locale, ARCHIVE_PATH), archivePage({ site, locale, years: groupArchive(cardsOf(published), archiveActivities, shownProjects) }));
     for (const [path, page] of listPages(site, locale, cardsOf(publishedPosts), POSTS_PATH, imageSizes, undefined, undefined, browse)) await add(path, page);
     // 노트 목록 (설계 17): 한 줄씩, 한 페이지
     await add(localizedPath(locale, NOTES_PATH), notesPage({ site, locale, notes: cardsOf(publishedNotes), browse: notesBrowse }));
@@ -245,7 +249,7 @@ export async function buildSite({ site: baseSite, settings, activities = [], pro
 
     // 검색 (설계 15-7): 페이지 + 검색 파일 둘 (제목·태그·요약 / 본문)
     await add(localizedPath(locale, SEARCH_PATH), searchPage({ site, locale }));
-    const search = searchFiles(locale, cardsOf(published), bodyHtmlOf, archiveActivities);
+    const search = searchFiles(locale, cardsOf(published), bodyHtmlOf, archiveActivities, shownProjects);
     files.set(localizedPath(locale, SEARCH_INDEX_PATH), JSON.stringify(search.index));
     files.set(localizedPath(locale, SEARCH_BODY_PATH), JSON.stringify(search.bodies));
 
@@ -262,7 +266,7 @@ export async function buildSite({ site: baseSite, settings, activities = [], pro
 }
 
 /** 검색 파일 내용: 글(최신 순) 다음 활동(최신 순). 본문은 HTML을 걷어낸 글자 */
-function searchFiles(locale: Locale, cards: PostCardData[], bodyHtmlOf: ReadonlyMap<number, string>, activities: ArchiveActivity[]): { index: SearchIndex; bodies: SearchBodies } {
+function searchFiles(locale: Locale, cards: PostCardData[], bodyHtmlOf: ReadonlyMap<number, string>, activities: ArchiveActivity[], projects: readonly Project[] = []): { index: SearchIndex; bodies: SearchBodies } {
   const korean = (untranslated: boolean) => (untranslated && locale !== SOURCE_LOCALE ? { l: SOURCE_LOCALE, kr: true as const } : {});
   const items: SearchItem[] = [];
   const bodies: string[] = [];
@@ -295,6 +299,22 @@ function searchFiles(locale: Locale, cards: PostCardData[], bodyHtmlOf: Readonly
       ...(locale !== SOURCE_LOCALE && (activity.titleLang || activity.bodyLang) ? { kr: true as const } : {}),
     });
     bodies.push(htmlToText(activity.bodyHtml));
+  }
+  // 프로젝트 (설계 20-4): 이름·소개·태그·본문, 누르면 카드와 같은 곳. 날짜는 시작한 달 1일(정렬용), 보이는 건 기간 · 상태
+  const m = MESSAGES[locale];
+  for (const project of projects) {
+    const detail = hasProjectDetail(project);
+    items.push({
+      k: "project",
+      u: detail ? localizedPath(locale, projectPath(project.id)) : (project.siteUrl ?? project.repoUrl ?? localizedPath(locale, PROJECTS_PATH)),
+      t: project.title,
+      d: `${project.startedOn}-01`,
+      dt: `${m.projectPeriod(project.startedOn, project.endedOn)} · ${m.projectStatus[project.status]}`,
+      g: project.tags,
+      s: project.summary ?? "",
+      ...(locale !== SOURCE_LOCALE ? { l: SOURCE_LOCALE, kr: true as const } : {}),
+    });
+    bodies.push(detail ? htmlToText(renderDocument(project.body).html) : "");
   }
   return { index: { items }, bodies: { b: bodies } };
 }

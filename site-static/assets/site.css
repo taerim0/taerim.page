@@ -666,3 +666,29 @@ a.project-image { display: block; }
 .project-link.has-label { width: auto; gap: 5px; padding: 0 10px; font-size: .9em; text-decoration: none; }
 .project-related { margin-top: 16px; padding-top: 18px; }
 .project-related .note-lines:last-child { padding-bottom: 12px; }
+
+/* ── 설계 20: 태그 줄 줄이기 · 아카이브 프로젝트·고르기 · 검색 블록 ── */
+/* 태그 줄: n줄까지, 넘치면 방문자 스크립트가 숨기고 "… +k" (JS 없으면 잘린 채) */
+.tag-clamp { position: relative; display: flex; flex-wrap: wrap; min-width: 0; }
+.post-meta .tag-clamp { flex: 1 1 0; gap: 2px 10px; }
+.note-line-tags.tag-clamp { flex: 0 1 auto; max-width: 100%; }
+.tag-clamp > [hidden] { display: none !important; }
+html:not(.js) .tag-clamp[data-lines="1"] { max-height: 1.9em; overflow: hidden; }
+html:not(.js) .tag-clamp[data-lines="2"] { max-height: 4em; overflow: hidden; }
+.tag-more { color: var(--muted) !important; cursor: default; white-space: nowrap; }
+.project-tags .tag-more { border-style: dashed; border-color: var(--line); }
+/* 아카이브 프로젝트 줄 */
+.kind-project { background: var(--accent-soft); color: var(--accent); }
+.archive-list .project-status { margin-left: 8px; font-size: .75em; }
+/* 아카이브 보일 것 고르기 (JS 있을 때만) */
+.archive-filter { display: none; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.js .archive-filter { display: flex; }
+.archive-filter button { padding: 3px 12px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--muted); font: inherit; font-size: .85em; cursor: pointer; }
+.archive-filter button[aria-pressed="true"] { border-color: var(--accent-line); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.archive-filter button:hover { border-color: var(--accent); }
+.archive-list > li[hidden], .archive-year[hidden], .archive-years a[hidden] { display: none; }
+/* 검색 블록: 결과 줄은 그대로, 종류별로 묶음 */
+.search-group { margin-top: 16px; }
+.search-group-head { margin: 0 0 4px; padding-bottom: 6px; border-bottom: 1px solid var(--line); font-size: 1em; }
+.search-group-head .count { margin-left: 4px; color: var(--muted); font-weight: 400; font-size: .85em; }
+.search-group-list { list-style: none; margin: 0; padding: 0; }

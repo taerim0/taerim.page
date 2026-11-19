@@ -9,8 +9,8 @@
 
 /** 검색 항목 하나 (글 또는 활동) */
 export interface SearchItem {
-  /** 종류: 글 / 활동 */
-  k: "post" | "note" | "activity";
+  /** 종류: 글 / 노트 / 활동 / 프로젝트 (설계 20-4) */
+  k: "post" | "note" | "activity" | "project";
   /** 누르면 갈 주소 */
   u: string;
   /** 제목 */
@@ -102,9 +102,10 @@ const FIELD_RANK = { title: 0, tags: 1, summary: 2, body: 3 } as const;
  * 찾기. 모든 낱말이 (제목·태그·요약·본문 중 어디든) 들어 있는 항목만, 순위 → 날짜 최신 → 원래 순서.
  * bodies가 없으면(아직 안 받음) 본문은 빼고 찾는다
  */
-export function search(query: string, index: SearchIndex, bodies: SearchBodies | null = null, limit = SEARCH_RESULT_LIMIT): { total: number; results: SearchResult[] } {
+export function search(query: string, index: SearchIndex, bodies: SearchBodies | null = null, limit = SEARCH_RESULT_LIMIT): { total: number; results: SearchResult[]; counts: Record<SearchItem["k"], number> } {
   const terms = queryTerms(query);
-  if (terms.length === 0) return { total: 0, results: [] };
+  const counts: Record<SearchItem["k"], number> = { post: 0, note: 0, project: 0, activity: 0 };
+  if (terms.length === 0) return { total: 0, results: [], counts };
   const found: { item: SearchItem; score: number; order: number; body: string }[] = [];
   index.items.forEach((item, order) => {
     const body = bodies?.b[order] ?? "";
@@ -118,7 +119,10 @@ export function search(query: string, index: SearchIndex, bodies: SearchBodies |
     found.push({ item, score, order, body });
   });
   found.sort((a, b) => a.score - b.score || (a.item.d === b.item.d ? a.order - b.order : a.item.d < b.item.d ? 1 : -1));
+  // 블록마다 개수 (설계 20-4): 보이는 것만이 아니라 찾은 것 전부
+  for (const { item } of found) counts[item.k]++;
   return {
+    counts,
     total: found.length,
     results: found.slice(0, limit).map(({ item, body }) => ({ item, excerpt: excerpt(terms, [item.s, body]) })),
   };

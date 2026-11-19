@@ -4,6 +4,7 @@
  */
 import { formatDate } from "./i18n.ts";
 import type { PostCardData } from "./templates.ts";
+import type { Project } from "../projects/projects.ts";
 
 /** 아카이브의 활동 한 줄 (언어에 맞게 고른 제목·내용) */
 export interface ArchiveActivity {
@@ -24,11 +25,14 @@ export interface ArchiveActivity {
 
 export type ArchiveEntry =
   | { kind: "post"; date: string; post: PostCardData }
-  | { kind: "activity"; date: string; activity: ArchiveActivity };
+  | { kind: "activity"; date: string; activity: ArchiveActivity }
+  /** 설계 20-5: 시작한 달 1일로 셈 */
+  | { kind: "project"; date: string; project: Project };
 
 export interface ArchiveCounts {
   posts: number;
   activities: number;
+  projects: number;
 }
 
 export interface ArchiveMonth extends ArchiveCounts {
@@ -51,10 +55,11 @@ export function postDate(post: PostCardData): string {
  * 최신부터 연 → 월로 묶음. 같은 날이면 글(최신 공개 순) 다음에 활동(id 큰 것 먼저).
  * posts는 이미 최신 공개 순, activities는 날짜·id 최신 순이라고 가정하지 않고 여기서 정렬한다
  */
-export function groupArchive(posts: readonly PostCardData[], activities: readonly ArchiveActivity[]): ArchiveYear[] {
+export function groupArchive(posts: readonly PostCardData[], activities: readonly ArchiveActivity[], projects: readonly Project[] = []): ArchiveYear[] {
   const entries: (ArchiveEntry & { order: number })[] = [
     ...posts.map((post, i) => ({ kind: "post" as const, date: postDate(post), post, order: i })),
     ...[...activities].sort((a, b) => b.id - a.id).map((activity, i) => ({ kind: "activity" as const, date: activity.date, activity, order: posts.length + i })),
+    ...projects.map((project, i) => ({ kind: "project" as const, date: `${project.startedOn}-01`, project, order: posts.length + activities.length + i })),
   ];
   // 날짜 내림차순, 같은 날이면 들어온 순서 (글 최신 순 → 활동)
   entries.sort((a, b) => (a.date === b.date ? a.order - b.order : a.date < b.date ? 1 : -1));
@@ -64,11 +69,11 @@ export function groupArchive(posts: readonly PostCardData[], activities: readonl
     const year = Number(entry.date.slice(0, 4));
     const month = Number(entry.date.slice(5, 7));
     let y = years.at(-1);
-    if (!y || y.year !== year) years.push((y = { year, posts: 0, activities: 0, months: [] }));
+    if (!y || y.year !== year) years.push((y = { year, posts: 0, activities: 0, projects: 0, months: [] }));
     let m = y.months.at(-1);
-    if (!m || m.month !== month) y.months.push((m = { month, posts: 0, activities: 0, entries: [] }));
+    if (!m || m.month !== month) y.months.push((m = { month, posts: 0, activities: 0, projects: 0, entries: [] }));
     m.entries.push(entry);
-    const key = entry.kind === "post" ? "posts" : "activities";
+    const key = entry.kind === "post" ? "posts" : entry.kind === "project" ? "projects" : "activities";
     m[key]++;
     y[key]++;
   }

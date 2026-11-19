@@ -352,7 +352,7 @@ function noteLines(locale: Locale, notes: PostCardData[], { tags }: { tags: bool
   return html`<ul class="note-lines">${notes.map((note) => {
     const korean = note.untranslated === true && locale !== SOURCE_LOCALE;
     const date = note.publishedAt ?? note.updatedAt;
-    return html`<li><time datetime="${date}">${formatDay(formatDate(date, SOURCE_LOCALE), locale)}</time><span class="note-line-title"><a href="${localizedPath(locale, entryPath(note))}"${korean ? html` lang="ko"` : ""}>${note.title}</a>${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</span>${tags && note.tags.length > 0 ? html`<span class="note-line-tags">${note.tags.map((tag) => html`<a class="tag" href="${localizedPath(locale, scopedTagPath("notes", tag))}">#${tag}</a>`)}</span>` : ""}</li>`;
+    return html`<li><time datetime="${date}">${formatDay(formatDate(date, SOURCE_LOCALE), locale)}</time><span class="note-line-title"><a href="${localizedPath(locale, entryPath(note))}"${korean ? html` lang="ko"` : ""}>${note.title}</a>${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</span>${tags && note.tags.length > 0 ? html`<span class="note-line-tags tag-clamp" data-lines="1">${note.tags.map((tag) => html`<a class="tag" href="${localizedPath(locale, scopedTagPath("notes", tag))}">#${tag}</a>`)}</span>` : ""}</li>`;
   })}</ul>`;
 }
 
@@ -386,13 +386,18 @@ function browseCards(locale: Locale, browse: ListBrowse, current: string | undef
         </section>`}`;
 }
 
+/** 글·노트의 태그 링크 (그 종류의 탭 안으로, 설계 19) */
+function tagLinks(locale: Locale, post: PostCardData): Html[] {
+  return post.tags.map((tag) => html` <a class="tag" href="${localizedPath(locale, scopedTagPath(post.kind === "note" ? "notes" : "posts", tag))}">#${tag}</a>`);
+}
+
 /** 공개 날짜 + 태그 링크 */
 /** 날짜 · (글 페이지만) 조회 수 · 태그 */
-function postMeta(locale: Locale, post: PostCardData, views?: number): Html {
+function postMeta(locale: Locale, post: PostCardData, views?: number, clamp = false): Html {
   return html`<p class="post-meta">
         ${post.publishedAt ? html`<time datetime="${post.publishedAt}">${formatDate(post.publishedAt, locale)}</time>` : ""}
         ${views ? html` <span class="post-views">${MESSAGES[locale].views(views)}</span>` : ""}
-        ${post.tags.map((tag) => html` <a class="tag" href="${localizedPath(locale, scopedTagPath(post.kind === "note" ? "notes" : "posts", tag))}">#${tag}</a>`)}
+        ${clamp && post.tags.length > 0 ? html`<span class="tag-clamp" data-lines="1">${tagLinks(locale, post)}</span>` : tagLinks(locale, post)}
       </p>`;
 }
 
@@ -718,7 +723,7 @@ function featuredCard(site: SiteConfig, locale: Locale, post: PostCardData, imag
           <div class="featured-text">
             <h3 class="featured-title"${korean ? html` lang="ko"` : ""}><a href="${localizedPath(locale, entryPath(post))}">${post.title}</a>${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</h3>
             ${post.summary ? html`<p class="summary"${korean ? html` lang="ko"` : ""}>${post.summary}</p>` : ""}
-            ${postMeta(locale, post)}
+            ${postMeta(locale, post, undefined, true)}
           </div>
         </article>`;
 }
@@ -732,7 +737,7 @@ function postRow(locale: Locale, post: PostCardData, imageSizes?: ReadonlyMap<st
             <div class="post-row-text">
               <h3 class="post-row-title"${korean ? html` lang="ko"` : ""}><a href="${localizedPath(locale, entryPath(post))}">${post.title}</a>${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</h3>
               ${post.summary ? html`<p class="summary"${korean ? html` lang="ko"` : ""}>${post.summary}</p>` : ""}
-              ${postMeta(locale, post)}
+              ${postMeta(locale, post, undefined, true)}
             </div>
             ${post.thumbnail ? html`<img class="post-row-thumb" src="${post.thumbnail}" alt=""${size ? html` width="${size.width}" height="${size.height}"` : ""} loading="lazy">` : ""}
           </li>`;
@@ -774,6 +779,16 @@ export function archivePage({ site, locale = SOURCE_LOCALE, years }: { site: Sit
       <div class="archive-top">
         <div>
           <h1 class="list-heading">${m.archiveHeading}</h1>
+          ${years.length === 0
+            ? ""
+            : html`<div class="archive-filter" role="group" aria-label="${m.archiveFilterLabel}">${(
+                [
+                  ["post", m.postBadge],
+                  ["note", m.noteBadge],
+                  ["activity", m.activityBadge],
+                  ["project", m.projectBadge],
+                ] as const
+              ).map(([kind, label]) => html`<button type="button" data-archive-kind="${kind}" aria-pressed="true">${label}</button>`)}</div>`}
         </div>
         ${years.length === 0
           ? ""
@@ -781,6 +796,7 @@ export function archivePage({ site, locale = SOURCE_LOCALE, years }: { site: Sit
               (y, i) => html`<a href="#year-${y.year}"${i === 0 ? html` class="is-latest"` : ""}>${y.year}</a>`,
             )}</nav>`}
       </div>
+      <p class="empty card archive-filter-empty" hidden>${m.archiveFilterEmpty}</p>
       ${years.length === 0
         ? html`<p class="empty card">${m.emptyPosts}</p>`
         : years.map(
@@ -789,7 +805,9 @@ export function archivePage({ site, locale = SOURCE_LOCALE, years }: { site: Sit
         <ul class="archive-list">${y.months.flatMap((month) => month.entries).map((entry) =>
           entry.kind === "post"
             ? archivePostLine(locale, entry.date, entry.post)
-            : archiveActivityLine(locale, entry.activity),
+            : entry.kind === "project"
+              ? archiveProjectLine(locale, entry.project)
+              : archiveActivityLine(locale, entry.activity),
         )}</ul>
       </section>`,
           )}
@@ -814,8 +832,8 @@ function activityBadge(locale: Locale, activity: Pick<ArchiveActivity, "label" |
 function archiveActivityLine(locale: Locale, activity: ArchiveActivity): Html {
   const head = html`<time datetime="${activity.date}">${archiveDate(activity.date)}</time> ${activityBadge(locale, activity)} <span class="archive-activity-title"><span${activity.titleLang ? html` lang="${activity.titleLang}"` : ""}>${activity.title}</span>${activityKr(locale, activity)}</span>`;
   const id = activityAnchor(activity.id);
-  if (!activity.bodyHtml) return html`<li class="archive-activity" id="${id}"><p class="archive-activity-head">${head}</p></li>`;
-  return html`<li class="archive-activity has-body" id="${id}"><details class="archive-activity-toggle">
+  if (!activity.bodyHtml) return html`<li class="archive-activity" id="${id}" data-kind="activity"><p class="archive-activity-head">${head}</p></li>`;
+  return html`<li class="archive-activity has-body" id="${id}" data-kind="activity"><details class="archive-activity-toggle">
             <summary class="archive-activity-head">${head}</summary>
             <div class="post-body archive-activity-body"${activity.bodyLang ? html` lang="${activity.bodyLang}"` : ""}>${activity.bodyLang && locale !== SOURCE_LOCALE ? html`<p class="activity-untranslated" lang="${locale}">${MESSAGES[locale].activityUntranslated}</p>` : ""}${raw(activity.bodyHtml)}</div>
           </details></li>`;
@@ -827,6 +845,16 @@ function archiveDate(date: string): string {
 }
 
 /** 아카이브 꼬리표 아이콘 (설계 16-20, 직접 그림): 글 = 모서리 접힌 종이 + 글줄, 노트 = 왼쪽 스프링 공책 */
+/** 아카이브 프로젝트 줄 (설계 20-5): 시작한 달 · 꼬리표 · 이름(카드와 같은 링크) · 상태 */
+function archiveProjectLine(locale: Locale, project: Project): Html {
+  const m = MESSAGES[locale];
+  const korean = locale !== SOURCE_LOCALE;
+  const detail = hasProjectDetail(project) ? localizedPath(locale, projectPath(project.id)) : null;
+  const href = detail ?? project.siteUrl ?? project.repoUrl;
+  return html`<li class="archive-post is-project" data-kind="project"><time datetime="${project.startedOn}">${m.monthShort(Number(project.startedOn.slice(5, 7)))}</time> <span class="kind-badge kind-project">${raw(PROJECT_ICON)}${m.projectBadge}</span> <span class="archive-post-title">${href ? html`<a href="${href}"${detail ? "" : html` target="_blank" rel="noopener"`}${korean ? html` lang="ko"` : ""}>${project.title}</a>` : project.title}${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</span><span class="project-status is-${project.status}">${m.projectStatus[project.status]}</span></li>`;
+}
+
+const PROJECT_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 4.5h4.5l1.5 1.5h7v7.5h-13z" fill="none" stroke="currentColor" stroke-linejoin="round"></path></svg>';
 const POST_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.5h5.5L13 5v9.5H4z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M9.5 1.5V5H13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6.3 8.2h4.4M6.3 11h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
 const NOTE_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="1.5" width="9.5" height="13" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M2.5 4.5h3M2.5 8h3M2.5 11.5h3M8 5.5h3.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
 
@@ -840,7 +868,7 @@ function archivePostLine(locale: Locale, date: string, post: PostCardData): Html
   const korean = post.untranslated === true && locale !== SOURCE_LOCALE;
   const note = post.kind === "note";
   const badge = html`<span class="kind-badge ${note ? "kind-note" : "kind-post"}">${raw(note ? NOTE_ICON : POST_ICON)}${note ? m.noteBadge : m.postBadge}</span>`;
-  return html`<li class="archive-post${note ? " is-note" : ""}"><time datetime="${date}">${archiveDate(date)}</time> ${badge} <span class="archive-post-title"><a href="${localizedPath(locale, entryPath(post))}"${korean ? html` lang="ko"` : ""}>${post.title}</a>${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</span>${post.tags.length > 0 ? html`<span class="archive-tags">${post.tags.slice(0, 2).map((tag) => `#${tag}`).join(" ")}</span>` : ""}</li>`;
+  return html`<li class="archive-post${note ? " is-note" : ""}" data-kind="${note ? "note" : "post"}"><time datetime="${date}">${archiveDate(date)}</time> ${badge} <span class="archive-post-title"><a href="${localizedPath(locale, entryPath(post))}"${korean ? html` lang="ko"` : ""}>${post.title}</a>${korean ? html` <span class="lang-badge" title="${m.koreanOnlyTitle}">${m.koreanOnly}</span>` : ""}</span>${post.tags.length > 0 ? html`<span class="archive-tags">${post.tags.slice(0, 2).map((tag) => `#${tag}`).join(" ")}</span>` : ""}</li>`;
 }
 
 // ── 검색 (설계 15-7) ─────────────────────────────────
@@ -861,12 +889,13 @@ export function searchPage({ site, locale = SOURCE_LOCALE }: { site: SiteConfig;
       data-index="${localizedPath(locale, SEARCH_INDEX_PATH)}" data-body="${localizedPath(locale, SEARCH_BODY_PATH)}"
       data-msg-count="${m.searchCount}" data-msg-more="${m.searchMore}" data-msg-none="${m.searchNone}"
       data-msg-loading="${m.searchLoadingBody}" data-msg-failed="${m.searchFailed}"
-      data-badge-activity="${m.activityBadge}" data-badge-note="${m.noteBadge}" data-badge-kr="${m.koreanOnly}" data-badge-kr-title="${m.koreanOnlyTitle}">
+      data-badge-activity="${m.activityBadge}" data-badge-note="${m.noteBadge}" data-badge-kr="${m.koreanOnly}" data-badge-kr-title="${m.koreanOnlyTitle}"
+      data-group-post="${m.navPosts}" data-group-note="${m.navNotes}" data-group-project="${m.navProjects}" data-group-activity="${m.searchGroupActivities}">
       <label class="visually-hidden" for="search-q">${m.searchLabel}</label>
       <input class="search-input" id="search-q" name="q" type="search" placeholder="${m.searchPlaceholder}" autocomplete="off" autofocus>
     </form>
     <p class="search-status" aria-live="polite"></p>
-    <ul class="search-results"></ul>
+    <div class="search-results"></div>
     <noscript><p class="empty">${m.searchNeedsJs} <a href="${localizedPath(locale, ARCHIVE_PATH)}">${m.archiveHeading}</a></p></noscript>
     </div>`;
   return layout({ site, locale, title: m.searchHeading, path: SEARCH_PATH, moduleScript: SEARCH_SCRIPT, section: "search", bodyClass: "page-plain", body });
@@ -1055,7 +1084,7 @@ function projectCard(site: SiteConfig, locale: Locale, project: Project, imageSi
             <span class="project-links">${project.repoUrl ? external(project.repoUrl, "GitHub", GITHUB_ICON) : ""}${project.siteUrl ? external(project.siteUrl, m.projectSite, SITE_ICON) : ""}</span>
           </div>
           ${project.tags.length > 0
-            ? html`<p class="project-tags">${project.tags.map((tag) => html`<a class="tag" href="${localizedPath(locale, scopedTagPath("projects", tag))}">#${tag}</a>`)}</p>`
+            ? html`<p class="project-tags tag-clamp" data-lines="2">${project.tags.map((tag) => html`<a class="tag" href="${localizedPath(locale, scopedTagPath("projects", tag))}">#${tag}</a>`)}</p>`
             : ""}
         </div>
       </article>`;

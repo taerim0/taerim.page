@@ -10,14 +10,17 @@
 import { search } from "./search.ts";
 import type { SearchBodies, SearchIndex, SearchResult } from "./search.ts";
 
+/** 블록 순서 (설계 20-4) */
+const KINDS = ["post", "note", "project", "activity"] as const;
+
 const form = document.querySelector<HTMLFormElement>(".search-form");
 const input = form?.querySelector<HTMLInputElement>(".search-input");
 const status = document.querySelector<HTMLElement>(".search-status");
-const list = document.querySelector<HTMLUListElement>(".search-results");
+const list = document.querySelector<HTMLElement>(".search-results");
 
 if (form && input && status && list) start(form, input, status, list);
 
-function start(form: HTMLFormElement, input: HTMLInputElement, status: HTMLElement, list: HTMLUListElement): void {
+function start(form: HTMLFormElement, input: HTMLInputElement, status: HTMLElement, list: HTMLElement): void {
   const data = form.dataset;
   const msg = (name: string, n?: number) => (data[name] ?? "").replace("{n}", String(n ?? ""));
   let index: SearchIndex | null = null;
@@ -61,10 +64,27 @@ function start(form: HTMLFormElement, input: HTMLInputElement, status: HTMLEleme
       return;
     }
     requestBodies();
-    const { total, results } = search(query, index, bodies);
+    const { total, results, counts } = search(query, index, bodies);
     const loading = bodies === null ? ` ${msg("msgLoading")}` : "";
     status.textContent = (total === 0 ? msg("msgNone") : total > results.length ? msg("msgMore", total) : msg("msgCount", total)) + loading;
-    list.replaceChildren(...results.map(resultItem));
+    // 설계 20-4: 결과 줄은 그대로, 종류별 큰 블록(글 → 노트 → 프로젝트 → 활동)으로 묶고 블록마다 개수
+    list.replaceChildren(
+      ...KINDS.filter((kind) => counts[kind] > 0).map((kind) => {
+        const section = document.createElement("section");
+        section.className = "search-group";
+        const head = document.createElement("h2");
+        head.className = "search-group-head";
+        const count = document.createElement("span");
+        count.className = "count";
+        count.textContent = String(counts[kind]);
+        head.append(msg(`group${kind[0]!.toUpperCase()}${kind.slice(1)}`), " ", count);
+        const ul = document.createElement("ul");
+        ul.className = "search-group-list";
+        ul.append(...results.filter((result) => result.item.k === kind).map(resultItem));
+        section.append(head, ul);
+        return section;
+      }),
+    );
   }
 
   function resultItem({ item, excerpt }: SearchResult): HTMLLIElement {

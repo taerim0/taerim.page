@@ -20,7 +20,7 @@ import { clearNotice, confirmDialog, el, formatDateTime, notify } from "./ui.js"
 const TEXT_FIELDS = /** @type {const} */ (["title", "summary", "startedOn", "endedOn", "status", "repoUrl", "siteUrl", "thumbnail"]);
 /** 서버 제한과 같게 (src/projects/projects.ts PROJECT_LIMITS) */
 const LIMITS = { title: 100, summary: 200 };
-const TAG_COUNT = 10;
+const TAG_COUNT = 30;
 const STATUS_NAMES = { active: "진행 중", done: "끝남", paused: "쉬는 중" };
 
 /** @param {string} id */

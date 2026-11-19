@@ -10,7 +10,8 @@ export const LIMITS = {
   body: 200_000,
   summary: 300,
   thumbnail: 500,
-  tagCount: 10,
+  /** 설계 20-1: 글·노트·프로젝트 모두 30개 */
+  tagCount: 30,
   tagLength: 50,
 } as const;
 
